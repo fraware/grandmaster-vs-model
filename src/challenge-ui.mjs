@@ -5,13 +5,14 @@
  */
 import {parseFen, play, toSquare} from './chess.mjs';
 import {createChallenge, scoreChallenge, challengeShareText} from './challenge.mjs';
+import {retrospectiveView} from './retro-view.mjs';
 
 const pieceGlyph = {K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟'};
 const pieceName = {K:'king', Q:'queen', R:'rook', B:'bishop', N:'knight', P:'pawn'};
 const get = id => document.getElementById(id);
 
 /** A privacy-preserving result card constructed without remote rendering. */
-export function drawChallengeCard(score, matches = null) {
+export function drawChallengeCard(score, matches = null, rivalScore = null) {
   if (!Number.isInteger(score?.correct) || score.correct < 0 || score.correct > 3 || score.total !== 3) {
     throw new Error('Invalid challenge score for export');
   }
@@ -46,7 +47,7 @@ export function drawChallengeCard(score, matches = null) {
   }
   ctx.fillStyle = '#e9efdb';
   ctx.font = '400 34px Georgia, serif';
-  ctx.fillText('Can you predict the grandmaster’s next move?', 72, 530);
+  ctx.fillText(rivalScore === null ? 'Can you predict the grandmaster’s next move?' : `Could you beat GPT? GPT scored ${rivalScore}/3.`, 72, 530);
   ctx.fillStyle = '#a9b9a6';
   ctx.font = '21px Arial, sans-serif';
   ctx.fillText('fraware.github.io/grandmaster-vs-model', 72, 575);
@@ -67,8 +68,11 @@ export function drawChallengeCard(score, matches = null) {
 }
 
 /** Initialize the challenge once its locally bundled archival game has passed validation. */
-export function mountChallenge(archive, replay) {
+export function mountChallenge(archive, replay, retrospective = null) {
   const questions = createChallenge(archive, replay);
+  let model = null;
+  try { model = retrospectiveView(retrospective, questions); }
+  catch { /* Bad optional evidence must not disable the verified historical game. */ }
   let index = 0;
   let selectedUci = null;
   let origin = null;
@@ -84,6 +88,9 @@ export function mountChallenge(archive, replay) {
   const choice = get('challenge-choice');
   const shareStatus = get('challenge-share-status');
   const mobileRevealButton = get('challenge-mobile-reveal');
+  if (model?.complete) {
+    setText('hero-subtitle', "Can you predict the grandmaster's moves better than a real GPT model? Three historical positions. No signup.");
+  }
 
   function setText(id, value) { get(id).textContent = value; }
   function drawPosition(q) {
@@ -185,6 +192,7 @@ export function mountChallenge(archive, replay) {
     revealButton.disabled = true;
     nextButton.hidden = true;
     feedback.hidden = true;
+    get('challenge-model-feedback').hidden = true;
     final.hidden = true;
     choice.hidden = false;
     get('challenge-prompt').hidden = false;
@@ -211,6 +219,12 @@ export function mountChallenge(archive, replay) {
     setText('challenge-answer-yours',`You chose ${q.legalMoves.find(m => m.uci === selectedUci).san}.`);
     feedback.classList.toggle('correct',match);
     feedback.hidden = false;
+    const modelNote = get('challenge-model-feedback');
+    const modelMove = model?.attempts[index];
+    modelNote.hidden = !modelMove;
+    if (modelMove) {
+      setText('challenge-model-pick', `${model.name} played ${modelMove.san}. ${modelMove.hit ? 'Exact match.' : 'Different move.'}`);
+    }
     setText('challenge-hint','The recorded move is now on the board.');
     nextButton.textContent = index === questions.length - 1?'See your result →':'Next position →';
     drawPosition(q);
@@ -228,6 +242,7 @@ export function mountChallenge(archive, replay) {
     get('challenge-progress').querySelectorAll('span').forEach(el=>{el.classList.add('done');el.classList.remove('current');});
     choice.hidden = true;
     feedback.hidden = true;
+    get('challenge-model-feedback').hidden = true;
     nextButton.hidden = true;
     final.hidden = false;
     setText('challenge-result-label', `${result.correct} of ${result.total}.`);
@@ -244,7 +259,16 @@ export function mountChallenge(archive, replay) {
       });
     }
     updateMobileDock();
-    setText('challenge-result-note', 'Exact grandmaster moves predicted. A historical challenge, not an AI model comparison.');
+    const versus = get('challenge-versus');
+    versus.hidden = !model?.complete;
+    get('challenge-result-evidence').hidden = !model?.complete;
+    if (model?.complete) {
+      setText('challenge-versus-human', `YOU  ${result.correct}/3`);
+      setText('challenge-versus-model', `GPT  ${model.score}/3`);
+    }
+    setText('challenge-result-note', model?.complete
+      ? 'Recorded 2024 moves versus a real, retrospective GPT API run. The game predates this model: this is not a prospective benchmark.'
+      : 'Exact grandmaster moves predicted. The historical AI comparison is not yet published.');
     get('challenge-download').disabled = false;
     get('challenge-share').disabled = false;
     shareStatus.textContent = '';
@@ -272,14 +296,14 @@ export function mountChallenge(archive, replay) {
     if (!complete) return;
     const score = scoreChallenge(questions,answers);
     const url = new URL('.', document.baseURI);url.hash='challenge';
-    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]));
+    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i])) + (model?.complete ? `\nRetrospective GPT: ${model.score}/3 (2024 game known before model release).` : '');
     try {
       if (navigator.share) {
         const title = 'Can you predict a grandmaster’s next move?';
         let shared = false;
         if (navigator.canShare && typeof File !== 'undefined') {
           try {
-            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]));
+            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? model.score : null);
             const imageBlob = await new Promise(resolve => card.toBlob(resolve, 'image/png'));
             if (imageBlob) {
               const file = new File([imageBlob], 'grandmaster-vs-model-score.png', {type:'image/png'});
@@ -315,7 +339,7 @@ export function mountChallenge(archive, replay) {
   get('challenge-download').addEventListener('click',async () => {
     if (!complete) return;
     try {
-      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]));
+      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? model.score : null);
       const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
       if (!blob) throw new Error('Image encoding unavailable');
       const url = URL.createObjectURL(blob);

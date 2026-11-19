@@ -26,3 +26,8 @@ Redesigned the product for immediate participation. The public entry route now c
 ## Scope and limitations
 
 Browser fixtures establish local presentation and logical behavior, **not** independent deployed-origin connectivity or real network access to Lichess. The historical challenge is genuine; no live 2026 model forecasts, ranking, or engine scores exist at this checkpoint. The latest observed credential test confirms one successful OpenAI inference and unresolved Anthropic/Google access errors. GitHub Pages publication is verified only once the matching GitHub Actions run succeeds.
+
+
+## Work in progress: retrospective API demonstration (0.7.0)
+
+Added an independently verified, one-time three-call provider workflow using 2024 game positions, strict prompt/output provenance, local fallback, and an after-reveal GPT comparison. The 2024 game is historically known, so the demonstration is expressly separated from the prospective 2026 experiment. The initial committed evidence dataset contains zero model responses until the real GitHub Actions run has been inspected. No real API result is asserted by this entry.

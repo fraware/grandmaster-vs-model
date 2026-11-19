@@ -40,7 +40,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
     if kind == 'lab':
         module_names += ['src/broadcast.mjs']
-    module_names += ['src/challenge.mjs', 'src/challenge-ui.mjs', main_js]
+    module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
         module = (ROOT / relative).read_text(encoding='utf-8')
@@ -53,6 +53,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
         './data/live-game1.json': json.loads((ROOT / 'data/live-game1.json').read_text()),
         './data/models.json': json.loads((ROOT / 'data/models.json').read_text()),
         './data/collection.json': json.loads((ROOT / 'data/collection.json').read_text()),
+        './data/retrospective-2024.json': json.loads((ROOT / 'data/retrospective-2024.json').read_text()),
     }
     return html, '\n'.join(source), responses
 

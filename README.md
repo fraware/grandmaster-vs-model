@@ -1,6 +1,6 @@
 # Grandmaster vs Model
 
-**Three real positions. Three predictions. One score.**
+**Three real positions. Your guesses versus a recorded model response. One score.**
 
 Play a free three-move chess challenge built from the real 2024 World Championship final. Choose the move, reveal the grandmaster’s decision, and share your score. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
@@ -18,7 +18,18 @@ Play a free three-move chess challenge built from the real 2024 World Championsh
 2. Lock in your choice and reveal the actual move on the board. Repeat across three positions from the 2024 final.
 3. Share the three-square result with a friend. On supported mobile browsers, the share sheet includes a generated score image; the text-copy and PNG-download fallbacks work without an account.
 
-The primary homepage contains one chessboard. The full historical and live research interface is available separately at `lab.html`. The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The score is held only in the current browser session. It is **not** an AI-versus-human performance figure, an Elo rating, a chess-strength assessment, or a global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
+The primary homepage contains one chessboard. The full historical and live research interface is available separately at `lab.html`. The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The visitor score is held only in the current browser session. An optional recorded GPT comparison appears strictly after the visitor locks each move. Since the 2024 game was already public prior to the 2026 model release, any such response is a **retrospective demonstration**, not an unbiased forecasting benchmark, Elo rating, or global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
+
+## Historical model demonstration
+
+To make the primary challenge an actual human-versus-model experience, a one-time integration workflow calls the confirmed working OpenAI model on precisely the three sourced 2024 positions. Its prompt uses the 2024 event, the exact board FEN, previous moves, and legal candidates, never the subsequent moves. There are **at most three provider requests** in the initial run. Every attempt is included, even errors and invalid output. The workflow does not make a 2026 claim or auto-publish its raw results.
+
+- [`scripts/retrospective-run.mjs`](scripts/retrospective-run.mjs) contains the bounded collector with a test-injectable provider adapter. Its `historical-api-evidence` artifact is reviewed independently before a source-controlled public record is published.
+- [`src/retrospective.mjs`](src/retrospective.mjs) validates exact source identity, legal moves, API outputs, payload hashes, and failure statuses. The public index lives at [`data/retrospective-2024.json`](data/retrospective-2024.json). It begins empty and does not claim an AI score until verified responses have been published.
+- The homepage reveals a recorded model move **only after** the user locks their own move. A three-round human-versus-model comparison appears only if all three model responses are legal. The source records link directly to GitHub. If evidence is missing or malformed, the sourced human challenge remains available without an AI score.
+- Replaying a game known before the model release is vulnerable to memorization and benchmark contamination. This feature is entertainment with inspectable provenance, not proof that a frontier model predicted a future human decision. The prospective 2026 experiment is separate.
+
+Run `npm run verify:retrospective` to check the published model evidence. GitHub's `Verify historical GPT comparison` workflow triggers once upon first installation and does not reissue paid requests for subsequent source changes. Manual dispatch repeats the calls and incurs additional charges.
 
 ## What already works
 
@@ -27,7 +38,7 @@ The primary homepage contains one chessboard. The full historical and live resea
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. Authenticated synthetic provider calls have been attempted separately from the championship ledger; no match forecasts or Stockfish evaluation have been run. There is no leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. Authenticated synthetic provider calls have been attempted separately from the championship ledger; no match forecasts or Stockfish evaluation have been run. There is no prospective leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
 
 ## Why this project is different
 
@@ -43,6 +54,7 @@ Node.js 20+ is needed for tests, record management, and model adapters; Python 3
 npm test
 npm run verify
 npm run build:data
+npm run verify:retrospective
 npm run verify:collection
 python3 -m http.server 8080
 ```
@@ -107,6 +119,8 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 | `assets/share-cover.png` | Social-preview image used by Open Graph and X cards |
 | `src/pgn.mjs`, `src/broadcast.mjs` | Strict PGN parser, source checks and validated cache |
 | `data/archive-2024.json` | Historically sourced full game for local challenge |
+| `data/retrospective-2024.json` | Separately validated, post-event model attempts, initially empty |
+| `scripts/retrospective-run.mjs`, `src/retrospective.mjs` | Three-call bounded model demonstration and evidence verifier |
 | `data/match.json` | Generated 2026 forecast and observed-move ledger |
 | `data/live-game1.json` | Empty pre-match baseline for public broadcast caching |
 | `data/models.json` | Versioned provider model roster with primary documentation |

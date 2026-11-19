@@ -33,5 +33,7 @@ test('production Pages workflow includes every client-side module and image asse
   const js=await text('app.mjs');
   assert.match(js,/mountChallenge\(historical,replay\)/);
   const entrance=await text('src/home.mjs');
-  assert.match(entrance,/mountChallenge\(archive, replay\)/);
+  assert.match(entrance,/mountChallenge\(archive, replay, retrospective\)/);
+  assert.match(entrance,/retrospective-2024\.json/);
+  assert.match(yaml,/verify:retrospective/);
 });

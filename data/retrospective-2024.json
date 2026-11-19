@@ -1,0 +1,15 @@
+{
+  "schema": "historical-api-comparison-v1",
+  "source": "https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu",
+  "event": "FIDE World Championship Match 2024",
+  "game": 14,
+  "context": "post-event-demonstration",
+  "note": "No historical model predictions published yet. This is separate from the prospective 2026 championship experiment.",
+  "model": {
+    "id": "openai-gpt-6-2-astra",
+    "name": "GPT-6.2 Astra",
+    "provider": "openai",
+    "version": "gpt-6.2-astra"
+  },
+  "attempts": []
+}

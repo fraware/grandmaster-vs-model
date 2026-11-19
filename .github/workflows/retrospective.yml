@@ -1,0 +1,38 @@
+name: Verify historical GPT comparison
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      # Trigger once on initial installation. Subsequent code changes do not
+      # generate paid API calls without deliberate operator intervention.
+      - '.github/workflows/retrospective.yml'
+permissions:
+  contents: read
+concurrency:
+  group: historical-model-demonstration
+  cancel-in-progress: false
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source positions and adapter behavior
+        run: npm test && npm run verify:retrospective
+      - name: Collect three authentic API responses
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RETRO_REPORT_PATH: retrospective-api-report.json
+        run: node scripts/retrospective-run.mjs
+      - name: Retain private, inspectable report for controlled publication
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-api-evidence
+          path: retrospective-api-report.json
+          if-no-files-found: warn
+          retention-days: 7

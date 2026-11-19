@@ -8,7 +8,12 @@ async function initializeHome() {
   const archive = await response.json();
   if (archive.schema !== 'historical-game-v1') throw new Error('Unexpected historical-game data');
   const replay = replaySanMoves(archive.moves.trim().split(/\s+/));
-  mountChallenge(archive, replay);
+  let retrospective = null;
+  try {
+    const modelResponse = await fetch('./data/retrospective-2024.json');
+    if (modelResponse.ok) retrospective = await modelResponse.json();
+  } catch { /* Historical challenge stays usable without the optional model record. */ }
+  mountChallenge(archive, replay, retrospective);
 }
 
 // Preserve links shared before the challenge acquired a dedicated research page.

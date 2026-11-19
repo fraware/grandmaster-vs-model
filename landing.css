@@ -195,3 +195,14 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid #b5d
   .move-input{gap:8px}.move-input label{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.challenge-square,.challenge-square.answer-end .challenge-piece{animation:none;transition:none}}
+
+/* Evidence-backed, post-reveal model comparison. Never reveal the model move before the visitor locks theirs. */
+.challenge-model-feedback{margin:0 0 17px;padding:14px 17px;background:#e4ead9;border:1px solid #b3c4aa;color:#253a2a}
+.challenge-model-feedback .model-tag{display:block;font-size:10px;letter-spacing:.09em;font-weight:750;color:#567356;margin-bottom:9px}
+.challenge-model-feedback p{font-size:15px;line-height:1.5;font-weight:650;margin:0}
+.challenge-versus{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0 18px}
+.challenge-versus>span{background:#e3ecd8;color:#183f29;border:1px solid #b8cba9;padding:10px 13px;font-size:13px;font-weight:800;letter-spacing:.04em}
+.challenge-versus>span:last-child{background:#edf0e9;color:#405745}
+
+.challenge-model-feedback a,.result-evidence-link{display:inline-block;font-size:12px;color:#426746;font-weight:700;text-underline-offset:4px;margin-top:10px}
+.result-evidence-link{margin-top:-7px;margin-bottom:16px}
