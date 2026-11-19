@@ -1,0 +1,27 @@
+name: Test and verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit and provider-adapter contract tests
+        run: npm test
+      - name: Validate forecast and outcome ledger
+        run: npm run verify
+      - name: Check generated match snapshot
+        run: |
+          npm run build:data
+          git diff --exit-code -- data/match.json
+      - name: JavaScript syntax
+        run: |
+          node --check app.mjs
+          node --check src/chess.mjs
+          node --check scripts/model-runner.mjs

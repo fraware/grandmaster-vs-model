@@ -1,0 +1,84 @@
+{
+  "schema": "match-v1",
+  "event": "fide-world-championship-2026",
+  "title": "2026 FIDE World Chess Championship",
+  "players": [
+    "Gukesh D",
+    "Javokhir Sindarov"
+  ],
+  "firstGame": "2026-11-24",
+  "source": "https://www.fide.com/salesforce-fide-world-championship-match-2026-schedule-format-and-prize-fund-confirmed/",
+  "updateMode": "manual",
+  "games": [
+    {
+      "game": 1,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 2,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 3,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 4,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 5,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 6,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 7,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 8,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 9,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 10,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 11,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 12,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 13,
+      "forecasts": [],
+      "outcomes": []
+    },
+    {
+      "game": 14,
+      "forecasts": [],
+      "outcomes": []
+    }
+  ]
+}

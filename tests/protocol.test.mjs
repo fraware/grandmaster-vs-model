@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {START_FEN} from '../src/chess.mjs';
+import {canonical,validateForecast,validateOutcome,scoreForecast,forecastKey} from '../src/protocol.mjs';
+const base={schema:'forecast-v1',event:'fide-world-championship-2026',game:1,ply:1,fen:START_FEN,model:{id:'sample-model',version:'2026-11-24',promptSha256:'0'.repeat(64),promptText:'this is a fixture prompt'},prediction:{uci:'e2e4'},response:{raw:'e2e4',sha256:'a'.repeat(64)},predictedAt:'2026-11-24T14:00:00Z',origin:'operator-submitted'};
+const result={schema:'outcome-v1',event:'fide-world-championship-2026',game:1,ply:1,fen:START_FEN,actualUci:'e2e4',playedAt:'2026-11-24T14:01:00Z',sourceUrl:'https://lichess.org/broadcast/fixture'};
+test('canonicalization recursively sorts keys and is reproducible',()=>{assert.equal(canonical({z:1,a:{y:2,b:3}}),'{"a":{"b":3,"y":2},"z":1}');});
+test('record validators enforce legal moves, versions, timestamps',()=>{assert.equal(validateForecast(base),true);assert.equal(validateOutcome(result),true);assert.equal(forecastKey(base),'g01-p001-sample-model');assert.throws(()=>validateForecast({...base,prediction:{uci:'e2e5'}}),/Illegal/);assert.throws(()=>validateForecast({...base,model:{...base.model,version:''}}),/version/);});
+test('exact score is ineligible for late forecasts',()=>{assert.deepEqual(scoreForecast(base,result),{eligible:true,exact:true,chronology:'operator-reported',independentlyAnchored:false});const late={...base,predictedAt:'2026-11-24T14:03:00Z'};assert.equal(scoreForecast(late,result).eligible,false);});
+test('mismatched positions cannot be scored',()=>{assert.throws(()=>scoreForecast(base,{...result,ply:2}),/Position mismatch|ply does not agree/);});
