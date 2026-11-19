@@ -47,10 +47,14 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
   }
   ctx.fillStyle = '#e9efdb';
   ctx.font = '400 34px Georgia, serif';
-  ctx.fillText(rivalScore === null ? 'Can you predict the grandmaster’s next move?' : `Could you beat GPT? GPT scored ${rivalScore}/3.`, 72, 530);
+  ctx.fillText(rivalScore === null ? 'Can you predict the grandmaster’s next move?' : rivalScore === 3 ? 'GPT scored 3/3. Can you match it?' : `GPT scored ${rivalScore}/3. Can you do better?`, 72, 530);
   ctx.fillStyle = '#a9b9a6';
   ctx.font = '21px Arial, sans-serif';
   ctx.fillText('fraware.github.io/grandmaster-vs-model', 72, 575);
+  if (rivalScore !== null) {
+    ctx.font = '15px Arial, sans-serif';
+    ctx.fillText('Retrospective 2024 game, tested in 2026. Not a prospective forecast.', 72, 612);
+  }
   // An abstract chessboard motif, not a purported position from the match.
   const startX = 855, startY = 164, cell = 34;
   ctx.fillStyle = '#23372a';
@@ -89,7 +93,9 @@ export function mountChallenge(archive, replay, retrospective = null) {
   const shareStatus = get('challenge-share-status');
   const mobileRevealButton = get('challenge-mobile-reveal');
   if (model?.complete) {
-    setText('hero-subtitle', "Can you predict the grandmaster's moves better than a real GPT model? Three historical positions. No signup.");
+    setText('hero-subtitle', model.score === 3
+      ? 'Three real moves from the 2024 World Championship. GPT matched all three in a retrospective API test. Now it’s your turn.'
+      : "Can you predict the grandmaster's moves better than a real GPT model? Three historical positions. No signup.");
   }
 
   function setText(id, value) { get(id).textContent = value; }
@@ -296,7 +302,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
     if (!complete) return;
     const score = scoreChallenge(questions,answers);
     const url = new URL('.', document.baseURI);url.hash='challenge';
-    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i])) + (model?.complete ? `\nRetrospective GPT: ${model.score}/3 (2024 game known before model release).` : '');
+    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? {name:model.name,score:model.score} : null);
     try {
       if (navigator.share) {
         const title = 'Can you predict a grandmaster’s next move?';

@@ -61,7 +61,7 @@ export function scoreChallenge(questions, answers) {
 }
 
 /** Sharing deliberately excludes any fabricated public ranking or model comparison. */
-export function challengeShareText(correct, url, matches = null) {
+export function challengeShareText(correct, url, matches = null, comparison = null) {
   if (!Number.isInteger(correct) || correct < 0 || correct > CHALLENGE_PLIES.length) {
     throw new Error('Invalid challenge score');
   }
@@ -69,10 +69,17 @@ export function challengeShareText(correct, url, matches = null) {
       matches.some(x => typeof x !== 'boolean') || matches.filter(Boolean).length !== correct)) {
     throw new Error('Inconsistent challenge result');
   }
+  if (comparison !== null && (comparison?.name !== 'GPT-6.2 Astra' ||
+      !Number.isInteger(comparison.score) || comparison.score < 0 || comparison.score > 3)) {
+    throw new Error('Invalid historical model comparison');
+  }
   const u = new URL(url);
   if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Invalid challenge URL');
   u.hash = 'challenge';
   u.search = '';
   const grid = matches ? `${matches.map(hit => hit ? '🟩' : '⬛').join('')}\n` : '';
-  return `I guessed ${correct}/3 moves from the 2024 World Chess Championship final.\n${grid}\nThink you can beat my score?\n${u.toString()}`;
+  const comparisonText = comparison
+    ? `GPT-6.2 Astra went ${comparison.score}/3 in a RETROSPECTIVE API run (the 2024 game was already known).\n`
+    : '';
+  return `I guessed ${correct}/3 moves from the 2024 World Chess Championship final.\n${grid}\n${comparisonText}Think you can match or beat my score?\n${u.toString()}`;
 }

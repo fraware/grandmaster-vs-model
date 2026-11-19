@@ -4,12 +4,115 @@
   "event": "FIDE World Championship Match 2024",
   "game": 14,
   "context": "post-event-demonstration",
-  "note": "No historical model predictions published yet. This is separate from the prospective 2026 championship experiment.",
+  "note": "The game was public before this model was released; this is retrospective entertainment, not prospective forecasting or a benchmark of generalization.",
   "model": {
     "id": "openai-gpt-6-2-astra",
     "name": "GPT-6.2 Astra",
     "provider": "openai",
     "version": "gpt-6.2-astra"
   },
-  "attempts": []
+  "attempts": [
+    {
+      "ply": 28,
+      "fen": "r1bq1rk1/1p3ppp/pbn1p3/1N6/2P5/1P4P1/P4PBP/R1BQ1RK1 w - - 0 15",
+      "actualUci": "b5c3",
+      "actualSan": "Nc3",
+      "status": "valid",
+      "prompt": "Historical chess decision experiment. This is a retrospective demonstration.\nPredict the next HUMAN move from the position; do not seek the best engine move.\nEvent: FIDE World Chess Championship 2024, Game 14, 2024-12-12.\nPlayer to move: Ding Liren.\nOpponent: Gukesh D.\nFEN: r1bq1rk1/1p3ppp/pbn1p3/1N6/2P5/1P4P1/P4PBP/R1BQ1RK1 w - - 0 15\nEarlier moves in UCI (no future moves): g1f3 d7d5 g2g3 c7c5 f1g2 b8c6 d2d4 e7e6 e1g1 c5d4 f3d4 g8e7 c2c4 c6d4 d1d4 e7c6 d4d1 d5d4 e2e3 f8c5 e3d4 c5d4 b1c3 e8g8 c3b5 d4b6 b2b3 a7a6\nLegal candidate moves in UCI: b5a7 b5c7 b5d6 b5d4 b5a3 b5c3 c4c5 b3b4 g3g4 a2a3 a2a4 g2f3 g2e4 g2d5 g2c6 g2h3 g2h1 h2h3 h2h4 a1b1 c1b2 c1a3 c1d2 c1e3 c1f4 c1g5 c1h6 d1c2 d1e2 d1f3 d1g4 d1h5 d1d2 d1d3 d1d4 d1d5 d1d6 d1d7 d1d8 d1e1 f1e1 g1h1\nDo not call tools or consult external material. Return exactly one legal UCI move, with no explanation.",
+      "promptSha256": "718f2634397fddd3519cc4401cd44458721e1bde4e73801bb5d0227874606b8e",
+      "output": "b5c3",
+      "outputSha256": "e51ab4e94c47224e888847038e525cfe22ed3f1662cd113ff8b72cfb8ee585a3",
+      "predictedUci": "b5c3",
+      "startedAt": "2026-11-19T11:23:20.090Z",
+      "completedAt": "2026-11-19T11:23:23.854Z",
+      "providerResponseId": "resp_0d1137187f3ea9de016afedc28f52887d0b2402071af7a66c7",
+      "providerReportedModel": "gpt-6.2-astra",
+      "failure": null,
+      "elapsedMs": 3758,
+      "usage": {
+        "input_tokens": 445,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 33,
+        "output_tokens_details": {
+          "reasoning_tokens": 23
+        },
+        "total_tokens": 478
+      }
+    },
+    {
+      "ply": 61,
+      "fen": "R4rk1/5p1p/4b1p1/8/1r6/5BP1/5P2/3R2K1 b - - 1 31",
+      "actualUci": "f8a8",
+      "actualSan": "Rxa8",
+      "status": "valid",
+      "prompt": "Historical chess decision experiment. This is a retrospective demonstration.\nPredict the next HUMAN move from the position; do not seek the best engine move.\nEvent: FIDE World Chess Championship 2024, Game 14, 2024-12-12.\nPlayer to move: Gukesh D.\nOpponent: Ding Liren.\nFEN: R4rk1/5p1p/4b1p1/8/1r6/5BP1/5P2/3R2K1 b - - 1 31\nEarlier moves in UCI (no future moves): g1f3 d7d5 g2g3 c7c5 f1g2 b8c6 d2d4 e7e6 e1g1 c5d4 f3d4 g8e7 c2c4 c6d4 d1d4 e7c6 d4d1 d5d4 e2e3 f8c5 e3d4 c5d4 b1c3 e8g8 c3b5 d4b6 b2b3 a7a6 b5c3 b6d4 c1b2 e6e5 d1d2 c8e6 c3d5 b7b5 c4b5 a6b5 d5f4 e5f4 g2c6 d4b2 d2b2 a8b8 f1d1 d8b6 c6f3 f4g3 h2g3 b5b4 a2a4 b4a3 a1a3 g7g6 b2d4 b6b5 b3b4 b5b4 d4b4 b8b4 a3a8\nLegal candidate moves in UCI: f8e8 f8d8 f8c8 f8b8 f8a8 g8h8 g8g7 f7f6 f7f5 h7h6 h7h5 e6d7 e6c8 e6d5 e6c4 e6b3 e6a2 e6f5 e6g4 e6h3 g6g5 b4b5 b4b6 b4b7 b4b8 b4a4 b4c4 b4d4 b4e4 b4f4 b4g4 b4h4 b4b3 b4b2 b4b1\nDo not call tools or consult external material. Return exactly one legal UCI move, with no explanation.",
+      "promptSha256": "aedb0faf7924af1142da96521bff3d80817aa24a89d19da1dd87dd3bb7f70dcc",
+      "output": "f8a8",
+      "outputSha256": "794ff2187a3fe390e95911b50809e7b3a0cf972129e16d0f16f52eaa7c0bcf9f",
+      "predictedUci": "f8a8",
+      "startedAt": "2026-11-19T11:23:23.854Z",
+      "completedAt": "2026-11-19T11:23:27.416Z",
+      "providerResponseId": "resp_013f1b032a3681d6016afedc2c5b8087d0bcc6e4c801bd1ce3",
+      "providerReportedModel": "gpt-6.2-astra",
+      "failure": null,
+      "elapsedMs": 3560,
+      "usage": {
+        "input_tokens": 542,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 33,
+        "output_tokens_details": {
+          "reasoning_tokens": 23
+        },
+        "total_tokens": 575
+      }
+    },
+    {
+      "ply": 108,
+      "fen": "B7/8/4b3/4kp2/5Rp1/6P1/1r6/6K1 w - - 16 55",
+      "actualUci": "f4f2",
+      "actualSan": "Rf2",
+      "status": "valid",
+      "prompt": "Historical chess decision experiment. This is a retrospective demonstration.\nPredict the next HUMAN move from the position; do not seek the best engine move.\nEvent: FIDE World Chess Championship 2024, Game 14, 2024-12-12.\nPlayer to move: Ding Liren.\nOpponent: Gukesh D.\nFEN: B7/8/4b3/4kp2/5Rp1/6P1/1r6/6K1 w - - 16 55\nEarlier moves in UCI (no future moves): g1f3 d7d5 g2g3 c7c5 f1g2 b8c6 d2d4 e7e6 e1g1 c5d4 f3d4 g8e7 c2c4 c6d4 d1d4 e7c6 d4d1 d5d4 e2e3 f8c5 e3d4 c5d4 b1c3 e8g8 c3b5 d4b6 b2b3 a7a6 b5c3 b6d4 c1b2 e6e5 d1d2 c8e6 c3d5 b7b5 c4b5 a6b5 d5f4 e5f4 g2c6 d4b2 d2b2 a8b8 f1d1 d8b6 c6f3 f4g3 h2g3 b5b4 a2a4 b4a3 a1a3 g7g6 b2d4 b6b5 b3b4 b5b4 d4b4 b8b4 a3a8 f8a8 f3a8 g6g5 a8d5 e6f5 d1c1 g8g7 c1c7 f5g6 c7c4 b4b1 g1g2 b1e1 c4b4 h7h5 b4a4 e1e5 d5f3 g7h6 g2g1 e5e6 a4c4 g5g4 f3d5 e6d6 d5b7 h6g5 f2f3 f7f5 f3g4 h5g4 c4b4 g6f7 g1f2 d6d2 f2g1 g5f6 b4b6 f6g5 b6b4 f7e6 b4a4 d2b2 b7a8 g5f6 a4f4 f6e5\nLegal candidate moves in UCI: a8b7 a8c6 a8d5 a8e4 a8f3 a8g2 a8h1 f4f5 f4e4 f4d4 f4c4 f4b4 f4a4 f4g4 f4f3 f4f2 f4f1 g1f1 g1h1\nDo not call tools or consult external material. Return exactly one legal UCI move, with no explanation.",
+      "promptSha256": "91ad8652268523392e3802f611b29e0703cbc50498730c1663f88cccc844d3d9",
+      "output": "f4f2",
+      "outputSha256": "e6d9b1d1a649b9d9bb66ce3d585286f98a863b97f683fcaeed48c4221b4f531b",
+      "predictedUci": "f4f2",
+      "startedAt": "2026-11-19T11:23:27.416Z",
+      "completedAt": "2026-11-19T11:23:29.653Z",
+      "providerResponseId": "resp_0b02e5742691a861016afedc2f7ea087d08b1dd0e0ef198476",
+      "providerReportedModel": "gpt-6.2-astra",
+      "failure": null,
+      "elapsedMs": 2236,
+      "usage": {
+        "input_tokens": 659,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 8,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 667
+      }
+    }
+  ]
 }

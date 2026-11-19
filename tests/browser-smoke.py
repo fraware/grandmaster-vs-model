@@ -106,6 +106,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
             assert page.locator('#challenge-mobile-reveal').is_visible()
             page.locator('#challenge-mobile-reveal').click()
         assert 'Exact match.' in page.locator('#challenge-answer-result').text_content()
+        assert 'GPT-6.2 Astra played Nc3' in page.locator('#challenge-model-pick').inner_text()
         assert 'white knight' in page.locator('#challenge-board button[aria-label^="c3,"]').get_attribute('aria-label')
         assert page.locator('#challenge-mobile-reveal').is_hidden()
         page.locator('#challenge-next').click()
@@ -123,6 +124,9 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert page.locator('#challenge-prompt').is_hidden()
         assert page.locator('.challenge-result-tile').count() == 3
         assert page.locator('.challenge-result-tile.hit').count() == 2
+        assert 'GPT' in page.locator('#challenge-versus-model').inner_text()
+        assert '3/3' in page.locator('#challenge-versus-model').inner_text()
+        assert page.locator('#challenge-result-evidence').is_visible()
         if label == 'mobile':
             # Native sharing is mocked locally: assert that the actual export
             # and accurate link are submitted together, not posted to a server.
@@ -140,15 +144,18 @@ def test_home(browser, screenshot_dir: str | None) -> None:
             }''')
         page.locator('#challenge-share').click()
         if label == 'mobile':
+            page.wait_for_function('window.__shared !== null', timeout=10000)
             shared = page.evaluate('window.__shared')
             assert '2/3 moves' in shared['text']
             assert '🟩🟩⬛' in shared['text']
+            assert 'GPT-6.2 Astra went 3/3' in shared['text']
             assert shared['fileName'] == 'grandmaster-vs-model-score.png'
             assert shared['fileType'] == 'image/png' and shared['size'] > 1000
         else:
             share_text = page.locator('#challenge-share-text').input_value()
             assert '2/3 moves' in share_text
             assert '🟩🟩⬛' in share_text
+            assert 'GPT-6.2 Astra went 3/3' in share_text
             assert 'grandmaster-vs-model/#challenge' in share_text
         with page.expect_download(timeout=10000) as info:
             page.locator('#challenge-download').click()

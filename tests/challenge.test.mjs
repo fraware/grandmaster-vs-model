@@ -46,3 +46,12 @@ test('challenge share grid reflects actual answers, and rejects inconsistent out
   assert.throws(()=>challengeShareText(2,'https://example.org/',[true,false,false]),/Inconsistent/);
   assert.throws(()=>challengeShareText(2,'https://example.org/',[true,false,'yes']),/Inconsistent/);
 });
+
+test('real historical model comparison is disclosed in share text before the canonical challenge URL', () => {
+  const text = challengeShareText(2, 'https://fraware.github.io/grandmaster-vs-model/', [true,true,false],
+    {name:'GPT-6.2 Astra',score:3});
+  assert.match(text, /GPT-6\.2 Astra went 3\/3 in a RETROSPECTIVE API run/);
+  assert.match(text, /2024 game was already known/);
+  assert.ok(text.endsWith('https://fraware.github.io/grandmaster-vs-model/#challenge'));
+  assert.throws(() => challengeShareText(2, 'https://example.org/', [true,true,false], {name:'GPT-6.2 Astra',score:4}));
+});

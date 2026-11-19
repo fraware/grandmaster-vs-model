@@ -28,8 +28,9 @@ async function mockComparison() {
 }
 
 test('empty official dataset never implies a historical model score', () => {
-  assert.deepEqual(verifyRetrospective(baseline, archive, replay), {ready: false, valid: 0, correct: 0, total: 3});
-  assert.equal(retrospectiveView(baseline, questions), null);
+  const empty = {...baseline, attempts: []};
+  assert.deepEqual(verifyRetrospective(empty, archive, replay), {ready: false, valid: 0, correct: 0, total: 3});
+  assert.equal(retrospectiveView(empty, questions), null);
 });
 test('historical prompt identifies the 2024 game and includes no future moves', () => {
   questions.forEach(q => {
@@ -75,4 +76,14 @@ test('no credential causes zero requests', async () => {
   let calls = 0;
   await assert.rejects(collectHistoricalComparison({archive,replay,apiKey:'',providerRequest:async()=>{calls++;}}));
   assert.equal(calls,0);
+});
+
+test('public 2024 model record is real, source-matched, and scored strictly as retrospective', () => {
+  const result = verifyRetrospective(baseline, archive, replay);
+  assert.equal(baseline.context, 'post-event-demonstration');
+  if (baseline.attempts.length === 3) {
+    assert.equal(result.valid, 3);
+    assert.equal(result.correct, 3);
+    assert.ok(baseline.attempts.every(x => x.providerResponseId && x.providerReportedModel === 'gpt-6.2-astra'));
+  }
 });

@@ -63,6 +63,9 @@ export function verifyRetrospective(dataset, archive, replay) {
       throw new Error('Invalid retrospective request chronology');
     }
     if (attempt.status === 'valid') {
+      if (!attempt.providerResponseId || attempt.providerReportedModel !== RETROSPECTIVE_VERSION) {
+        throw new Error('Valid response lacks the requested provider/model evidence');
+      }
       if (parsePrediction(attempt.output, q.legalMoves.map(m => m.uci)) !== attempt.predictedUci) {
         throw new Error('Recorded valid model move differs from raw output');
       }

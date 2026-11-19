@@ -31,3 +31,7 @@ Browser fixtures establish local presentation and logical behavior, **not** inde
 ## Work in progress: retrospective API demonstration (0.7.0)
 
 Added an independently verified, one-time three-call provider workflow using 2024 game positions, strict prompt/output provenance, local fallback, and an after-reveal GPT comparison. The 2024 game is historically known, so the demonstration is expressly separated from the prospective 2026 experiment. The initial committed evidence dataset contains zero model responses until the real GitHub Actions run has been inspected. No real API result is asserted by this entry.
+
+### 0.7.0 authenticated integration
+
+The first live OpenAI integration run (GitHub Actions 44514351159) completed three authenticated responses. Raw output moves were `b5c3`, `f8a8`, and `f4f2`, matching all three selected recorded moves. Public evidence was downloaded from the workflow artifact, validated against the pinned source with `npm run verify:retrospective`, and checked into `data/retrospective-2024.json` for repeatable local review. The 3/3 result is retrospective, potentially memorized, and distinct from the 2026 prospective protocol.

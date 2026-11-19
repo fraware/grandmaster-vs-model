@@ -24,12 +24,14 @@ The primary homepage contains one chessboard. The full historical and live resea
 
 To make the primary challenge an actual human-versus-model experience, a one-time integration workflow calls the confirmed working OpenAI model on precisely the three sourced 2024 positions. Its prompt uses the 2024 event, the exact board FEN, previous moves, and legal candidates, never the subsequent moves. There are **at most three provider requests** in the initial run. Every attempt is included, even errors and invalid output. The workflow does not make a 2026 claim or auto-publish its raw results.
 
-- [`scripts/retrospective-run.mjs`](scripts/retrospective-run.mjs) contains the bounded collector with a test-injectable provider adapter. Its `historical-api-evidence` artifact is reviewed independently before a source-controlled public record is published.
-- [`src/retrospective.mjs`](src/retrospective.mjs) validates exact source identity, legal moves, API outputs, payload hashes, and failure statuses. The public index lives at [`data/retrospective-2024.json`](data/retrospective-2024.json). It begins empty and does not claim an AI score until verified responses have been published.
+- [`scripts/retrospective-run.mjs`](scripts/retrospective-run.mjs) contains the bounded collector with a test-injectable provider adapter. Its `historical-api-evidence` artifact was retrieved from the actual authenticated run and verified before publication.
+- [`src/retrospective.mjs`](src/retrospective.mjs) validates exact source identity, legal moves, API outputs, payload hashes, and failure statuses. The public index lives at [`data/retrospective-2024.json`](data/retrospective-2024.json). The published file now contains the three authenticated API responses, including their exact prompts, outputs, timestamps, usage, provider response identifiers and SHA-256 checksums.
 - The homepage reveals a recorded model move **only after** the user locks their own move. A three-round human-versus-model comparison appears only if all three model responses are legal. The source records link directly to GitHub. If evidence is missing or malformed, the sourced human challenge remains available without an AI score.
 - Replaying a game known before the model release is vulnerable to memorization and benchmark contamination. This feature is entertainment with inspectable provenance, not proof that a frontier model predicted a future human decision. The prospective 2026 experiment is separate.
 
 Run `npm run verify:retrospective` to check the published model evidence. GitHub's `Verify historical GPT comparison` workflow triggers once upon first installation and does not reissue paid requests for subsequent source changes. Manual dispatch repeats the calls and incurs additional charges.
+
+**Actual initial result, 19 November 2026:** The [GitHub integration run](https://github.com/fraware/grandmaster-vs-model/actions/runs/44514351159) returned three valid legal UCI moves from `gpt-6.2-astra`, and all three matched the recorded 2024 grandmaster decisions (3/3). This is a **retrospective demonstration on a known game**. It does not establish predictive ability, out-of-sample performance, or an independent provider attestation; the model might have memorized the public game. The record contains 1,646 billed input tokens and 74 billed output tokens in total, as reported by the API. The current public UI never consumes model API credits per visitor.
 
 ## What already works
 
@@ -38,7 +40,7 @@ Run `npm run verify:retrospective` to check the published model evidence. GitHub
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. Authenticated synthetic provider calls have been attempted separately from the championship ledger; no match forecasts or Stockfish evaluation have been run. There is no prospective leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero prospective 2026 model forecasts** and **zero observed 2026 moves**. The separate historical model demonstration has three real API responses. Authenticated provider checks and the 2024 retrospective demonstration are separate from the championship ledger; no 2026 match forecasts or Stockfish evaluation have been run. There is no prospective leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
 
 ## Why this project is different
 
@@ -119,7 +121,7 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 | `assets/share-cover.png` | Social-preview image used by Open Graph and X cards |
 | `src/pgn.mjs`, `src/broadcast.mjs` | Strict PGN parser, source checks and validated cache |
 | `data/archive-2024.json` | Historically sourced full game for local challenge |
-| `data/retrospective-2024.json` | Separately validated, post-event model attempts, initially empty |
+| `data/retrospective-2024.json` | Three authenticated, post-event model attempts with full prompts and responses |
 | `scripts/retrospective-run.mjs`, `src/retrospective.mjs` | Three-call bounded model demonstration and evidence verifier |
 | `data/match.json` | Generated 2026 forecast and observed-move ledger |
 | `data/live-game1.json` | Empty pre-match baseline for public broadcast caching |
