@@ -19,7 +19,7 @@
     <div class="shell header-row">
       <a class="identity" href="#top" aria-label="Grandmaster vs Model home"><span class="identity-mark" aria-hidden="true">♞</span><span class="identity-name">Grandmaster <span class="identity-vs">vs</span> Model</span></a>
       <nav class="main-nav" aria-label="Site navigation">
-        <a href="#experiment">The match</a><a href="#method">Method</a>
+        <a href="#experiment">The match</a><a href="#models">Models</a><a href="#method">Method</a>
         <a class="github-link" href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer">View source <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
@@ -94,13 +94,21 @@
       </div>
       <div class="experience-bottom"><span>THE STANDARD <span class="thin-rule">—</span> FORECAST → PUBLISH → OBSERVE → VERIFY.</span><span id="bottom-source">HISTORICAL DATA: LICHESS · DEC 2024</span></div>
     </section>
+    <section id="models" class="shell model-field" aria-label="Frontier models selected for the prospective experiment">
+      <div class="model-field-heading">
+        <div><span class="section-counter">02 /</span><h2>The models.</h2><p>Three current frontier systems, one shared chess position, one human decision. Model identities come from provider documentation. Predictions appear here only if a real API attempt has been recorded.</p></div>
+        <div class="model-field-status" aria-live="polite"><strong id="model-attempt-total">0</strong><span>PUBLIC API ATTEMPTS</span><small id="roster-date">MODEL VERSIONS VERIFIED 19 NOV 2026</small></div>
+      </div>
+      <div class="model-grid" id="model-grid"><div class="model-placeholder">Loading the model roster…</div></div>
+      <div class="model-field-foot"><span>NO MODEL RANKING UNTIL PREDICTION PRIORITY IS VERIFIED.</span><a href="https://github.com/fraware/grandmaster-vs-model/tree/main/data" target="_blank" rel="noopener noreferrer">Inspect public evidence ↗</a></div>
+    </section>
     <section class="shell signals" aria-label="Experiment principles">
       <div class="signal"><span class="signal-number">01 / IN THE MOMENT</span><h3>Before the move.</h3><p>Championship moves come from a documented public broadcast. Predictions must be published before the observed decision to qualify as prospective evidence.</p></div>
       <div class="signal"><span class="signal-number">02 / TWO DIFFERENT QUESTIONS</span><h3>Choice versus strength.</h3><p>Did a model anticipate the player’s exact choice? Was that move strong? Exact matching and engine evaluation measure different things.</p></div>
       <div class="signal"><span class="signal-number">03 / THE EVIDENCE</span><h3>Open to inspection.</h3><p>Our public repository contains the collection protocol, chess rules, tests, and published observations. We disclose gaps before displaying any model accuracy.</p></div>
     </section>
     <section id="method" class="shell methodology">
-      <div class="method-intro"><span class="section-counter">02 /</span><h2>Predictions without hindsight.</h2><p>Forecasting a grandmaster demands a chronology that survives scrutiny. The live board is an observation tool; the model scoreboard will use a separate, documented evidence standard.</p><a class="method-link" href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">Read the complete protocol ↗</a></div>
+      <div class="method-intro"><span class="section-counter">03 /</span><h2>Predictions without hindsight.</h2><p>Forecasting a grandmaster demands a chronology that survives scrutiny. The live board is an observation tool; the model scoreboard will use a separate, documented evidence standard.</p><a class="method-link" href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">Read the complete protocol ↗</a></div>
       <div class="method-details"><div class="method-rule"><span>01 / INPUT</span><p>Models share a recorded position, legal moves, player identity, prompt, and explicit version.</p></div><div class="method-rule"><span>02 / PRIORITY</span><p>A forecast needs independent evidence of publication before the human move. Local timestamps are insufficient.</p></div><div class="method-rule"><span>03 / OBSERVATION</span><p>Chess positions are replayed from Lichess PGN. Feed retrieval time is distinct from the physical move time.</p></div><div class="method-rule"><span>04 / DISCLOSURE</span><p>No historical test is passed off as a prospective AI result. Engine evaluation and provider provenance are separate verification tasks.</p></div></div>
     </section>
   </main>

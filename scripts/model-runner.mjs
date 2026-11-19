@@ -34,15 +34,15 @@ export async function requestModel({provider,version,prompt,apiKey,timeoutMs=450
   let url,body,headers={'Content-Type':'application/json'};
   if(provider==='openai'){
     url='https://api.openai.com/v1/responses';headers.Authorization=`Bearer ${apiKey}`;
-    body={model:version,input:prompt,max_output_tokens:384,store:false};
+    body={model:version,input:prompt,reasoning:{effort:'low'},max_output_tokens:2048,store:false};
   }else if(provider==='anthropic'){
     url='https://api.anthropic.com/v1/messages';headers['x-api-key']=apiKey;headers['anthropic-version']='2026-10-21';
-    body={model:version,max_tokens:384,messages:[{role:'user',content:prompt}]};
+    body={model:version,max_tokens:2048,messages:[{role:'user',content:prompt}]};
   }else if(provider==='gemini'){
     if(!/^[a-zA-Z0-9._-]+$/.test(version))throw new Error('Unsafe Gemini model identifier');
     url=`https://generativelanguage.googleapis.com/v1beta/models/${version}:generateContent`;
     headers['x-goog-api-key']=apiKey;
-    body={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:384}};
+    body={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2048}};
   }else throw new Error('Supported providers: openai, anthropic, gemini');
   const started=Date.now();
   let response;

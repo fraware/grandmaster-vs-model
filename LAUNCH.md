@@ -32,3 +32,14 @@ The promotional line is *"Can AI predict what a world champion will play next?"*
 ### November 19 development checkpoint
 
 The dashboard now includes a real replay of the 2024 championship's deciding Game 14 and a direct Lichess PGN integration for the upcoming 2026 Game 1. The local chess-rule replay and parsing tests pass. The 2026 match has not begun; there are no real 2026 moves or model results to publish. Direct browser access to the broadcast must be independently confirmed at deployment. A legally checked same-origin snapshot is staged on Pages builds; no automated deployment schedule is configured. GitHub Pages still needs to be enabled under repository Settings → Pages with GitHub Actions as the publishing source. Do not describe Pages as live until the deployment check succeeds.
+
+
+## Live-capture activation check (2026-11-19)
+
+- Verify the newest GitHub Pages workflow run has succeeded and inspect the deployed origin. Local CI success is a separate fact.
+- In GitHub Actions secrets, configure individually budgeted `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` only for providers approved for spending. Do not place credentials in repository files, commit messages, browser fields, or chat messages.
+- Test a manual collection invocation before the match and confirm it exits without API calls while no identified live chess position exists. Add an API sandbox credential test only if charges and permissions are authorized.
+- Review the workflow's actual executed response fields, rate limits, and provider entitlements. Never silently reinterpret an HTTP error as a prediction.
+- Before each scored live forecast, check a public commit/observation chronology. A forecast recorded retrospectively, even with a plausible timestamp, does not qualify.
+- Recover failed pushes or missing workflow runs explicitly. GitHub scheduled Actions are not a low-latency guaranteed event stream.
+- Obtain verified broadcast round IDs for Games 2–14 before extending coverage. No speculative round IDs belong in production.

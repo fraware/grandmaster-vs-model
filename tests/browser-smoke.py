@@ -46,6 +46,8 @@ def make_page_sources() -> tuple[str, str, dict]:
         './data/archive-2024.json': json.loads((ROOT / 'data/archive-2024.json').read_text()),
         './data/match.json': json.loads((ROOT / 'data/match.json').read_text()),
         './data/live-game1.json': json.loads((ROOT / 'data/live-game1.json').read_text()),
+        './data/models.json': json.loads((ROOT / 'data/models.json').read_text()),
+        './data/collection.json': json.loads((ROOT / 'data/collection.json').read_text()),
     }
     return html, '\n'.join(sources), responses
 
@@ -91,6 +93,8 @@ def main() -> None:
                 populate(page, html, script, responses)
                 page.locator('#tab-archive').click()
                 assert page.locator('#board button.square').count() == 64
+                assert page.locator('.model-card').count() == 3
+                assert '0' in page.locator('#model-attempt-total').inner_text()
                 assert 'Ding' in page.locator('#result-title').inner_text()
                 assert '116 PLIES' in page.locator('#nav-position').inner_text()
                 if screenshot_dir:

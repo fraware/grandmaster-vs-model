@@ -30,3 +30,13 @@
 - Cache `fetchedAt` is build retrieval time, **not** a physical grandmaster move timestamp, an immutable commitment, or evidence that a model forecast preceded a move.
 - A deployed public website still needs GitHub Pages enabled at repository Settings → Pages → GitHub Actions. The last Pages workflow returned 404 at the deployment step despite green code checks. Attempting to create a Render static site was rejected by the Hobby workspace's 25-service limit. Neither failure indicates a code test failure.
 - API provider credentials have not been supplied. No authenticated real API inference, engine assessment, external timestamping or complete live championship ingestion has been performed.
+
+
+## V0.4 implementation added 19 November 2026
+
+- Added a provider-documented three-model roster featuring GPT-6.2 Astra, Claude Fable 5.2, and Gemini 4 Neon. Merely listing a model is not evidence of an invocation.
+- Added source-observation records with first-received times, a guarded attempt writer retaining failed and unparseable responses, a legal-chess validator, a reproducible public collection index, and a separately scheduled, credential-gated GitHub Actions capture workflow.
+- Added an editorial model-field section with transparent zero-data status, source links, and local provisional-attempt labels. No model calls were made for this release.
+- Offline test suite: 38 tests passed locally. Chromium mobile and desktop interaction smoke passed against injected historical and 2026 broadcast fixtures. Actual provider credentials and live deployed-origin cross-origin access have not been tested.
+- GitHub Pages activation was reported by the repository owner. The subsequent retry of an old run failed because the rerun contained duplicate `github-pages` artifacts; the v0.4 push will provide a clean workflow deployment attempt.
+- The roster is a verified model selection, not a reproducible, budget-matched benchmark across vendors. Prospective timing and cryptographic provider attestation remain unresolved.

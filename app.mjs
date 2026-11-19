@@ -10,7 +10,7 @@ const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
 const requestedMode=query.get('mode');
 let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
-let matchData=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
+let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
 let selectedGame=Number(query.get('game'))||1;if(selectedGame<1||selectedGame>14)selectedGame=1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0;
@@ -153,6 +153,19 @@ function renderArchive(){
   setText('bottom-source','HISTORICAL GAME · LICHESS · 2024');
   drawBoard(archiveReplay.positions[i],revealed?next?.uci:selectedArrow,Boolean(next&&!revealed));
 }
+function renderModelRoster(){
+  const models=modelRoster?.models||[];
+  const attempts=collectionIndex?.attempts||[];
+  setText('model-attempt-total',attempts.length);
+  if(modelRoster?.verifiedOn)setText('roster-date','PROVIDER IDS CHECKED '+modelRoster.verifiedOn);
+  const grid=$('model-grid');
+  if(!models.length){grid.textContent='The versioned model roster is currently unavailable.';return;}
+  grid.innerHTML=models.map((m,i)=>{
+    const record=attempts.filter(x=>x.model?.id===m.id);
+    const caption=record.length?`${record.length} recorded API attempt${record.length===1?'':'s'}`:'No published call yet';
+    return `<article class="model-card"><div class="model-card-meta"><span>${escapeHtml(m.provider.toUpperCase())}</span><span>0${i+1} / ${String(models.length).padStart(2,'0')}</span></div><h3>${escapeHtml(m.name)}</h3><div class="model-card-version">${escapeHtml(m.version)}</div><div class="model-card-foot"><span class="model-card-count">${escapeHtml(caption)}</span><a href="${escapeHtml(m.source)}" target="_blank" rel="noopener noreferrer">Official model docs ↗</a></div></article>`;
+  }).join('');
+}
 function renderLive(){
   const data=game(),i=currentIndex(),before=data?.positions[i]||START_FEN;
   const observation=data?.moves[i]||null;
@@ -162,27 +175,33 @@ function renderLive(){
   const shownMoveLabel=shownMove?`${Math.ceil(shownMove.ply/2)}${shownMove.ply%2?'.':'…'}${shownMove.san}`:'';
   const relevant=matchData?.games?.find(x=>x.game===selectedGame);
   const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
+  const modelAttempts=(collectionIndex?.attempts||[]).filter(a=>a.game===selectedGame&&a.ply===i+1&&a.fen===before);
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
   setText('result-heading','CHAMPIONSHIP DECISIONS');
   setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
-  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:forecastList.length?'Forecasts await the next move.':'No verified model forecasts yet.');
+  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:(forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':'No verified model forecasts yet.');
   setText('result-description',latest?'The board displays the newest move available from the broadcast. Navigate back to examine earlier decisions. Future model comparisons will need independently documented pre-move forecasts.':data?.moves.length?'The board is reconstructed from sourced PGN. The current panel shows the recorded choice at this position; a model forecast must precede that choice.':'The 2026 match opens on 24 November. There are no real championship moves to display yet. Try the 2024 grandmaster challenge for a working example with genuine game data.');
   const rows=forecastList.map(f=>{
     const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
     return decisionRow({label:f.model.id,subtitle:`${f.model.version} · operator-submitted / timing unverified`,san,move:f.prediction.uci,id:f.model.id,status:observation?(observation.uci===f.prediction.uci?'MATCH':'OTHER'):'FORECAST',matched:Boolean(observation&&observation.uci===f.prediction.uci)});
   });
+  for(const a of modelAttempts){
+    const move=a.status==='valid'?withSans(before).find(x=>x.uci===a.predictedUci):null;
+    rows.push(decisionRow({label:a.model.name||a.model.id,subtitle:`${a.model.version} · provider response locally recorded · chronology unverified`,san:move?.san||'—',move:a.predictedUci||null,id:a.model.id,status:a.status==='valid'?'RECORDED':a.status==='invalid'?'INVALID':'FAILED'}));
+  }
   if(shownMove)rows.push(decisionRow({label:shownMove.ply%2===1?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:latest?'Latest available move · Lichess broadcast':'Observed move · Lichess broadcast',san:shownMove.san,move:shownMove.uci,actual:true,status:latest?'LATEST':'PLAYED'}));
   $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>Results have to be earned.</strong><p>Model comparisons appear only after real responses have been recorded and matched to a sourced chess position.</p></div>';
   $('guess-area').hidden=true;$('score-line').hidden=true;
   if(shownMove)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
-  else if(forecastList.length)resultSummary('Submitted forecasts are provisional.','Displayed records have locally checked content. Public pre-move chronology and provider origin are still separate checks.');
+  else if(forecastList.length||modelAttempts.length)resultSummary('Submitted forecasts are provisional.','Displayed records have locally checked content. Public pre-move chronology and provider origin are still separate checks.');
   else resultSummary('No manufactured leaderboard.','Public prediction accuracy is withheld until real provider responses, sourced moves, and credible pre-move publication evidence are available.');
   setText('trace-text',selectedGame===1?'Source: Lichess Game 1, round xLgOJ6cb. Live retrieval is best-effort and broadcast-delayed.':'Only Game 1 has a confirmed Lichess broadcast round; no source has been assigned to this game.');
   setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
   drawBoard(before,shownMove?.uci||null,false);
 }
 function render(){
+  renderModelRoster();
   const historical=isArchive(),data=game(),i=currentIndex();
   $('tab-live').classList.toggle('active',!historical);$('tab-archive').classList.toggle('active',historical);
   $('tab-live').setAttribute('aria-pressed',String(!historical));$('tab-archive').setAttribute('aria-pressed',String(historical));
@@ -256,15 +275,17 @@ window.addEventListener('keydown',e=>{
 });
 async function initialize(){
   try{
-    const [historical,ledger,cached]=await Promise.all([
+    const [historical,ledger,cached,roster,collection]=await Promise.all([
       fetch('./data/archive-2024.json').then(r=>{if(!r.ok)throw Error(`archive HTTP ${r.status}`);return r.json();}),
       fetch('./data/match.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`ledger HTTP ${r.status}`);return r.json();}),
       fetch('./data/live-game1.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`snapshot HTTP ${r.status}`);return r.json();}).catch(error=>{console.warn('Optional broadcast cache unavailable:',error);return null;}),
+      fetch('./data/models.json').then(r=>{if(!r.ok)throw Error(`roster HTTP ${r.status}`);return r.json();}),
+      fetch('./data/collection.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`collection HTTP ${r.status}`);return r.json();}),
     ]);
-    if(historical.schema!=='historical-game-v1'||ledger.schema!=='match-v1')throw new Error('Unexpected data schema');
+    if(historical.schema!=='historical-game-v1'||ledger.schema!=='match-v1'||roster.schema!=='model-roster-v1'||collection.schema!=='collection-index-v1')throw new Error('Unexpected data schema');
     const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
     if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
-    archive=historical;archiveReplay=replay;matchData=ledger;
+    archive=historical;archiveReplay=replay;matchData=ledger;modelRoster=roster;collectionIndex=collection;
     if(cached){
       try{liveGame=restoreSnapshot(cached);liveSnapshotAt=cached.fetchedAt?new Date(cached.fetchedAt):null;}
       catch(error){console.warn('Broadcast cache rejected:',error);}

@@ -10,10 +10,10 @@ An open, independently maintained chess experiment. We compare the *actual next 
 
 - **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). Visitors select a legal move, lock a prediction, reveal the player's decision, replay all positions, rotate the board, and share a position link. The retrospective guess score is local to that browser session; it is not a model evaluation.
 - **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and checks for updates at most every three minutes while the live tab is active. A legally checked same-origin snapshot is also generated during Pages deployments; visitors still have a recent cached position if their direct request fails. Neither retrieval time establishes the physical playing time. Later match games need their own confirmed broadcast IDs.
-- **Inspectable prediction ledger.** The repository contains a canonical forecast schema, local SHA-256 record integrity validation, duplicate rejection, move-legality checks, provider-agnostic prompt template, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
+- **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. No paid model inference or Stockfish evaluation has been run. There is no leaderboard because there is not yet evidence to justify one. The website source has been pushed; GitHub Pages deployment is blocked until Pages is enabled in the repository settings. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; live browser cross-origin behavior still needs a deployed-network check. Desktop and mobile interactive DOM tests passed using a local Chromium harness with mocked network data, not the public deployed site.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. No paid model inference or Stockfish evaluation has been run. There is no leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
 
 ## Why this project is different
 
@@ -29,6 +29,7 @@ Node.js 20+ is needed for tests, record management, and model adapters; Python 3
 npm test
 npm run verify
 npm run build:data
+npm run verify:collection
 python3 -m http.server 8080
 ```
 
@@ -38,25 +39,39 @@ Open `http://localhost:8080/`. The historical challenge works from bundled game 
 
 The Pages workflow attempts to fetch the official Game 1 PGN during deployment and writes a legally checked same-origin cache into the **published artifact only**. It does not modify tracked source files or represent a forecast. A failed fetch preserves the packaged default, without inventing moves. The direct browser request supplies fresher observations while the live tab is open; it is limited to one initial request plus a three-minute interval (five minutes if an error occurs). The retrospective challenge does not continually poll Lichess.
 
-An operator may regenerate a cache locally using `node scripts/cache-broadcast.mjs --out /path/to/live-game1.json`. The committed default under `data/live-game1.json` is intentionally empty prior to 24 November 2026. The site rejects illegal cached moves, mismatched players, and changed live history within a browsing session. The build cache is a best-effort availability mechanism, **not immutable source evidence, publication priority, or a record of physical move times**. This build has no automatically scheduled redeployment; caching a new game requires a Pages build or manual refresh from a viewer.
+An operator may regenerate a cache locally using `node scripts/cache-broadcast.mjs --out /path/to/live-game1.json`. The committed default under `data/live-game1.json` is intentionally empty prior to 24 November 2026. The site rejects illegal cached moves, mismatched players, and changed live history within a browsing session. The build cache is a best-effort availability mechanism, **not immutable source evidence, publication priority, or a record of physical move times**. The capture workflow is scheduled at five-minute intervals within selected UTC hours on championship dates. An actual new observation or model attempt triggers a data commit, which triggers a Pages build and refreshes the cached broadcast. GitHub Actions schedules are best effort; delays and missed positions are expected. The browser direct feed remains available without automated collection.
 
-## Real model forecasts
+## Frontier-model field and prospective capture
 
-Collect an API prediction with an **explicit** provider/model version and credentials held in environment variables. The runner records the prompt and raw response, calls the common legal-move validator, and writes a locally checksummed JSON record.
+The public model roster in [`data/models.json`](data/models.json) contains official API identifiers checked **19 November 2026**. Listing a model does not imply API access or a measured result.
+
+| Provider | Model | Source |
+| --- | --- | --- |
+| OpenAI | `gpt-6.2-astra` | [OpenAI model specification](https://developers.openai.com/api/docs/models/gpt-6.2-astra) |
+| Anthropic | `claude-fable-5-2` | [Claude model catalog](https://platform.claude.com/docs/en/models/overview) |
+| Google | `gemini-4-neon` | [Gemini model catalog](https://aistudio.google.com/docs/models) |
+
+The [`Capture prospective forecasts`](.github/workflows/capture.yml) action polls the [identified Game 1 broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). If a legal 2026 game position and registered provider credentials exist, it sends a documented shared prompt to each configured API once per position. The public artifacts are:
+
+- `data/observations/game1.json` — first *feed reception* times for legally reconstructed moves; never claimed as physical move times.
+- `data/attempts/*.json` — full prompt, raw model output or explicit failure, provider-reported model/response ID if available, digests, and local request timestamps. A second broadcast fetch detects obvious position changes during collection.
+- `data/collection.json` — minimized, reproducibly derived index rendered on the website. Valid attempts are **provisional** and excluded from a ranked score until independently inspectable publication priority is established.
+
+The workflow is active only for the defined **24 November–12 December 2026** collection interval. The five-minute cron cadence is not guaranteed by GitHub and might miss short time intervals. It is not a continuous, latency-bounded service. Only Game 1 has a confirmed broadcast round ID. To cover more games, obtain and verify their round identifiers and extend the implementation explicitly.
+
+**To enable actual API predictions**, add the corresponding credentials at [Settings → Secrets and variables → Actions](https://github.com/fraware/grandmaster-vs-model/settings/secrets/actions), using the exact names `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY`. Add only the providers you intend to fund. The workflow ignores providers without a key. Provider calls incur usage charges. Secrets are never written to the site, files, or workflow logs. This repository does not yet have end-to-end authenticated provider test evidence; access, model support, rate limits, and individual spending limits must be confirmed.
+
+You can trigger one collector run manually from [Actions → Capture prospective forecasts](https://github.com/fraware/grandmaster-vs-model/actions/workflows/capture.yml). Prior to the opening game, the collector records no forecasts. A finished match stops calls. Automated data commits use the transparent GitHub Actions bot identity, distinct from the owner's code commits.
 
 ```sh
-export OPENAI_API_KEY='your-credential'
-node scripts/model-runner.mjs \
-  --provider openai \
-  --version YOUR_EXACT_MODEL_IDENTIFIER \
-  --fen 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' \
-  --player 'White player' --opponent 'Black player' \
-  --game 1 --ply 1
+npm test
+npm run verify:collection
+npm run capture:once    # needs a real match position and provider secrets to invoke models
 ```
 
-Alternative providers use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; see `scripts/model-runner.mjs`. The runner has offline contract tests, not authenticated end-to-end API smoke tests.
+The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also available for deliberate single-model invocations. Its output is operator-originated; it does not gain priority or provider attestation from a self-reported timestamp.
 
-**Publication standard:** A forecast must be publicly published *before the move* for a genuine prospective claim. Local timestamp fields, Git author timestamps, and local file hashes do not independently prove pre-move priority. A broadcast polling timestamp is not the time at which a player physically made a move. Provider identity and the absence of off-protocol information are also separate evidence obligations. Refer to [METHOD.md](METHOD.md) before publishing accuracy statistics.
+**Methodological boundary:** A local SHA-256 digest is not a timestamp. `firstObservedAt` is a source reception time, not the physical move time. Git hosting establishes public version history, subject to delivery delays. API requests, commits, and the championship broadcast are separate clocks. We will not publish a cross-model accuracy leaderboard without checking their relationship. See [METHOD.md](METHOD.md).
 
 ## Files
 
@@ -68,6 +83,10 @@ Alternative providers use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; see `scripts/
 | `data/archive-2024.json` | Historically sourced full game for local challenge |
 | `data/match.json` | Generated 2026 forecast and observed-move ledger |
 | `data/live-game1.json` | Empty pre-match baseline for public broadcast caching |
+| `data/models.json` | Versioned provider model roster with primary documentation |
+| `data/collection.json` | Derived index of source observations and recorded model calls |
+| `scripts/forecast-cycle.mjs`, `scripts/collection.mjs` | Optional, audited prospective capture and index validation |
+| `src/collection.mjs` | Source/attempt validation and reproducible public projection |
 | `scripts/ledger.mjs` | Record, verify, rebuild ledger data |
 | `scripts/model-runner.mjs` | Optional real model API adapters |
 | `scripts/cache-broadcast.mjs` | Best-effort static source snapshot generation |
@@ -88,6 +107,6 @@ Use `CHROMIUM_PATH=/path/to/chromium` for a system browser and `GVM_SCREENSHOT_D
 
 ## Hosting
 
-GitHub Pages is configured through `Settings → Pages → Build and deployment → GitHub Actions`. The workflow automatically publishes the static files when Pages is enabled. The initial deployment returned HTTP 404 while Pages was disabled. Its deployment status is independent of a successful test run.
+GitHub Pages uses `Settings → Pages → Build and deployment → GitHub Actions`. The publishing workflow builds the site and validates data on each push. Inspect [the current deployment workflow](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml) to confirm the live environment rather than inferring deployment from passing CI. The first attempted deployment returned 404 with Pages disabled; rerunning that same failed job subsequently caused a duplicate-artifact error. A new push starts a fresh workflow run.
 
 Source code and original design are licensed under MIT. World Championship scores and event details are sourced to Lichess/FIDE. This is an independent project with no affiliation or endorsement by FIDE, Lichess, players, or model providers.

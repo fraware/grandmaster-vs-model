@@ -45,3 +45,25 @@
 .score-line{margin:16px 0 0;border-top:1px solid var(--line);padding:14px 0;font:600 11px var(--font-sans);color:var(--accent-dark)}
 .method-link{color:var(--accent);text-underline-offset:5px;font-size:12px;font-weight:700}
 @media(max-width:760px){.source-strip{flex-wrap:wrap;padding:11px 14px;gap:9px}.source-strip #source-status{flex-basis:calc(100% - 22px)}.intro-links{gap:14px;margin-top:22px}.hero-proof{max-width:240px}.replay-controls{margin-top:16px}.replay-controls button{min-width:39px}.guess-input button{padding:11px}.source-strip a{white-space:normal}.guess-area{padding:13px}}
+
+/* V0.4: documented frontier-model field. No charts are populated from simulations. */
+.model-field{padding-top:8px;padding-bottom:42px}
+.model-field-heading{border-top:1px solid var(--line);padding-top:32px;display:flex;align-items:end;justify-content:space-between;gap:34px}
+.model-field-heading h2{font:400 clamp(36px,4vw,58px)/1.08 var(--font-serif);letter-spacing:-1.3px;margin:16px 0}
+.model-field-heading p{font:15px/1.67 var(--font-serif);max-width:620px;color:var(--ink-soft);margin:0 0 24px}
+.model-field-status{border-left:1px solid var(--line);padding:0 0 8px 23px;display:flex;flex-direction:column;gap:7px;flex:none;min-width:188px}
+.model-field-status strong{font:400 48px/1 var(--font-serif)}
+.model-field-status span,.model-field-status small{font:700 9px/1.5 var(--font-sans);letter-spacing:.12em;color:var(--accent-dark)}
+.model-field-status small{font-weight:500;color:var(--faint);max-width:190px}
+.model-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.model-card{border:1px solid var(--line);padding:25px 25px 22px;display:flex;flex-direction:column;min-height:200px;background:rgba(255,255,255,.25)}
+.model-card-meta{font:700 9px/1.5 var(--font-sans);letter-spacing:.13em;color:var(--accent);display:flex;justify-content:space-between;gap:10px}
+.model-card h3{font:400 clamp(24px,2.3vw,32px)/1.18 var(--font-serif);margin:29px 0 9px;letter-spacing:-.4px}
+.model-card-version{font:11px/1.5 var(--font-sans);color:var(--faint);word-break:break-word}
+.model-card-foot{margin-top:auto;padding-top:23px;display:flex;align-items:center;justify-content:space-between;gap:10px;font:10px/1.5 var(--font-sans);color:var(--ink-soft)}
+.model-card-foot a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.model-card-count{font-size:10px;font-weight:700;color:var(--ink-soft)}
+.model-field-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding:18px 0;font:700 9px/1.5 var(--font-sans);letter-spacing:.1em;color:var(--faint)}
+.model-field-foot a{color:var(--accent);text-transform:none;letter-spacing:normal;font-weight:600;font-size:11px}
+.model-placeholder{font:13px var(--font-sans);color:var(--ink-soft)}
+@media(max-width:760px){.model-field{padding-bottom:35px}.model-field-heading{display:block}.model-field-status{border-left:0;border-top:1px solid var(--line);margin-top:20px;padding:16px 0 0}.model-field-status strong{font-size:40px}.model-grid{grid-template-columns:1fr;gap:10px}.model-card{min-height:150px;padding:20px}.model-card h3{margin-top:17px}.model-field-foot{flex-wrap:wrap}}

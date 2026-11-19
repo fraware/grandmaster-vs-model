@@ -1,0 +1,31 @@
+{
+  "schema": "model-roster-v1",
+  "verifiedOn": "2026-11-19",
+  "note": "Official public API identifiers. Listing a model does not imply a completed invocation, provider access, or a measured result.",
+  "models": [
+    {
+      "id": "openai-gpt-6-2-astra",
+      "name": "GPT-6.2 Astra",
+      "provider": "openai",
+      "version": "gpt-6.2-astra",
+      "source": "https://developers.openai.com/api/docs/models/gpt-6.2-astra",
+      "capture": true
+    },
+    {
+      "id": "anthropic-claude-fable-5-2",
+      "name": "Claude Fable 5.2",
+      "provider": "anthropic",
+      "version": "claude-fable-5-2",
+      "source": "https://platform.claude.com/docs/en/models/overview",
+      "capture": true
+    },
+    {
+      "id": "google-gemini-4-neon",
+      "name": "Gemini 4 Neon",
+      "provider": "gemini",
+      "version": "gemini-4-neon",
+      "source": "https://aistudio.google.com/docs/models",
+      "capture": true
+    }
+  ]
+}

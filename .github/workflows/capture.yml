@@ -1,0 +1,46 @@
+name: Capture prospective forecasts
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron is best effort, not a precision real-time scheduler.
+    # The collector enforces the match date window independently.
+    - cron: '*/5 12-21 * 11,12 *'
+permissions:
+  contents: write
+concurrency:
+  group: championship-collector
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate current data before sampling
+        run: npm test && npm run verify && npm run verify:collection
+      - name: Poll Game 1 and sample credentialed models once
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run capture:once
+      - name: Check collection integrity
+        run: |
+          npm run verify:collection
+          npm run verify
+      - name: Publish sourced observations and recorded attempts
+        run: |
+          if [ -z "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then
+            echo 'No new observations or model attempts'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- data/observations data/attempts data/collection.json
+          git commit -m 'Record championship broadcast observations and model attempts'
+          git push origin HEAD:main
