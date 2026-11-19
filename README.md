@@ -9,11 +9,11 @@ An open, independently maintained chess experiment. We compare the *actual next 
 ## What already works
 
 - **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). Visitors select a legal move, lock a prediction, reveal the player's decision, replay all positions, rotate the board, and share a position link. The retrospective guess score is local to that browser session; it is not a model evaluation.
-- **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and refreshes while the page is active. Failures are disclosed rather than replaced with fabricated moves. Later match games need their own confirmed broadcast IDs.
+- **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and checks for updates at most every three minutes while the live tab is active. A legally checked same-origin snapshot is also generated during Pages deployments; visitors still have a recent cached position if their direct request fails. Neither retrieval time establishes the physical playing time. Later match games need their own confirmed broadcast IDs.
 - **Inspectable prediction ledger.** The repository contains a canonical forecast schema, local SHA-256 record integrity validation, duplicate rejection, move-legality checks, provider-agnostic prompt template, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. No paid model inference or Stockfish evaluation has been run. There is no leaderboard because there is not yet evidence to justify one. The website source has been pushed; GitHub Pages deployment is blocked until Pages is enabled in the repository settings. The browser-side Lichess endpoint has been tested with offline fixtures; live browser cross-origin behavior still needs a deployed-network check.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. No paid model inference or Stockfish evaluation has been run. There is no leaderboard because there is not yet evidence to justify one. The website source has been pushed; GitHub Pages deployment is blocked until Pages is enabled in the repository settings. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; live browser cross-origin behavior still needs a deployed-network check. Desktop and mobile interactive DOM tests passed using a local Chromium harness with mocked network data, not the public deployed site.
 
 ## Why this project is different
 
@@ -32,7 +32,13 @@ npm run build:data
 python3 -m http.server 8080
 ```
 
-Open `http://localhost:8080/`. The historical challenge works from bundled game data. The live championship tab attempts a direct Lichess request. Browser networking or CORS policy might block that request; the failure appears in the interface. Direct `file://` navigation does not reliably permit JSON loading.
+Open `http://localhost:8080/`. The historical challenge works from bundled game data. The live championship tab attempts a direct Lichess request. Browser networking or CORS policy might block that request; an optional validated cached broadcast is used as a fallback. The fallback timestamp is explicitly labelled as a fetch time, not a move time. Direct `file://` navigation does not reliably permit JSON loading.
+
+## Public broadcast cache
+
+The Pages workflow attempts to fetch the official Game 1 PGN during deployment and writes a legally checked same-origin cache into the **published artifact only**. It does not modify tracked source files or represent a forecast. A failed fetch preserves the packaged default, without inventing moves. The direct browser request supplies fresher observations while the live tab is open; it is limited to one initial request plus a three-minute interval (five minutes if an error occurs). The retrospective challenge does not continually poll Lichess.
+
+An operator may regenerate a cache locally using `node scripts/cache-broadcast.mjs --out /path/to/live-game1.json`. The committed default under `data/live-game1.json` is intentionally empty prior to 24 November 2026. The site rejects illegal cached moves, mismatched players, and changed live history within a browsing session. The build cache is a best-effort availability mechanism, **not immutable source evidence, publication priority, or a record of physical move times**. This build has no automatically scheduled redeployment; caching a new game requires a Pages build or manual refresh from a viewer.
 
 ## Real model forecasts
 
@@ -58,13 +64,27 @@ Alternative providers use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; see `scripts/
 | --- | --- |
 | `index.html`, `style.css`, `app.mjs` | Static responsive site and interactive board |
 | `src/chess.mjs` | Dependency-free standard chess rules, SAN/UCI and FEN |
-| `src/pgn.mjs` | Strict PGN parser and public Game 1 endpoint |
+| `src/pgn.mjs`, `src/broadcast.mjs` | Strict PGN parser, source checks and validated cache |
 | `data/archive-2024.json` | Historically sourced full game for local challenge |
 | `data/match.json` | Generated 2026 forecast and observed-move ledger |
+| `data/live-game1.json` | Empty pre-match baseline for public broadcast caching |
 | `scripts/ledger.mjs` | Record, verify, rebuild ledger data |
 | `scripts/model-runner.mjs` | Optional real model API adapters |
-| `tests/` | Chess perft, protocols, provider mocks and PGN validation |
+| `scripts/cache-broadcast.mjs` | Best-effort static source snapshot generation |
+| `tests/` | Chess perft, protocols, provider mocks, PGN validation and an optional Chromium UI smoke test |
 | `.github/workflows/` | CI and GitHub Pages deployment |
+
+## Optional browser integration test
+
+The repository includes a reproducible Chromium smoke test for desktop and mobile DOM interactions. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The test also checks legal prediction/reveal behavior and failure handling for direct PGN requests. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
+
+```sh
+python -m pip install playwright
+python -m playwright install chromium
+python tests/browser-smoke.py
+```
+
+Use `CHROMIUM_PATH=/path/to/chromium` for a system browser and `GVM_SCREENSHOT_DIR=/your/directory` for screenshots. These optional dependencies are unnecessary to run the website.
 
 ## Hosting
 

@@ -3,16 +3,17 @@
  */
 import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs';
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_BROADCAST,GAME_ONE_PGN} from './src/pgn.mjs';
+import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
 const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
 const requestedMode=query.get('mode');
 let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
-let matchData=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveError=null;
+let matchData=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
 let selectedGame=Number(query.get('game'))||1;if(selectedGame<1||selectedGame>14)selectedGame=1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
-let previousLiveCount=0,requestRunning=false;
+let requestRunning=false,lastDirectAttempt=0;
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const setText=(id,text)=>{$(id).textContent=String(text)};
 const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
@@ -104,10 +105,12 @@ function setSourceStatus(){
     a.href=archive?.source||'https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D';a.textContent='View original game ↗';refresh.hidden=true;
   }else{
     a.href=GAME_ONE_BROADCAST;a.textContent='Original broadcast ↗';refresh.hidden=selectedGame!==1;
-    $('source-light').classList.toggle('connected',Boolean(liveCheckedAt&&!liveError));
+    $('source-light').classList.toggle('connected',Boolean(liveCheckedAt&&!liveError)||Boolean(liveGame?.moves.length));
     if(selectedGame!==1)setText('source-status',`Game ${selectedGame}: a verified broadcast source has not yet been assigned. No moves are inferred.`);
+    else if(liveError&&liveGame?.moves.length)setText('source-status',`${liveGame.moves.length} cached broadcast moves · direct refresh unavailable (${liveError}) · not the physical move time`);
     else if(liveError)setText('source-status',`Broadcast unavailable (${liveError}). The historical challenge is still available.`);
     else if(liveCheckedAt)setText('source-status',`${liveGame?.moves.length||0} observed moves · Lichess checked ${liveCheckedAt.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',timeZoneName:'short'})} · feed timestamps ≠ move timestamps`);
+    else if(liveSnapshotAt)setText('source-status',`${liveGame?.moves.length||0} cached broadcast moves · snapshot fetched ${liveSnapshotAt.toLocaleString()} · not the physical move time`);
     else setText('source-status','Connecting to the Game 1 Lichess broadcast…');
   }
 }
@@ -153,27 +156,31 @@ function renderArchive(){
 function renderLive(){
   const data=game(),i=currentIndex(),before=data?.positions[i]||START_FEN;
   const observation=data?.moves[i]||null;
+  const latest=Boolean(data?.moves.length&&i===data.moves.length);
+  const lastMove=latest?data.moves.at(-1):null;
+  const shownMove=observation||lastMove;
+  const shownMoveLabel=shownMove?`${Math.ceil(shownMove.ply/2)}${shownMove.ply%2?'.':'…'}${shownMove.san}`:'';
   const relevant=matchData?.games?.find(x=>x.game===selectedGame);
   const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
   setText('result-heading','CHAMPIONSHIP DECISIONS');
   setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
-  setText('result-title',observation?'The grandmaster played '+observation.san:forecastList.length?'Forecasts await the next move.':'No verified model forecasts yet.');
-  setText('result-description',data?.moves.length?'The chess position is reconstructed from Lichess’s broadcast PGN. The model ledger is separate and only displays recorded submissions.':'The 2026 match opens on 24 November. There are no real championship moves to display yet. Try the 2024 grandmaster challenge for a working example with genuine game data.');
+  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:forecastList.length?'Forecasts await the next move.':'No verified model forecasts yet.');
+  setText('result-description',latest?'The board displays the newest move available from the broadcast. Navigate back to examine earlier decisions. Future model comparisons will need independently documented pre-move forecasts.':data?.moves.length?'The board is reconstructed from sourced PGN. The current panel shows the recorded choice at this position; a model forecast must precede that choice.':'The 2026 match opens on 24 November. There are no real championship moves to display yet. Try the 2024 grandmaster challenge for a working example with genuine game data.');
   const rows=forecastList.map(f=>{
     const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
     return decisionRow({label:f.model.id,subtitle:`${f.model.version} · operator-submitted / timing unverified`,san,move:f.prediction.uci,id:f.model.id,status:observation?(observation.uci===f.prediction.uci?'MATCH':'OTHER'):'FORECAST',matched:Boolean(observation&&observation.uci===f.prediction.uci)});
   });
-  if(observation)rows.push(decisionRow({label:i%2===0?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:'Observed move · Lichess broadcast',san:observation.san,move:observation.uci,actual:true,status:'PLAYED'}));
+  if(shownMove)rows.push(decisionRow({label:shownMove.ply%2===1?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:latest?'Latest available move · Lichess broadcast':'Observed move · Lichess broadcast',san:shownMove.san,move:shownMove.uci,actual:true,status:latest?'LATEST':'PLAYED'}));
   $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>Results have to be earned.</strong><p>Model comparisons appear only after real responses have been recorded and matched to a sourced chess position.</p></div>';
   $('guess-area').hidden=true;$('score-line').hidden=true;
-  if(observation)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
+  if(shownMove)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
   else if(forecastList.length)resultSummary('Submitted forecasts are provisional.','Displayed records have locally checked content. Public pre-move chronology and provider origin are still separate checks.');
   else resultSummary('No manufactured leaderboard.','Public prediction accuracy is withheld until real provider responses, sourced moves, and credible pre-move publication evidence are available.');
   setText('trace-text',selectedGame===1?'Source: Lichess Game 1, round xLgOJ6cb. Live retrieval is best-effort and broadcast-delayed.':'Only Game 1 has a confirmed Lichess broadcast round; no source has been assigned to this game.');
   setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
-  drawBoard(before,observation?.uci||null,false);
+  drawBoard(before,shownMove?.uci||null,false);
 }
 function render(){
   const historical=isArchive(),data=game(),i=currentIndex();
@@ -203,7 +210,7 @@ function revealMove(){if(!isArchive()||!archiveReplay?.moves[currentIndex()])ret
 /** Fetch fresh PGN directly from Lichess; this is not a model inference endpoint. */
 async function refreshBroadcast(){
   if(requestRunning)return;
-  requestRunning=true;$('refresh-button').disabled=true;
+  requestRunning=true;lastDirectAttempt=Date.now();$('refresh-button').disabled=true;
   try{
     const response=await fetch(GAME_ONE_PGN,{headers:{Accept:'application/x-chess-pgn'},cache:'no-store',signal:AbortSignal.timeout(12000)});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
@@ -211,18 +218,13 @@ async function refreshBroadcast(){
     const current=findChampionshipGame(games);
     if(!current&&games.some(g=>g.moves.length))throw new Error('No Gukesh–Sindarov game in broadcast');
     // Reject source rewrites: a changed prefix needs manual investigation, never a silent history overwrite.
-    if(liveGame&&current){
-      for(let p=0;p<Math.min(liveGame.moves.length,current.moves.length);p++){
-        if(liveGame.moves[p].uci!==current.moves[p].uci)throw new Error(`Broadcast changed move ${p+1}`);
-      }
-      if(current.moves.length<liveGame.moves.length)throw new Error('Broadcast history decreased');
-    }
+    if(liveGame?.moves.length&&!current)throw new Error('Broadcast no longer contains the previously observed game');
+    validateAppendOnly(liveGame,current);
     const latest=current||{tags:{},moves:[],positions:[START_FEN]};
     const before=liveGame?.moves.length||0;
     liveGame=latest;liveCheckedAt=new Date();liveError=null;
     if(!userChangedMode&&latest.moves.length&&mode==='archive'){switchMode('live',false);}
     if(mode==='live'&&selectedGame===1&&(selectedPly===null||selectedPly>=before))selectedPly=latest.moves.length;
-    previousLiveCount=latest.moves.length;
   }catch(error){
     liveError=error instanceof Error?error.message:'unavailable';
     console.warn('Lichess broadcast fetch failed:',error);
@@ -254,16 +256,22 @@ window.addEventListener('keydown',e=>{
 });
 async function initialize(){
   try{
-    const [historical,ledger]=await Promise.all([
+    const [historical,ledger,cached]=await Promise.all([
       fetch('./data/archive-2024.json').then(r=>{if(!r.ok)throw Error(`archive HTTP ${r.status}`);return r.json();}),
       fetch('./data/match.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`ledger HTTP ${r.status}`);return r.json();}),
+      fetch('./data/live-game1.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`snapshot HTTP ${r.status}`);return r.json();}).catch(error=>{console.warn('Optional broadcast cache unavailable:',error);return null;}),
     ]);
     if(historical.schema!=='historical-game-v1'||ledger.schema!=='match-v1')throw new Error('Unexpected data schema');
     const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
     if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
     archive=historical;archiveReplay=replay;matchData=ledger;
+    if(cached){
+      try{liveGame=restoreSnapshot(cached);liveSnapshotAt=cached.fetchedAt?new Date(cached.fetchedAt):null;}
+      catch(error){console.warn('Broadcast cache rejected:',error);}
+    }
     const deepPly=Number(query.get('ply'));
-    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?historical.highlightPly-1:0;
+    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?historical.highlightPly-1:(liveGame?.moves.length||0);
+    if(!userChangedMode&&liveGame?.moves.length&&mode==='archive')switchMode('live',false);
   }catch(error){
     console.error('Cannot load recorded data:',error);
     setText('source-status','The game data could not be loaded. Refresh, or serve this site using a local web server.');
@@ -271,4 +279,9 @@ async function initialize(){
   render();await refreshBroadcast();
 }
 render();initialize();
-setInterval(()=>{if(!document.hidden)refreshBroadcast();},90000);
+// Avoid polling Lichess for spectators of the offline archive. Active live viewers
+// check at most every three minutes, or every five minutes after a failed request.
+setInterval(()=>{
+  const interval=liveError?300000:180000;
+  if(!document.hidden&&mode==='live'&&selectedGame===1&&!requestRunning&&Date.now()-lastDirectAttempt>=interval)refreshBroadcast();
+},60000);

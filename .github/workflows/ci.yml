@@ -25,4 +25,7 @@ jobs:
           node --check app.mjs
           node --check src/chess.mjs
           node --check src/pgn.mjs
+          node --check src/broadcast.mjs
+          node --check scripts/cache-broadcast.mjs
+          python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/browser-smoke.py').read_text())"
           node --check scripts/model-runner.mjs

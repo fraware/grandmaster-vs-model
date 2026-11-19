@@ -1,24 +1,32 @@
-# Build and validation report · v0.2.0 · 19 November 2026
+# Build and validation report · v0.3.0 · 19 November 2026
 
-## Implemented
+## Previously published functionality
 
-- Replaced the fictional demonstration with the real 2024 FIDE World Championship Game 14 score (116 half moves, sourced to Lichess, with result checked against FIDE).
-- Added a source-linked Game 1 championship reader for the confirmed 2026 Lichess broadcast round `xLgOJ6cb`. It parses public PGN, reconstructs legal moves, rejects invalid source content and changed game prefixes, and refreshes on an active browser tab.
-- Added an interactive historical challenge with legal-move selection, on-board selection, exact-match local score, game replay, rotation, position linking, and responsive presentation.
-- Added a method section explicitly distinguishing observed moves, unverified forecasts, physical playing times, API responses, and retrospective user guesses.
-- Added a social preview asset and included it in the Pages build.
+- Historical 2024 FIDE World Championship Game 14, full 116-ply legal replay from the recorded Lichess broadcast.
+- Interactive challenge with legal-move selection, on-board choice, lock/reveal, exact-match local score, replay, board rotation, and link sharing.
+- Real 2026 Game 1 Lichess public PGN endpoint. No invented championship moves or model outputs.
+- Independent provider adapters, local record verification, tests, source and methodological disclosures.
 
-## Executed validation
+## Improvements in this release
 
-- `npm test`: **25 / 25 passed** (standard chess perft, special chess moves, source parsing, full historical score, model adapter mocks, ledger constraints).
-- `npm run verify`: passed, **0 forecasts / 0 outcomes** in the ledger.
-- `npm run build:data`: passed, generated snapshot unchanged in meaning (zero records).
-- `node --check app.mjs`: passed.
-- Historical game full SAN replay: exactly **116 legal plies**, ending in 58…Ke5.
+- **Readable latest move** on the 2026 live board. The newest observed SAN and grandmaster identity are shown at the end of the line, with a move arrow.
+- **Source-aware fallback**. A checked public PGN cache is generated into the static site artifact during Pages deployments. The site validates source identity, chess legality, player names and round ID before restoring cached moves. A direct-fetch failure no longer hides a recent cached game.
+- **Polite polling**. The browser checks for a new PGN on initialization and subsequently at most every three minutes while the live view is active, backing off to five minutes on failures. Archive readers do not repeatedly hit Lichess.
+- **Append-only session reconciliation**. The browser rejects rewrites, shortened game histories, or disappearance of a previously loaded game instead of silently replacing the score.
+- **Cache tests** for invalid UCI, wrong player identities, source mismatch, append-only history, offline retention and deterministic serialization.
 
-## Honest limitations
+## Validation performed
 
-- Direct browser navigation and screenshot testing were blocked by container-level Chromium `URLBlocklist` policy. UI screenshots are **not** independently validated.
-- The Lichess Game 1 broadcast page and ID were verified from public search; the PGN HTTP endpoint has been tested with fixtures, not authenticated end-to-end from the release environment (network DNS restricted here). Real browser CORS behavior is unverified. The deployed page discloses unavailable data.
-- No real 2026 championship moves existed on the recorded date. No actual provider inference or Stockfish evaluation was performed. Model accuracy claims are withheld.
-- Pages deployment initially failed because repository Pages administration was not enabled; CI was green. A new Pages attempt will occur on this push, but success needs explicit verification.
+- `npm test` **31/31 passed**, including start-position perft 197,281 at depth 4, complete historical SAN replay, provider response mocks, record validation and cache tests.
+- `npm run verify` passed with **0 real forecasts / 0 real outcomes**.
+- `npm run build:data` passed.
+- `node --check app.mjs` passed.
+- The reproducible `tests/browser-smoke.py` passed on desktop and mobile Chromium with 64 board squares and synthetic fetch responses. Tested selection, lock, reveal, navigation, active six-ply live game, and both empty-feed and populated-cache outage modes. No JavaScript exceptions; 390px mobile viewport had no horizontal page overflow. Chromium site navigation is blocked by environment policy, so the tests inject local HTML, CSS and scripts rather than navigating to an actual public origin.
+
+## Operational status and limitations
+
+- The 2026 match is still scheduled to begin 24 November; actual 2026 observations and model forecasts remain zero.
+- Lichess public PGN identity and permission for broadcast redisplay are documented, but we cannot verify direct public-domain cross-origin behavior in this restricted browser environment. Cache generation against a genuine live Game 1 response and deployment remain untested.
+- Cache `fetchedAt` is build retrieval time, **not** a physical grandmaster move timestamp, an immutable commitment, or evidence that a model forecast preceded a move.
+- A deployed public website still needs GitHub Pages enabled at repository Settings → Pages → GitHub Actions. The last Pages workflow returned 404 at the deployment step despite green code checks. Attempting to create a Render static site was rejected by the Hobby workspace's 25-service limit. Neither failure indicates a code test failure.
+- API provider credentials have not been supplied. No authenticated real API inference, engine assessment, external timestamping or complete live championship ingestion has been performed.

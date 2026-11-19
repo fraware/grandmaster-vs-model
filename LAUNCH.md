@@ -4,7 +4,7 @@ The sole objective of public launch is a credible, visually compelling, timely a
 
 ## Already implemented
 
-- Static responsive site with separate illustrated and championship views; select and rotate a board; compare candidate legal moves; game selector for all 14 games.
+- Static responsive site with separate historical and championship views; select and rotate a board; compare candidate legal moves; game selector for all 14 games.
 - Local standard-chess validation, SAN rendering, special moves, and starting-position perft verification through depth four.
 - An append-only local file creation path, record integrity checks, raw prompt and response preservation, and a generated static match snapshot.
 - Provider adapters for OpenAI, Anthropic, and Google Gemini with offline mocked-response contract tests.
@@ -12,13 +12,13 @@ The sole objective of public launch is a credible, visually compelling, timely a
 
 ## Critical blockers before calling it live
 
-1. Obtain verified live broadcast source and exact round IDs, and implement and test a reliable ingest loop. Detect delayed PGN, retransmissions, corrections, and move-number mismatches. Test against complete historical broadcasts before a live match.
+1. Confirm browser access to the verified Game 1 Lichess broadcast from the deployed domain. The source identifier, PGN legal replay, monotonic session checks, and build-time same-origin cache are implemented and tested with fixtures. Remaining games need confirmed round identifiers. Long-term retention, game corrections, and relay timing still need production tests.
 2. Configure real credentials in a private runner. Smoke-test the exact API models and record real provider request IDs, token usage and request/response artifacts. Keep keys outside Git and Pages artifacts.
 3. Store provider transport errors, invalid outputs, timeouts and retries as first-class events. Zero valid output must be distinguished from zero attempt. Fix an explicit missingness and scoring policy.
 4. Establish an external pre-move publication/timestamp policy, verify it end to end, and prohibit post-hoc amendments to original forecast records. Ensure accurate ordering with a published relay feed.
 5. Implement a pinned Stockfish engine and include genuine engine assessment only with recorded build, parameters, search budgets and legal MultiPV moves. No mock engine centipawn numbers.
-6. Add end-to-end browser tests and visual review at desktop and mobile viewports. This environment prevented direct Chromium navigation, so visual quality has not been confirmed.
-7. Publish the tested source to [fraware/grandmaster-vs-model](https://github.com/fraware/grandmaster-vs-model), enable GitHub Actions as the Pages source, verify deployment, and place the verified live URL in the repository description.
+6. Add deployed-domain browser and cross-origin tests. Desktop and mobile DOM interaction tests using locally injected code and synthetic network responses passed, including offline cached data; live-domain network behavior and visual regression automation are still outstanding.
+7. Repository source is published at [fraware/grandmaster-vs-model](https://github.com/fraware/grandmaster-vs-model). Enable GitHub Actions under repository Settings → Pages, verify public deployment, and add the verified live URL to the repository description. Render deployment was rejected because the connected Hobby workspace is at its 25-service limit.
 
 ## Distribution and timing
 
@@ -31,4 +31,4 @@ The promotional line is *"Can AI predict what a world champion will play next?"*
 
 ### November 19 development checkpoint
 
-The dashboard now includes a real replay of the 2024 championship's deciding Game 14 and a direct Lichess PGN integration for the upcoming 2026 Game 1. The local chess-rule replay and parsing tests pass. The 2026 match has not begun; there are no real 2026 moves or model results to publish. Direct browser access to the broadcast must be independently confirmed at deployment. GitHub Pages still needs to be enabled under repository Settings → Pages with GitHub Actions as the publishing source. Do not describe Pages as live until the deployment check succeeds.
+The dashboard now includes a real replay of the 2024 championship's deciding Game 14 and a direct Lichess PGN integration for the upcoming 2026 Game 1. The local chess-rule replay and parsing tests pass. The 2026 match has not begun; there are no real 2026 moves or model results to publish. Direct browser access to the broadcast must be independently confirmed at deployment. A legally checked same-origin snapshot is staged on Pages builds; no automated deployment schedule is configured. GitHub Pages still needs to be enabled under repository Settings → Pages with GitHub Actions as the publishing source. Do not describe Pages as live until the deployment check succeeds.

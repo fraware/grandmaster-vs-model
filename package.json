@@ -1,13 +1,14 @@
 {
   "name": "grandmaster-vs-model",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Sourced World Championship chess replay and a public AI prediction protocol",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "verify": "node scripts/ledger.mjs verify",
     "build:data": "node scripts/ledger.mjs build",
+    "cache:broadcast": "node scripts/cache-broadcast.mjs --out data/live-game1.json",
     "serve": "python3 -m http.server 8080"
   },
   "engines": {"node": ">=20"},
