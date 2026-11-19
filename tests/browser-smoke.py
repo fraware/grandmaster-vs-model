@@ -35,9 +35,10 @@ def make_page_sources() -> tuple[str, str, dict]:
     html = (ROOT / 'index.html').read_text(encoding='utf-8')
     css = (ROOT / 'style.css').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="style.css" />', f'<style>{css}</style>')
+    html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
     html = html.replace('<script type="module" src="app.mjs"></script>', '')
     sources = []
-    for relative in ('src/chess.mjs', 'src/pgn.mjs', 'src/broadcast.mjs', 'app.mjs'):
+    for relative in ('src/chess.mjs', 'src/pgn.mjs', 'src/broadcast.mjs', 'src/challenge.mjs', 'src/challenge-ui.mjs', 'app.mjs'):
         module = (ROOT / relative).read_text(encoding='utf-8')
         module = re.sub(r'^import .*?;\s*$', '', module, flags=re.M)
         module = re.sub(r'\bexport\s+(?=(?:const|function|async|class)\b)', '', module)
@@ -97,6 +98,39 @@ def main() -> None:
                 assert '0' in page.locator('#model-attempt-total').inner_text()
                 assert 'Ding' in page.locator('#result-title').inner_text()
                 assert '116 PLIES' in page.locator('#nav-position').inner_text()
+                assert page.locator('#challenge-board button.challenge-square').count() == 64
+                assert 'Find the continuation' in page.locator('#challenge-heading').inner_text()
+                # Fully exercise the audience-facing game with two matches and one miss.
+                page.locator('#challenge-move-select').select_option('b5c3')
+                page.locator('#challenge-reveal').click()
+                assert 'Exact match.' in page.locator('#challenge-answer-result').text_content()
+                assert 'Nc3' in page.locator('#challenge-answer-move').inner_text()
+                page.locator('#challenge-next').click()
+                # Black's rook capture can be selected by two accessible board clicks.
+                page.locator('#challenge-board button[aria-label^="f8,"]').click()
+                page.locator('#challenge-board button[aria-label^="a8,"]').click()
+                assert page.locator('#challenge-move-select').input_value() == 'f8a8'
+                page.locator('#challenge-reveal').click()
+                page.locator('#challenge-next').click()
+                # Pick a distinct legal move to verify honest scoring.
+                wrong = page.locator('#challenge-move-select option').evaluate_all('''options => options.map(o => o.value).find(v => v && v !== "f4f2")''')
+                page.locator('#challenge-move-select').select_option(wrong)
+                page.locator('#challenge-reveal').click()
+                assert 'Different move.' in page.locator('#challenge-answer-result').text_content()
+                page.locator('#challenge-next').click()
+                assert '2 out of 3.' in page.locator('#challenge-heading').inner_text()
+                assert '2 / 3 exact matches' in page.locator('#challenge-result-label').inner_text()
+                assert not page.locator('#challenge-share').is_disabled()
+                page.locator('#challenge-share').click()
+                assert '2/3 moves' in page.locator('#challenge-share-text').input_value()
+                assert 'grandmaster-vs-model/#challenge' in page.locator('#challenge-share-text').input_value()
+                with page.expect_download(timeout=8000) as download_info:
+                    page.locator('#challenge-download').click()
+                assert download_info.value.suggested_filename == 'grandmaster-vs-model-result.png'
+                assert Path(download_info.value.path()).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+                page.locator('#challenge-restart').click()
+                assert '1 OF 3' in page.locator('#challenge-count').inner_text()
+                assert page.locator('#challenge-reveal').is_disabled()
                 if screenshot_dir:
                     page.screenshot(path=str(Path(screenshot_dir) / f'{label}-archive.png'), full_page=True)
                 if label == 'desktop':

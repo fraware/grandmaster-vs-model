@@ -4,6 +4,7 @@
 import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs';
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_BROADCAST,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
+import {mountChallenge} from './src/challenge-ui.mjs';
 const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
 const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
@@ -306,6 +307,7 @@ async function initialize(){
     const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
     if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
     archive=historical;archiveReplay=replay;matchData=ledger;modelRoster=roster;collectionIndex=collection;
+    mountChallenge(historical,replay);
     if(cached){
       try{liveGame=restoreSnapshot(cached);liveSnapshotAt=cached.fetchedAt?new Date(cached.fetchedAt):null;}
       catch(error){console.warn('Broadcast cache rejected:',error);}

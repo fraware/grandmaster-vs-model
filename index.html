@@ -4,12 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f5f2eb" />
-  <meta name="description" content="Grandmaster vs Model: live World Championship chess moves, a historical grandmaster challenge, and an open prospective AI prediction protocol." />
+  <meta name="description" content="Three real chess positions. Predict the grandmaster’s next move, reveal the answer, and share your score. Free, open source, no account." />
+  <link rel="canonical" href="https://fraware.github.io/grandmaster-vs-model/" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Grandmaster vs Model | Predict the human." />
-  <meta property="og:description" content="What will the grandmaster play? Follow sourced championship moves and try the 2024 final yourself. AI predictions will be published only with evidence." />
-  <meta property="og:image" content="https://fraware.github.io/grandmaster-vs-model/social-card.svg" />
-  <title>Grandmaster vs Model | Predict the human</title>
+  <meta property="og:url" content="https://fraware.github.io/grandmaster-vs-model/" />
+  <meta property="og:title" content="Grandmaster vs Model | The three-move challenge" />
+  <meta property="og:description" content="Three positions from a real World Championship final. Predict the moves, reveal the answers, share your score. Free, open-source chess challenge." />
+  <meta property="og:image" content="https://fraware.github.io/grandmaster-vs-model/assets/share-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Can you think like a grandmaster? Three real chess positions, one score." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Can you think like a grandmaster?" />
+  <meta name="twitter:description" content="Predict three real World Championship moves. Reveal the answers and share your score." />
+  <meta name="twitter:image" content="https://fraware.github.io/grandmaster-vs-model/assets/share-cover.png" />
+  <title>Grandmaster vs Model | Can you think like a grandmaster?</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
   <script type="module" src="app.mjs"></script>
@@ -19,7 +28,7 @@
     <div class="shell header-row">
       <a class="identity" href="#top" aria-label="Grandmaster vs Model home"><span class="identity-mark" aria-hidden="true">♞</span><span class="identity-name">Grandmaster <span class="identity-vs">vs</span> Model</span></a>
       <nav class="main-nav" aria-label="Site navigation">
-        <a href="#experiment">The match</a><a href="#models">Models</a><a href="#method">Method</a>
+        <a href="#challenge">Play</a><a href="#experiment">Championship</a><a href="#models">Models</a>
         <a class="github-link" href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer">View source <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
@@ -29,9 +38,9 @@
       <div class="eyebrow"><span class="eyebrow-bar"></span> A PUBLIC CHESS EXPERIMENT <span class="eyebrow-sep">/</span> GENEVA 2026</div>
       <div class="intro-grid">
         <div>
-          <h1>Predict the human.<br /><em>Not just the move.</em></h1>
-          <p class="standfirst">Chess engines find strong moves. The harder question for a prediction experiment is which move a particular grandmaster will choose. Explore real championship decisions while we build a public, auditable model comparison.</p>
-          <div class="intro-links"><a href="#experiment" id="hero-cta" class="primary-link">Explore the board <span aria-hidden="true">↗</span></a><span class="hero-proof">REAL GAMES · OPEN METHODS · NO INVENTED RESULTS</span></div>
+          <h1>Can you think<br /><em>like a grandmaster?</em></h1>
+          <p class="standfirst">Three positions from a real World Championship final. Choose the move you think the grandmaster played, reveal the decision, and challenge a friend. No account. No API key.</p>
+          <div class="intro-links"><a href="#challenge" id="hero-cta" class="primary-link">Play the three-move challenge <span aria-hidden="true">→</span></a><span class="hero-proof">THREE MOVES · FREE TO PLAY · REAL GAME</span></div>
         </div>
         <div class="intro-meta" aria-label="Championship details">
           <span class="intro-meta-label">THE WORLD CHAMPIONSHIP</span>
@@ -42,9 +51,43 @@
         </div>
       </div>
     </div>
+    <section id="challenge" class="shell challenge" aria-label="Three-move grandmaster challenge">
+      <div class="challenge-frame">
+        <div class="challenge-topbar"><span>01 / THE THREE-MOVE CHALLENGE</span><span>REAL MOVES · 2024 WORLD CHAMPIONSHIP FINAL</span></div>
+        <div class="challenge-grid">
+          <div class="challenge-left">
+            <div class="challenge-board-meta"><span id="challenge-player">Ding Liren</span><span id="challenge-color">WHITE TO MOVE</span></div>
+            <div class="challenge-board" id="challenge-board" role="group" aria-label="Interactive chess position"></div>
+            <div class="challenge-board-bottom"><span id="challenge-move-index">MOVE 15</span><a id="challenge-source" href="https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu" rel="noopener noreferrer" target="_blank">Original game ↗</a></div>
+          </div>
+          <div class="challenge-right">
+            <div class="challenge-steps-head"><span id="challenge-count">1 OF 3</span><div id="challenge-progress" class="challenge-progress" aria-label="Challenge progress"></div></div>
+            <div class="challenge-prompt"><span class="challenge-phase" id="challenge-phase">01 / OPENING</span><h2 id="challenge-heading">Find the continuation</h2><p id="challenge-description">Three moves from the 2024 final.</p></div>
+            <div id="challenge-choice" class="challenge-choice">
+              <label for="challenge-move-select">YOUR PREDICTION</label>
+              <select id="challenge-move-select" aria-label="Choose a legal chess move"><option value="">Loading real chess moves…</option></select>
+              <p id="challenge-hint" class="challenge-hint" aria-live="polite">Choose a piece and destination, or select a move.</p>
+              <button type="button" id="challenge-reveal" class="challenge-primary" disabled>Reveal the grandmaster's move <span aria-hidden="true">→</span></button>
+            </div>
+            <div id="challenge-feedback" class="challenge-feedback" aria-live="polite" hidden><span id="challenge-answer-result" class="challenge-feedback-title"></span><strong id="challenge-answer-move"></strong><p id="challenge-answer-yours"></p></div>
+            <button id="challenge-next" type="button" class="challenge-primary" hidden>Next position →</button>
+            <div id="challenge-finished" class="challenge-finished" hidden>
+              <div class="challenge-score" id="challenge-result-label">0 / 3 exact matches</div>
+              <p id="challenge-result-note">Personal historical score. No AI model result is implied.</p>
+              <button id="challenge-share" type="button" class="challenge-primary">Share your result <span aria-hidden="true">↗</span></button>
+              <div class="challenge-secondary-actions"><button id="challenge-download" type="button">Save result image</button><button id="challenge-restart" type="button">Play again ↻</button></div>
+              <textarea id="challenge-share-text" aria-label="Copyable share text" readonly hidden></textarea>
+              <p class="challenge-hint" id="challenge-share-status" role="status"></p>
+            </div>
+            <div class="challenge-assurance">All three positions come from Ding–Gukesh, Game 14 (2024). Your score measures exact move prediction, not chess strength.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="shell experiment-intro"><span class="section-counter">02 /</span><div><h2>The championship, move by move.</h2><p>Follow the 2026 match and inspect recorded model predictions. Results are published only with source and timing evidence.</p></div></div>
     <section id="experiment" class="shell experience" aria-label="Interactive chessboard">
       <div class="experience-header">
-        <div class="experience-heading"><span class="section-counter">01 /</span> THE DECISION BOARD</div>
+        <div class="experience-heading"><span class="section-counter">02 /</span> THE DECISION BOARD</div>
         <div class="experience-actions">
           <label for="game-select" class="game-select-label">GAME</label><select id="game-select" class="game-select" aria-label="Championship game"></select>
           <div class="segment" role="group" aria-label="Choose a source">
@@ -96,7 +139,7 @@
     </section>
     <section id="models" class="shell model-field" aria-label="Frontier models selected for the prospective experiment">
       <div class="model-field-heading">
-        <div><span class="section-counter">02 /</span><h2>The models.</h2><p>Three current frontier systems, one shared chess position, one human decision. Model identities come from provider documentation. Predictions appear here only if a real API attempt has been recorded.</p></div>
+        <div><span class="section-counter">03 /</span><h2>The models.</h2><p>Three current frontier systems, one shared chess position, one human decision. Model identities come from provider documentation. Predictions appear here only if a real API attempt has been recorded.</p></div>
         <div class="model-field-status" aria-live="polite"><strong id="model-attempt-total">0</strong><span>PUBLIC API ATTEMPTS</span><small id="roster-date">MODEL VERSIONS VERIFIED 19 NOV 2026</small></div>
       </div>
       <div class="model-grid" id="model-grid"><div class="model-placeholder">Loading the model roster…</div></div>
@@ -108,7 +151,7 @@
       <div class="signal"><span class="signal-number">03 / THE EVIDENCE</span><h3>Open to inspection.</h3><p>Our public repository contains the collection protocol, chess rules, tests, and published observations. We disclose gaps before displaying any model accuracy.</p></div>
     </section>
     <section id="method" class="shell methodology">
-      <div class="method-intro"><span class="section-counter">03 /</span><h2>Predictions without hindsight.</h2><p>Forecasting a grandmaster demands a chronology that survives scrutiny. The live board is an observation tool; the model scoreboard will use a separate, documented evidence standard.</p><a class="method-link" href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">Read the complete protocol ↗</a></div>
+      <div class="method-intro"><span class="section-counter">04 /</span><h2>Predictions without hindsight.</h2><p>Forecasting a grandmaster demands a chronology that survives scrutiny. The live board is an observation tool; the model scoreboard will use a separate, documented evidence standard.</p><a class="method-link" href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">Read the complete protocol ↗</a></div>
       <div class="method-details"><div class="method-rule"><span>01 / INPUT</span><p>Models share a recorded position, legal moves, player identity, prompt, and explicit version.</p></div><div class="method-rule"><span>02 / PRIORITY</span><p>A forecast needs independent evidence of publication before the human move. Local timestamps are insufficient.</p></div><div class="method-rule"><span>03 / OBSERVATION</span><p>Chess positions are replayed from Lichess PGN. Feed retrieval time is distinct from the physical move time.</p></div><div class="method-rule"><span>04 / DISCLOSURE</span><p>No historical test is passed off as a prospective AI result. Engine evaluation and provider provenance are separate verification tasks.</p></div></div>
     </section>
   </main>

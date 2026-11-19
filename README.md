@@ -1,20 +1,28 @@
 # Grandmaster vs Model
 
-**Predict the human. Not just the move.**
+**Three real positions. Three predictions. One score.**
 
-An open, independently maintained chess experiment. We compare the *actual next moves* of World Championship grandmasters with predictions submitted by frontier AI models. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
+Play a free three-move chess challenge built from the real 2024 World Championship final. Choose the move, reveal the grandmaster’s decision, and share your score. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Open the interactive website](https://fraware.github.io/grandmaster-vs-model/) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the three-move challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
-![The interactive Grandmaster vs Model website: real 2024 game replay and the declared frontier model field](assets/preview.webp)
+![Grandmaster vs Model three-move chess challenge, showing a real World Championship position](assets/preview.webp)
 
-*Screenshot of the sourced 2024 retrospective challenge. No 2026 model forecasts are represented.*
+*Actual browser capture of the playable historical challenge. It is separate from the upcoming 2026 model experiment.*
+
+## Play in under a minute
+
+1. Select a piece and destination on the board, or choose a legal move from the menu.
+2. Reveal the real grandmaster move. Repeat for three fixed positions from the 2024 final.
+3. Share your exact-match score as text or save a 1200×630 result image. Restart without an account.
+
+The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The score is held only in the current browser session. It is **not** an AI-versus-human performance figure, an Elo rating, a chess-strength assessment, or a global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
 
 ## What already works
 
-- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). Visitors select a legal move, lock a prediction, reveal the player's decision, replay all positions, rotate the board, and share a position link. The retrospective guess score is local to that browser session; it is not a model evaluation.
+- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). The homepage challenge provides three curated positions, an exact-match score, and a shareable result. The detailed board below it supports inspecting all recorded positions, replaying moves, and sharing position links.
 - **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and checks for updates at most every three minutes while the live tab is active. A legally checked same-origin snapshot is also generated during Pages deployments; visitors still have a recent cached position if their direct request fails. Neither retrieval time establishes the physical playing time. Later match games need their own confirmed broadcast IDs.
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
@@ -93,6 +101,8 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 | --- | --- |
 | `index.html`, `style.css`, `app.mjs` | Static responsive site and interactive board |
 | `src/chess.mjs` | Dependency-free standard chess rules, SAN/UCI and FEN |
+| `src/challenge.mjs`, `src/challenge-ui.mjs` | Sourced three-position human challenge, score, and share image |
+| `assets/share-cover.png` | Social-preview image used by Open Graph and X cards |
 | `src/pgn.mjs`, `src/broadcast.mjs` | Strict PGN parser, source checks and validated cache |
 | `data/archive-2024.json` | Historically sourced full game for local challenge |
 | `data/match.json` | Generated 2026 forecast and observed-move ledger |
@@ -109,7 +119,7 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 
 ## Optional browser integration test
 
-The repository includes a reproducible Chromium smoke test for desktop and mobile DOM interactions. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The test also checks legal prediction/reveal behavior and failure handling for direct PGN requests. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
+The repository includes a reproducible Chromium smoke test for desktop and mobile DOM interactions. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The browser test additionally completes the three-position challenge, checks exact-match scoring, verifies sharing and PNG export, and exercises the legal prediction/reveal controls and failure handling for direct PGN requests. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
 
 ```sh
 python -m pip install playwright

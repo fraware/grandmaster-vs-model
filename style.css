@@ -67,3 +67,71 @@
 .model-field-foot a{color:var(--accent);text-transform:none;letter-spacing:normal;font-weight:600;font-size:11px}
 .model-placeholder{font:13px var(--font-sans);color:var(--ink-soft)}
 @media(max-width:760px){.model-field{padding-bottom:35px}.model-field-heading{display:block}.model-field-status{border-left:0;border-top:1px solid var(--line);margin-top:20px;padding:16px 0 0}.model-field-status strong{font-size:40px}.model-grid{grid-template-columns:1fr;gap:10px}.model-card{min-height:150px;padding:20px}.model-card h3{margin-top:17px}.model-field-foot{flex-wrap:wrap}}
+
+/* The three-move challenge: no account, remote inference, or fabricated score. */
+.challenge{margin-bottom:72px;scroll-margin-top:20px}
+.challenge [hidden]{display:none!important}
+.challenge-frame{background:#f9f7f1;border:1px solid #cdd1c3;box-shadow:0 24px 60px rgba(35,39,31,.055)}
+.challenge-topbar{background:#282e27;color:#f6f4ec;padding:19px 29px;display:flex;justify-content:space-between;gap:14px;font-size:10px;letter-spacing:.15em;font-weight:750}
+.challenge-topbar span:last-child{color:#bbc4ac;font-weight:500}
+.challenge-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.98fr);gap:0}
+.challenge-left{background:#e8e7dc;padding:28px 38px 23px;border-right:1px solid var(--line)}
+.challenge-board-meta,.challenge-board-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;font-weight:700;letter-spacing:.1em;color:#595c53;min-height:23px}
+.challenge-board-meta{margin-bottom:13px}.challenge-board-meta span:first-child{font-size:14px;letter-spacing:0;color:#292d25;font-weight:650}
+.challenge-board{width:100%;aspect-ratio:1;max-width:540px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));box-shadow:0 8px 30px #29312521;border:4px solid #f2f1e8;margin:0 auto}
+.challenge-square{border:0;padding:0;position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;touch-action:manipulation;appearance:none;cursor:pointer;transition:box-shadow .1s ease}
+.challenge-square.light{background:#e9e6d9}.challenge-square.dark{background:#849075}
+.challenge-square.selected{box-shadow:inset 0 0 0 4px #9e482a;z-index:1}
+.challenge-square.target:after{content:'';position:absolute;pointer-events:none;background:#2d3a2985;width:24%;height:24%;border-radius:50%;z-index:2}
+.challenge-square.predicted{background:#c8b18c}
+.challenge-square.answer{background:#a6b998}
+.challenge-square:disabled{cursor:default}
+.challenge-square:focus-visible{outline:3px solid #a3472e;outline-offset:-3px;z-index:4}
+.challenge-piece{font:clamp(24px,3.6vw,55px)/1 Georgia,'DejaVu Sans',serif;user-select:none;pointer-events:none;position:relative;z-index:1}
+.challenge-piece.white{color:#fffaf0;text-shadow:-1px -1px 0 #31362c,1px -1px 0 #31362c,-1px 1px 0 #31362c,1px 1px 0 #31362c,0 3px 3px #262c2780}
+.challenge-piece.black{color:#242c24;text-shadow:0 1px 1px #f4f0e4a0}
+.challenge-coordinate{font:600 9px/1 var(--font-sans);position:absolute;z-index:2;opacity:.76;pointer-events:none}
+.challenge-coordinate.file{right:4px;bottom:3px}.challenge-coordinate.rank{top:4px;left:4px}
+.challenge-square.light .challenge-coordinate{color:#4e5b4d}.challenge-square.dark .challenge-coordinate{color:#f3f2ea}
+.challenge-board-bottom{padding-top:14px;font-size:9px;letter-spacing:.08em}
+.challenge-board-bottom a{color:#794331;text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.challenge-right{padding:32px clamp(26px,4.5vw,62px) 30px;display:flex;flex-direction:column;min-width:0}
+.challenge-steps-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font:700 10px/1.5 var(--font-sans);letter-spacing:.12em;color:#9b4932}
+.challenge-progress{display:flex;gap:7px;min-width:128px}
+.challenge-step{height:5px;flex:1;background:#deded3;position:relative}
+.challenge-step.current{background:#9a4d35}.challenge-step.done{background:#5e7356}
+.challenge-prompt{padding:44px 0 27px}
+.challenge-phase{color:var(--accent);font:750 10px var(--font-sans);letter-spacing:.15em}
+.challenge-prompt h2{font:400 clamp(34px,3.3vw,48px)/1.1 var(--font-serif);letter-spacing:-1.4px;margin:15px 0 14px;max-width:460px}
+.challenge-prompt p{font:16px/1.55 var(--font-serif);color:#5d625b;margin:0}
+.challenge-choice{margin-top:12px}
+.challenge-choice label{display:block;font-size:10px;letter-spacing:.13em;font-weight:750;color:#7b4030;margin-bottom:10px}
+.challenge-choice select{width:100%;background:#fff;border:1px solid #cfd0c5;padding:16px 15px;border-radius:0;color:#252b23;font-size:14px;font-weight:600;min-height:52px;cursor:pointer}
+.challenge-choice select:focus-visible{outline:3px solid #aa674f;outline-offset:1px}
+.challenge-hint{color:#70766b;font-size:12px;line-height:1.65;margin:10px 0 17px;min-height:20px}
+.challenge-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;background:#282e27;color:#fffdf6;border:1px solid #282e27;padding:17px 19px;text-align:left;font-size:13px;font-weight:700;letter-spacing:.02em;min-height:55px}
+.challenge-primary:hover:not(:disabled){background:#954831;border-color:#954831}
+.challenge-primary:disabled{background:#b9bcb3;border-color:#b9bcb3;color:#f6f5f1;cursor:default}
+.challenge-feedback{margin:10px 0 20px;padding:19px 21px;background:#f1ece4;border-left:3px solid #995035}
+.challenge-feedback.correct{border-left-color:#536f4a;background:#ecf0e7}
+.challenge-feedback-title{display:block;color:#75402d;font:700 11px var(--font-sans);text-transform:uppercase;letter-spacing:.08em;margin-bottom:11px}
+.challenge-feedback.correct .challenge-feedback-title{color:#4a6345}
+.challenge-feedback strong{display:block;font:400 27px/1.25 var(--font-serif)}
+.challenge-feedback p{font-size:12px;color:#60655c;margin:9px 0 0}
+.challenge-finished{margin-top:9px}
+.challenge-score{font:400 30px var(--font-serif);margin-bottom:10px}
+.challenge-finished>p{font-size:12px;color:#5c6359;line-height:1.6;max-width:360px;margin:0 0 23px}
+.challenge-secondary-actions{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:16px}
+.challenge-secondary-actions button{padding:9px 0;background:none;border:0;font-size:12px;text-decoration:underline;text-underline-offset:4px;color:#874632;font-weight:650}
+#challenge-share-text{width:100%;min-height:85px;margin-top:16px;border:1px solid #bcbfb4;padding:12px;font:12px/1.5 var(--font-sans);resize:vertical}
+.challenge-assurance{border-top:1px solid var(--line);padding-top:20px;margin-top:auto;color:#737970;font-size:11px;line-height:1.65;max-width:470px}
+.experiment-intro{display:flex;gap:31px;align-items:start;padding-bottom:28px;border-top:1px solid var(--line);padding-top:37px}
+.experiment-intro h2{font:400 clamp(25px,2.5vw,36px) var(--font-serif);margin:0 0 9px;letter-spacing:-.6px}
+.experiment-intro p{font-size:12px;line-height:1.6;color:var(--ink-soft);margin:0;max-width:540px}
+.intro{padding-top:46px;padding-bottom:37px}
+.intro h1{font-size:clamp(52px,5.6vw,78px);margin:21px 0 19px}
+.intro-meta{align-self:center}
+@media(max-width:1000px){.challenge-left{padding:23px 24px}.challenge-right{padding:27px 26px}.challenge-prompt{padding-top:32px}.challenge-piece{font-size:clamp(26px,4vw,49px)}}
+@media(max-width:760px){.challenge{margin-bottom:50px}.challenge-topbar{font-size:9px;padding:15px 15px}.challenge-topbar span:last-child{display:none}.challenge-grid{grid-template-columns:1fr}.challenge-left{border-right:0;border-bottom:1px solid var(--line);padding:17px 15px 19px}.challenge-board{max-width:min(500px,100%);border-width:3px}.challenge-piece{font-size:clamp(29px,8.7vw,52px)}.challenge-right{padding:24px 22px 26px}.challenge-prompt{padding:25px 0 16px}.challenge-prompt h2{font-size:clamp(30px,8vw,43px);margin:11px 0}.challenge-assurance{padding-top:16px;margin-top:25px}.challenge-board-bottom{padding-top:12px}.experiment-intro{padding-top:29px;gap:18px}.intro h1{font-size:clamp(43px,9.1vw,65px)}.intro-grid{gap:20px}.intro-meta{border-left:0;padding-left:0}.intro{padding-bottom:28px}}
+@media(prefers-reduced-motion:reduce){.challenge-square{transition:none}}
+@media(max-width:760px){.experience-body{grid-template-columns:minmax(0,1fr)}.board-column,.decisions-column{min-width:0}}
