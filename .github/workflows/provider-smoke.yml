@@ -1,0 +1,39 @@
+name: Verify frontier model access
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      # Exactly one automatic connection test on first installation.
+      # Later changes to scripts or the model roster do not spend tokens.
+      - '.github/workflows/provider-smoke.yml'
+permissions:
+  contents: read
+concurrency:
+  group: provider-access-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify offline adapter behavior
+        run: npm test
+      - name: Test one request per configured provider
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/provider-smoke.mjs
+      - name: Preserve sanitized provider check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-smoke-report
+          path: provider-smoke-report.json
+          if-no-files-found: warn
+          retention-days: 7

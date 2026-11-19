@@ -5,3 +5,6 @@ node_modules/
 !.env.example
 coverage/
 *.log
+
+# Credentialed integration evidence (CI artifact only)
+/provider-smoke-report.json

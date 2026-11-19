@@ -65,7 +65,15 @@ The [`Capture prospective forecasts`](.github/workflows/capture.yml) action poll
 
 The workflow is active only for the defined **24 November–12 December 2026** collection interval. The five-minute cron cadence is not guaranteed by GitHub and might miss short time intervals. It is not a continuous, latency-bounded service. Only Game 1 has a confirmed broadcast round ID. To cover more games, obtain and verify their round identifiers and extend the implementation explicitly.
 
-**To enable actual API predictions**, add the corresponding credentials at [Settings → Secrets and variables → Actions](https://github.com/fraware/grandmaster-vs-model/settings/secrets/actions), using the exact names `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY`. Add only the providers you intend to fund. The workflow ignores providers without a key. Provider calls incur usage charges. Secrets are never written to the site, files, or workflow logs. This repository does not yet have end-to-end authenticated provider test evidence; access, model support, rate limits, and individual spending limits must be confirmed.
+### Checking provider access before Game 1
+
+The [Verify frontier model access](.github/workflows/provider-smoke.yml) workflow runs **once on initial installation** and is available for later manual execution. It invokes each configured API model at most once using a small synthetic opening-position prompt. The command reports which keys were available to the job, the returned provider model identifier, and whether the response contained one legal UCI move. A seven-day GitHub Actions artifact retains a sanitized health report. The check does **not** create a championship prediction or contribute to the match leaderboard.
+
+The command is intentionally unsuccessful if every credential is missing or if any configured provider fails. Missing individual keys are recorded without affecting the status of other providers. Do not copy API keys into issues, local screenshots, logs, or this repository. A successful check confirms only access at that moment, not access on match day. Manual reruns incur additional API charges.
+
+[Open the credential verification workflow](https://github.com/fraware/grandmaster-vs-model/actions/workflows/provider-smoke.yml)
+
+**To enable actual API predictions**, add the corresponding credentials at [Settings → Secrets and variables → Actions](https://github.com/fraware/grandmaster-vs-model/settings/secrets/actions), using the exact names `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY`. Add only the providers you intend to fund. The workflow ignores providers without a key. Provider calls incur usage charges. Secrets are never written to the site, files, or workflow logs. Authenticated provider access is assessed by the separate credential verification workflow. Inspect its actual report before claiming successful inference; access, model support, rate limits, and individual spending limits must be confirmed.
 
 You can trigger one collector run manually from [Actions → Capture prospective forecasts](https://github.com/fraware/grandmaster-vs-model/actions/workflows/capture.yml). Prior to the opening game, the collector records no forecasts. A finished match stops calls. Automated data commits use the transparent GitHub Actions bot identity, distinct from the owner's code commits.
 

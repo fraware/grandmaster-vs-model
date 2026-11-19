@@ -71,3 +71,7 @@ The workflow runs no API calls without valid pregame source/player attribution a
 ### Post-release collection safeguards (v0.4.1)
 
 The browser refreshes `data/collection.json` periodically for active live spectators; all presented model statements continue to be marked as operator-originated and timing-unverified. The collector checks standard starting-position identity and maps untrusted broadcast player tags to a fixed pair of names before model prompting. No external browsing or tools are passed to the API models. These safeguards do not independently attest the provenance of Lichess PGN bytes or prove a provider's internal reasoning process.
+
+## Authenticated provider integration checks (November 2026)
+
+The separate `provider-smoke.yml` workflow submits a single synthetic, explicitly non-forecast chess prompt to each configured provider. Its output records only sanitized operational metadata and one legal-move parse outcome. The smoke check does not establish pre-move prediction priority, replay accuracy, provider identity attestation, or a verified performance measurement. No test results enter `data/collection.json`. A failed model request is reported by category without including provider-supplied HTTP error bodies or credential material.
