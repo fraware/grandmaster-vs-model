@@ -1,113 +1,274 @@
-/** Static, inspectable public dashboard: no external JavaScript or tracking. */
-import {START_FEN,parseFen,play,toIndex,toSquare} from './src/chess.mjs';
-const PREVIEW_MOVES=['d2d4','d7d5','c2c4','e7e6','b1c3','g8f6','c1g5','f8e7','e2e3','e8g8','g1f3','h7h6','g5h4','b7b6'];
-let previewFen=START_FEN;
-for(const uci of PREVIEW_MOVES)previewFen=play(previewFen,uci).fen;
-const preview={fen:previewFen,actual:'c4d5',models:[{id:'sample-1',name:'Example A',move:'c4d5',subtitle:'Scripted choice · for interface preview'},{id:'sample-2',name:'Example B',move:'f1d3',subtitle:'Scripted choice · for interface preview'},{id:'sample-3',name:'Example C',move:'a1c1',subtitle:'Scripted choice · for interface preview'}]};
+/** Public chess dashboard. Historical moves are sourced; 2026 moves use Lichess PGN.
+ * Browser API calls do not use credentials, trackers, cookies, or model inference.
+ */
+import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs';
+import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_BROADCAST,GAME_ONE_PGN} from './src/pgn.mjs';
 const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
-let mode='example',flipped=false,selection='actual',afterMove=false,matchData=null,selectedGame=1;
-function setText(id,text){$(id).textContent=text;}
-function esc(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-function getLive(){
-  const games=matchData?.games||[];const g=games.find(x=>x.game===selectedGame);
-  const forecastList=g?.forecasts||[],outcomes=g?.outcomes||[];
-  const ply=Math.max(0,...forecastList.map(x=>x.ply),...outcomes.map(x=>x.ply));
-  const currentForecast=forecastList.find(x=>x.ply===ply);
-  const currentOutcome=outcomes.find(x=>x.ply===ply);
-  const fen=currentForecast?.fen||currentOutcome?.fen||START_FEN;
-  return {fen,forecasts:forecastList.filter(x=>x.ply===ply&&x.fen===fen),outcome:currentOutcome?.fen===fen?currentOutcome:null};
+const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
+const query=new URLSearchParams(location.search);
+const requestedMode=query.get('mode');
+let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
+let matchData=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveError=null;
+let selectedGame=Number(query.get('game'))||1;if(selectedGame<1||selectedGame>14)selectedGame=1;
+let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
+let previousLiveCount=0,requestRunning=false;
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const setText=(id,text)=>{$(id).textContent=String(text)};
+const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
+const isArchive=()=>mode==='archive';
+
+function game(){
+  if(isArchive())return archiveReplay;
+  return selectedGame===1?liveGame:null;
 }
-function showMove(row,fen){
-  if(!row?.move)return null;
-  try{return play(fen,row.move).san;}catch{return row.move;}
+function currentIndex(){const data=game();return Math.max(0,Math.min(selectedPly??data?.moves?.length??0,data?.moves?.length??0));}
+function selectIndex(n){
+  selectedPly=Math.max(0,Math.min(n,game()?.moves?.length||0));
+  originSquare=null;selectedArrow=null;syncUrl();render();
 }
-function boardSvg(uci){
+function syncUrl(){
+  const url=new URL(location.href);
+  url.searchParams.set('mode',mode);
+  if(!isArchive())url.searchParams.set('game',String(selectedGame));else url.searchParams.delete('game');
+  if(selectedPly!==null)url.searchParams.set('ply',String(selectedPly));else url.searchParams.delete('ply');
+  history.replaceState(null,'',url);
+}
+function switchMode(next,manual=true){
+  mode=next;
+  if(manual)userChangedMode=true;
+  selectedPly=isArchive()?(archive?.highlightPly||1)-1:(liveGame?.moves.length??0);
+  originSquare=null;selectedArrow=null;
+  syncUrl();render();
+}
+function arrowSvg(uci){
   if(!uci)return '';
-  const start=toIndex(uci.slice(0,2)),end=toIndex(uci.slice(2,4));
-  const box=index=>({x:((flipped?7-index%8:index%8)+.5)*12.5,y:((flipped?7-Math.floor(index/8):Math.floor(index/8))+.5)*12.5});
-  const a=box(start),b=box(end),dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||1;
-  const ex=b.x-dx/dist*5.3,ey=b.y-dy/dist*5.3;
-  return `<svg class="arrow-overlay" viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="arrow-tip" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b14f2f"/></marker></defs><path d="M${a.x} ${a.y} L${ex} ${ey}" fill="none" stroke="#b14f2f" stroke-width="1.65" stroke-linecap="round" opacity=".92" marker-end="url(#arrow-tip)"/></svg>`;
+  const s=toIndex(uci.slice(0,2)),e=toIndex(uci.slice(2,4));
+  const center=index=>({x:((flipped?7-index%8:index%8)+.5)*12.5,y:((flipped?7-Math.floor(index/8):Math.floor(index/8))+.5)*12.5});
+  const a=center(s),b=center(e),dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
+  const ex=b.x-dx/d*5.4,ey=b.y-dy/d*5.4;
+  return `<svg class="arrow-overlay" viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="move-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b14f2f"/></marker></defs><path d="M${a.x} ${a.y} L${ex} ${ey}" fill="none" stroke="#b14f2f" stroke-width="1.65" stroke-linecap="round" marker-end="url(#move-arrow)"/></svg>`;
 }
-function drawBoard(fen,selectedUci){
+function drawBoard(fen,arrow,interactive){
   const state=parseFen(fen),board=$('board');board.replaceChildren();
-  const chosen=selectedUci ? [selectedUci.slice(0,2),selectedUci.slice(2,4)] : [];
-  for(let position=0;position<64;position++){
-    const squareIndex=flipped?63-position:position;
-    const row=Math.floor(position/8),col=position%8,square=toSquare(squareIndex);
-    const cell=document.createElement('div');cell.className=`square ${(row+col)%2?'dark':'light'}`;
-    if(chosen.includes(square))cell.classList.add('highlight');
+  board.classList.toggle('interactive',interactive);
+  const legal=interactive?withSans(fen):[];
+  const targets=originSquare?legal.filter(x=>x.uci.startsWith(originSquare)).map(x=>x.uci.slice(2,4)):[];
+  for(let pos=0;pos<64;pos++){
+    const squareIndex=flipped?63-pos:pos,row=Math.floor(pos/8),col=pos%8,square=toSquare(squareIndex);
+    const cell=document.createElement('button');cell.type='button';cell.className=`square ${(row+col)%2?'dark':'light'}`;
     const piece=state.board[squareIndex];
+    cell.setAttribute('aria-label',`${square}${piece==='.'?' empty':` ${piece===piece.toUpperCase()?'white':'black'} ${pieceNames[piece.toUpperCase()]}`}`);
+    cell.disabled=!interactive;
+    if(originSquare===square)cell.classList.add('selected-origin');
+    if(targets.includes(square))cell.classList.add('legal-target');
+    if(arrow&&(arrow.slice(0,2)===square||arrow.slice(2,4)===square))cell.classList.add('highlight');
     if(piece!=='.'){
       const el=document.createElement('span');el.className=`piece ${piece===piece.toUpperCase()?'white':'black'}`;el.textContent=glyphs[piece];el.setAttribute('aria-hidden','true');cell.append(el);
     }
-    if(row===7){const file=document.createElement('span');file.className='square-label file';file.textContent=square[0];cell.append(file);}
-    if(col===0){const rank=document.createElement('span');rank.className='square-label rank';rank.textContent=square[1];cell.append(rank);}
+    if(row===7){const label=document.createElement('span');label.className='square-label file';label.textContent=square[0];cell.append(label);}
+    if(col===0){const label=document.createElement('span');label.className='square-label rank';label.textContent=square[1];cell.append(label);}
+    if(interactive)cell.addEventListener('click',()=>boardClick(square,legal));
     board.append(cell);
   }
-  board.setAttribute('aria-label',`Chess position ${fen}. ${selectedUci?'Selected move '+selectedUci:''}`);
-  board.insertAdjacentHTML('beforeend',boardSvg(selectedUci));
+  board.setAttribute('aria-label',`Position after ${currentIndex()} plies. ${state.side==='w'?'White':'Black'} to move.`);
+  board.insertAdjacentHTML('beforeend',arrowSvg(arrow));
 }
-function decisionRow({id,name,move,subtitle},fen,actual=false,knownActual=null){
-  const san=showMove({move},fen);
-  const selected=selection===id;
-  const hit=knownActual&&move===knownActual;
-  return `<button type="button" class="decision ${selected?'selected':''}" data-choice="${esc(id)}" aria-pressed="${selected}"><span class="decision-badge ${actual?'actual':''}">${actual?'H':esc(name.split(' ').at(-1)[0])}</span><span class="decision-info"><strong>${esc(name)}</strong><small>${esc(subtitle)}</small></span><span class="decision-uci">${esc(san||'—')}</span><span class="decision-status ${hit?'hit':''}">${actual?'PLAYED':knownActual?(hit?'MATCH':'OTHER'):'FORECAST'}</span></button>`;
+function boardClick(square,legal){
+  if(!isArchive()||currentIndex()>=archiveReplay.moves.length||revealedPly.has(currentIndex()))return;
+  const fromChoices=originSquare?legal.filter(m=>m.uci.startsWith(originSquare)&&m.uci.slice(2,4)===square):[];
+  if(fromChoices.length){
+    const selected=fromChoices.find(m=>m.uci.length===4)||fromChoices.find(m=>m.uci.endsWith('q'))||fromChoices[0];
+    $('guess-select').value=selected.uci;originSquare=null;selectedArrow=selected.uci;render();return;
+  }
+  originSquare=legal.some(m=>m.uci.startsWith(square))?square:null;
+  selectedArrow=null;render();
+}
+function renderPlayerNames(data){
+  const white=isArchive()?archive?.white:(data?.tags?.White||'White player');
+  const black=isArchive()?archive?.black:(data?.tags?.Black||'Black player');
+  setText('top-player',flipped?white:black);setText('top-side',flipped?'WHITE':'BLACK');
+  setText('bottom-player',flipped?black:white);setText('bottom-side',flipped?'BLACK':'WHITE');
+}
+function resultSummary(title,text){
+  $('result-summary').innerHTML=`<span class="result-icon">◎</span><div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></div>`;
+}
+function decisionRow({label,subtitle,move,san,status,id,actual=false,matched=false}){
+  return `<div class="decision ${actual?'played':''}" data-prediction="${escapeHtml(id||'')}" role="listitem"><span class="decision-badge ${actual?'actual':''}">${actual?'H':'M'}</span><span class="decision-info"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="decision-uci">${escapeHtml(san||move||'—')}</span><span class="decision-status ${matched?'hit':''}">${escapeHtml(status||'')}</span></div>`;
+}
+function setSourceStatus(){
+  const a=$('source-url'),refresh=$('refresh-button');
+  if(isArchive()){
+    $('source-light').classList.add('connected');
+    setText('source-status',archive?`Verified 2024 championship archive · ${archiveReplay.moves.length/2} moves · 12 Dec 2024`:'Loading historic game…');
+    a.href=archive?.source||'https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D';a.textContent='View original game ↗';refresh.hidden=true;
+  }else{
+    a.href=GAME_ONE_BROADCAST;a.textContent='Original broadcast ↗';refresh.hidden=selectedGame!==1;
+    $('source-light').classList.toggle('connected',Boolean(liveCheckedAt&&!liveError));
+    if(selectedGame!==1)setText('source-status',`Game ${selectedGame}: a verified broadcast source has not yet been assigned. No moves are inferred.`);
+    else if(liveError)setText('source-status',`Broadcast unavailable (${liveError}). The historical challenge is still available.`);
+    else if(liveCheckedAt)setText('source-status',`${liveGame?.moves.length||0} observed moves · Lichess checked ${liveCheckedAt.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',timeZoneName:'short'})} · feed timestamps ≠ move timestamps`);
+    else setText('source-status','Connecting to the Game 1 Lichess broadcast…');
+  }
+}
+function renderArchive(){
+  if(!archive||!archiveReplay){
+    setText('result-title','Preparing the archive');setText('result-description','Loading the recorded game.');$('decision-list').replaceChildren();$('guess-area').hidden=true;return;
+  }
+  const i=currentIndex(),next=archiveReplay.moves[i]||null,prior=i?archiveReplay.moves[i-1]:null;
+  const revealed=revealedPly.has(i),guess=guesses.get(i)||null;
+  $('guess-area').hidden=!next||revealed;
+  setText('position-kicker','SINGAPORE · WORLD CHAMPIONSHIP 2024');
+  setText('position-name',i===108?'The move that changed history':`Game 14 · ${humanMoveLabel(i)}`);
+  setText('result-heading','PLAY THE HUMAN');setText('status-indicator','HISTORICAL · VERIFIED');
+  setText('result-title',next?`What did ${i%2===0?'Ding':'Gukesh'} play?`:'The game is complete.');
+  setText('result-description',next?'Select a legal move, or choose a piece and destination on the board. Commit your choice to compare it with the historical move.':'Ding resigned after move 58…Ke5. Gukesh won the 2024 World Championship.');
+  const rows=[];
+  if(guess){
+    const san=withSans(archiveReplay.positions[i]).find(x=>x.uci===guess)?.san||guess;
+    rows.push(decisionRow({label:'Your predicted move',subtitle:'Your local, retrospective guess',move:guess,san,status:revealed?(guess===next?.uci?'MATCH':'OTHER'):'LOCKED',id:'you',matched:revealed&&guess===next?.uci}));
+  }
+  if(next&&revealed)rows.push(decisionRow({label:i%2===0?archive.white:archive.black,subtitle:'Grandmaster’s recorded choice · 2024',move:next.uci,san:next.san,status:'PLAYED',actual:true}));
+  if(!rows.length&&prior)rows.push(decisionRow({label:'Last recorded move',subtitle:'Move already played · navigate to continue',move:prior.uci,san:prior.san,status:'HISTORY',actual:true}));
+  $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>A real grandmaster decision awaits.</strong><p>Select the move you expect. The actual choice stays concealed until you reveal it.</p></div>';
+  const moveOptions=next?withSans(archiveReplay.positions[i]).sort((a,b)=>a.san.localeCompare(b.san)):[];
+  const select=$('guess-select');
+  select.innerHTML='<option value="">Select a legal move…</option>'+moveOptions.map(x=>`<option value="${x.uci}">${escapeHtml(x.san)} · ${x.uci}</option>`).join('');
+  if(selectedArrow&&moveOptions.some(x=>x.uci===selectedArrow))select.value=selectedArrow;
+  else if(guess)select.value=guess;
+  $('guess-button').disabled=!select.value||Boolean(guess);
+  $('reveal-button').disabled=!next;
+  $('reveal-button').textContent=guess?'Reveal the move →':'Skip prediction · reveal move →';
+  const stats=Array.from(guesses).filter(([ply])=>revealedPly.has(ply)),matched=stats.filter(([ply,uci])=>archiveReplay.moves[ply]?.uci===uci).length;
+  $('score-line').hidden=!stats.length;setText('score-line',`${matched} exact matches in ${stats.length} revealed predictions · local session, not a model benchmark`);
+  if(revealed){
+    const matchedThis=guess===next?.uci;
+    resultSummary(next?.san=== 'Rf2'&&i===108?'The deciding mistake: 55.Rf2':matchedThis?'An exact prediction.':'The grandmaster chose '+next?.san,
+      i===108?'Ding’s rook exchange lost the drawn ending. The historical broadcast records 55.Rf2; independent analysis is linked in the source.':guess?(matchedThis?'Your guess matches the recorded move.':'An alternative legal move is not necessarily an inferior chess move.'):'This historical observation is recorded, not a live forecast.');
+  }else resultSummary('The actual move is concealed.','Predict first, reveal second. In this archive the outcome is historical and already public.');
+  setText('trace-text','Historical moves: Lichess Game 14 (12 December 2024). No model inference or prospective claims.');
+  setText('bottom-source','HISTORICAL GAME · LICHESS · 2024');
+  drawBoard(archiveReplay.positions[i],revealed?next?.uci:selectedArrow,Boolean(next&&!revealed));
+}
+function renderLive(){
+  const data=game(),i=currentIndex(),before=data?.positions[i]||START_FEN;
+  const observation=data?.moves[i]||null;
+  const relevant=matchData?.games?.find(x=>x.game===selectedGame);
+  const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
+  setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
+  setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
+  setText('result-heading','CHAMPIONSHIP DECISIONS');
+  setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
+  setText('result-title',observation?'The grandmaster played '+observation.san:forecastList.length?'Forecasts await the next move.':'No verified model forecasts yet.');
+  setText('result-description',data?.moves.length?'The chess position is reconstructed from Lichess’s broadcast PGN. The model ledger is separate and only displays recorded submissions.':'The 2026 match opens on 24 November. There are no real championship moves to display yet. Try the 2024 grandmaster challenge for a working example with genuine game data.');
+  const rows=forecastList.map(f=>{
+    const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
+    return decisionRow({label:f.model.id,subtitle:`${f.model.version} · operator-submitted / timing unverified`,san,move:f.prediction.uci,id:f.model.id,status:observation?(observation.uci===f.prediction.uci?'MATCH':'OTHER'):'FORECAST',matched:Boolean(observation&&observation.uci===f.prediction.uci)});
+  });
+  if(observation)rows.push(decisionRow({label:i%2===0?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:'Observed move · Lichess broadcast',san:observation.san,move:observation.uci,actual:true,status:'PLAYED'}));
+  $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>Results have to be earned.</strong><p>Model comparisons appear only after real responses have been recorded and matched to a sourced chess position.</p></div>';
+  $('guess-area').hidden=true;$('score-line').hidden=true;
+  if(observation)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
+  else if(forecastList.length)resultSummary('Submitted forecasts are provisional.','Displayed records have locally checked content. Public pre-move chronology and provider origin are still separate checks.');
+  else resultSummary('No manufactured leaderboard.','Public prediction accuracy is withheld until real provider responses, sourced moves, and credible pre-move publication evidence are available.');
+  setText('trace-text',selectedGame===1?'Source: Lichess Game 1, round xLgOJ6cb. Live retrieval is best-effort and broadcast-delayed.':'Only Game 1 has a confirmed Lichess broadcast round; no source has been assigned to this game.');
+  setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
+  drawBoard(before,observation?.uci||null,false);
 }
 function render(){
-  const inPreview=mode==='example';const data=inPreview?null:getLive();
-  $('tab-example').classList.toggle('active',inPreview);$('tab-live').classList.toggle('active',!inPreview);
-  $('tab-example').setAttribute('aria-pressed',String(inPreview));$('tab-live').setAttribute('aria-pressed',String(!inPreview));$('game-select').disabled=inPreview;
-  let fen, choices=[],actual=null,title,desc,positionTitle,positionKicker,heading,status;
-  if(inPreview){
-    fen=preview.fen;actual=preview.actual;choices=preview.models;
-    positionTitle='One position. Four decisions.';positionKicker='SCRIPTED EXHIBITION POSITION';
-    heading='WHO PREDICTED THE MOVE?';status='ILLUSTRATION';
-    title='The same board. Different instincts.';
-    desc='This is a scripted interface demonstration. Example A, B and C are fictional labels, not actual model responses.';
-  }else{
-    fen=data.fen;actual=data.outcome?.actualUci||null;
-    choices=data.forecasts.map(f=>({id:f.model.id,name:f.model.id,move:f.prediction.uci,subtitle:`${f.model.version} · operator-submitted`}));
-    positionTitle=data.outcome||choices.length?`Game ${String(selectedGame).padStart(2,'0')} · recorded position`:`Game ${String(selectedGame).padStart(2,'0')} · awaiting first move`;
-    positionKicker='FIDE WORLD CHAMPIONSHIP · 2026';
-    heading='PROSPECTIVE PREDICTIONS';status='NOT LIVE';
-    title=choices.length?'The recorded forecasts.':'The board is set.';
-    desc=choices.length?'Forecasts below are operator-submitted records. Model-origin and publication chronology require independent validation.':'No model predictions or championship moves have been entered for this game. The opening board is shown below.';
-  }
-  setText('position-name',positionTitle);setText('position-kicker',positionKicker);
-  setText('result-heading',heading);setText('status-indicator',status);
-  setText('result-title',title);setText('result-description',desc);
-  const state=parseFen(fen),moveLabel=`MOVE ${state.fullmove}${state.side==='b'?'…':''}`;
-  setText('side-to-move',state.side==='w'?'WHITE TO MOVE':'BLACK TO MOVE');setText('move-count',moveLabel);
-  if(flipped){setText('top-player','White pieces');setText('top-side','WHITE');setText('bottom-player','Black pieces');setText('bottom-side','BLACK');}
-  else{setText('top-player','Black pieces');setText('top-side','BLACK');setText('bottom-player','White pieces');setText('bottom-side','WHITE');}
-  const rows=[];
-  if(choices.length)rows.push(...choices.map(x=>decisionRow(x,fen,false,actual)));
-  if(actual)rows.push(decisionRow({id:'actual',name:inPreview?'Illustrative played move':'Grandmaster’s played move',move:actual,subtitle:inPreview?'Scripted outcome · not a championship move':data.outcome.sourceUrl},fen,true,actual));
-  if(rows.length)$('decision-list').innerHTML=rows.join('');
-  else $('decision-list').innerHTML='<div class="empty-row"><strong>No forecasts yet.</strong><p>Once a real position and audited predictions are published, this panel will show the model comparison.</p></div>';
-  if(!choices.some(x=>x.id===selection)&&selection!=='actual')selection=actual?'actual':choices[0]?.id||null;
-  if(selection==='actual'&&!actual)selection=choices[0]?.id||null;
-  $('decision-list').querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>{selection=el.dataset.choice;afterMove=false;render();}));
-  const selected=selection==='actual'?actual:choices.find(x=>x.id===selection)?.move||null;
-  let renderedFen=fen;
-  if(afterMove&&selected){try{renderedFen=play(fen,selected).fen;}catch{afterMove=false;}}
-  drawBoard(renderedFen,afterMove?null:selected);
-  const toggle=$('position-toggle');toggle.disabled=!selected;toggle.textContent=afterMove?'← Return to original position':'Show resulting position ↗';
-  const summary=$('result-summary');
-  if(inPreview){summary.innerHTML='<span class="result-icon">◎</span><div><strong>The experiment measures human prediction.</strong><p>Illustrative choice A coincides with the scripted outcome. This is not an empirical accuracy result.</p></div>';setText('trace-text','Example-only demonstration. No AI inference, engine evaluation, or real-game data.');}
-  else if(choices.length){
-    const exact=actual?choices.filter(x=>x.move===actual).length:null;
-    summary.innerHTML=`<span class="result-icon">◎</span><div><strong>${actual?`${exact} of ${choices.length} operator forecasts match.`:'Forecasts awaiting an observed move.'}</strong><p>Local records are subject to separate integrity, time-priority, and provider-origin checks. No engine strength claims are made.</p></div>`;
-    setText('trace-text','Git-backed publication chronology must be checked independently before treating results as prospective evidence.');
-  }else{summary.innerHTML='<span class="result-icon">◎</span><div><strong>Prediction log is empty.</strong><p>Real model predictions will appear only when submitted. The project does not invent forecasts or performance statistics.</p></div>';setText('trace-text','Public source: FIDE schedule · Observed results: none yet.');}
+  const historical=isArchive(),data=game(),i=currentIndex();
+  $('tab-live').classList.toggle('active',!historical);$('tab-archive').classList.toggle('active',historical);
+  $('tab-live').setAttribute('aria-pressed',String(!historical));$('tab-archive').setAttribute('aria-pressed',String(historical));
+  $('game-select').disabled=historical;$('game-select').value=String(selectedGame);
+  setSourceStatus();
+  const fen=data?.positions[i]||START_FEN,state=parseFen(fen);
+  renderPlayerNames(data);
+  setText('side-to-move',state.side==='w'?'WHITE TO MOVE':'BLACK TO MOVE');setText('move-count',`MOVE ${state.fullmove}${state.side==='b'?'…':''}`);
+  if(historical)renderArchive();else renderLive();
+  setText('nav-position',`${i} / ${data?.moves.length||0} PLIES`);
+  $('nav-start').disabled=i<=0;$('nav-back').disabled=i<=0;
+  $('nav-next').disabled=i>=(data?.moves.length||0);$('nav-end').disabled=i>=(data?.moves.length||0);
+  setText('board-context',historical?'2024 match · use the board to make your guess · ◀ ▶ to replay':'2026 match · sourced PGN · ◀ ▶ to inspect observed moves');
 }
-for(let game=1;game<=14;game++){const option=document.createElement('option');option.value=String(game);option.textContent=String(game).padStart(2,'0');$('game-select').append(option);}
-$('game-select').addEventListener('change',event=>{selectedGame=Number(event.target.value);selection=null;afterMove=false;render();});
-$('tab-live').addEventListener('click',()=>{mode='live';selection=null;afterMove=false;render();});
-$('tab-example').addEventListener('click',()=>{mode='example';selection='actual';afterMove=false;render();});
+
+function recordGuess(){
+  if(!archiveReplay||!isArchive())return;
+  const i=currentIndex(),uci=$('guess-select').value;
+  if(i>=archiveReplay.moves.length||revealedPly.has(i)||guesses.has(i))return;
+  if(!withSans(archiveReplay.positions[i]).some(m=>m.uci===uci))return;
+  guesses.set(i,uci);selectedArrow=uci;render();
+}
+function revealMove(){if(!isArchive()||!archiveReplay?.moves[currentIndex()])return;revealedPly.add(currentIndex());selectedArrow=null;originSquare=null;render();}
+
+/** Fetch fresh PGN directly from Lichess; this is not a model inference endpoint. */
+async function refreshBroadcast(){
+  if(requestRunning)return;
+  requestRunning=true;$('refresh-button').disabled=true;
+  try{
+    const response=await fetch(GAME_ONE_PGN,{headers:{Accept:'application/x-chess-pgn'},cache:'no-store',signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const games=parsePgn(await response.text());
+    const current=findChampionshipGame(games);
+    if(!current&&games.some(g=>g.moves.length))throw new Error('No Gukesh–Sindarov game in broadcast');
+    // Reject source rewrites: a changed prefix needs manual investigation, never a silent history overwrite.
+    if(liveGame&&current){
+      for(let p=0;p<Math.min(liveGame.moves.length,current.moves.length);p++){
+        if(liveGame.moves[p].uci!==current.moves[p].uci)throw new Error(`Broadcast changed move ${p+1}`);
+      }
+      if(current.moves.length<liveGame.moves.length)throw new Error('Broadcast history decreased');
+    }
+    const latest=current||{tags:{},moves:[],positions:[START_FEN]};
+    const before=liveGame?.moves.length||0;
+    liveGame=latest;liveCheckedAt=new Date();liveError=null;
+    if(!userChangedMode&&latest.moves.length&&mode==='archive'){switchMode('live',false);}
+    if(mode==='live'&&selectedGame===1&&(selectedPly===null||selectedPly>=before))selectedPly=latest.moves.length;
+    previousLiveCount=latest.moves.length;
+  }catch(error){
+    liveError=error instanceof Error?error.message:'unavailable';
+    console.warn('Lichess broadcast fetch failed:',error);
+  }finally{requestRunning=false;$('refresh-button').disabled=false;render();}
+}
+
+for(let g=1;g<=14;g++){const o=document.createElement('option');o.value=String(g);o.textContent=String(g).padStart(2,'0');$('game-select').append(o);}
+$('game-select').addEventListener('change',e=>{selectedGame=Number(e.target.value);selectedPly=selectedGame===1?(liveGame?.moves.length||0):0;syncUrl();render();});
+$('tab-live').addEventListener('click',()=>switchMode('live'));
+$('tab-archive').addEventListener('click',()=>switchMode('archive'));
 $('flip-button').addEventListener('click',()=>{flipped=!flipped;render();});
-$('position-toggle').addEventListener('click',()=>{afterMove=!afterMove;render();});
-async function loadData(){try{const response=await fetch('./data/match.json',{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const json=await response.json();if(json.schema!=='match-v1')throw new Error('Unexpected data schema');matchData=json;}catch(error){console.error('Cannot load match ledger:',error);setText('trace-text','Cannot load match ledger; run the site from a local web server.');}render();}
-render();loadData();
+$('nav-start').addEventListener('click',()=>selectIndex(0));
+$('nav-back').addEventListener('click',()=>selectIndex(currentIndex()-1));
+$('nav-next').addEventListener('click',()=>selectIndex(currentIndex()+1));
+$('nav-end').addEventListener('click',()=>selectIndex(game()?.moves.length||0));
+$('guess-select').addEventListener('change',e=>{selectedArrow=e.target.value||null;originSquare=null;render();});
+$('guess-button').addEventListener('click',recordGuess);
+$('reveal-button').addEventListener('click',revealMove);
+$('refresh-button').addEventListener('click',refreshBroadcast);
+$('share-button').addEventListener('click',async()=>{
+  syncUrl();try{await navigator.clipboard.writeText(location.href);setText('share-button','Link copied ✓');}
+  catch{window.prompt('Copy this link',location.href);}
+  setTimeout(()=>setText('share-button','Share position ↗'),1800);
+});
+window.addEventListener('keydown',e=>{
+  if(e.altKey||e.ctrlKey||e.metaKey||['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName))return;
+  if(e.key==='ArrowLeft'){e.preventDefault();selectIndex(currentIndex()-1);}
+  if(e.key==='ArrowRight'){e.preventDefault();selectIndex(currentIndex()+1);}
+});
+async function initialize(){
+  try{
+    const [historical,ledger]=await Promise.all([
+      fetch('./data/archive-2024.json').then(r=>{if(!r.ok)throw Error(`archive HTTP ${r.status}`);return r.json();}),
+      fetch('./data/match.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`ledger HTTP ${r.status}`);return r.json();}),
+    ]);
+    if(historical.schema!=='historical-game-v1'||ledger.schema!=='match-v1')throw new Error('Unexpected data schema');
+    const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
+    if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
+    archive=historical;archiveReplay=replay;matchData=ledger;
+    const deepPly=Number(query.get('ply'));
+    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?historical.highlightPly-1:0;
+  }catch(error){
+    console.error('Cannot load recorded data:',error);
+    setText('source-status','The game data could not be loaded. Refresh, or serve this site using a local web server.');
+  }
+  render();await refreshBroadcast();
+}
+render();initialize();
+setInterval(()=>{if(!document.hidden)refreshBroadcast();},90000);

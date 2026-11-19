@@ -28,3 +28,7 @@ The sole objective of public launch is a credible, visually compelling, timely a
 - **Later games:** report error bars and missing attempts, publish meaningful disagreements from the move ledger, and add benchmark baselines.
 
 The promotional line is *"Can AI predict what a world champion will play next?"* The scientific claim must remain narrower: prospective top-1 human-move forecasts for one specific championship with declared model configurations.
+
+### November 19 development checkpoint
+
+The dashboard now includes a real replay of the 2024 championship's deciding Game 14 and a direct Lichess PGN integration for the upcoming 2026 Game 1. The local chess-rule replay and parsing tests pass. The 2026 match has not begun; there are no real 2026 moves or model results to publish. Direct browser access to the broadcast must be independently confirmed at deployment. GitHub Pages still needs to be enabled under repository Settings → Pages with GitHub Actions as the publishing source. Do not describe Pages as live until the deployment check succeeds.

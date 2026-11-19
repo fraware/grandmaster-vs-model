@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f5f2eb" />
-  <meta name="description" content="Can frontier AI predict a world champion's next move? A public chess forecasting experiment with inspectable prediction records." />
+  <meta name="description" content="Grandmaster vs Model: live World Championship chess moves, a historical grandmaster challenge, and an open prospective AI prediction protocol." />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Grandmaster vs Model — Predict the human." />
-  <meta property="og:description" content="Prospective AI forecasts of the 2026 World Chess Championship. Every prediction has a record; every result has a source." />
-  <title>Grandmaster vs Model — Predict the Human</title>
+  <meta property="og:title" content="Grandmaster vs Model | Predict the human." />
+  <meta property="og:description" content="What will the grandmaster play? Follow sourced championship moves and try the 2024 final yourself. AI predictions will be published only with evidence." />
+  <meta property="og:image" content="https://fraware.github.io/grandmaster-vs-model/social-card.svg" />
+  <title>Grandmaster vs Model | Predict the human</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
   <script type="module" src="app.mjs"></script>
@@ -16,75 +17,93 @@
 <body>
   <header class="site-header">
     <div class="shell header-row">
-      <a class="identity" href="#top" aria-label="Grandmaster vs Model, home">
-        <span class="identity-mark" aria-hidden="true">♞</span>
-        <span class="identity-name">Grandmaster <span class="identity-vs">vs</span> Model</span>
-      </a>
+      <a class="identity" href="#top" aria-label="Grandmaster vs Model home"><span class="identity-mark" aria-hidden="true">♞</span><span class="identity-name">Grandmaster <span class="identity-vs">vs</span> Model</span></a>
       <nav class="main-nav" aria-label="Site navigation">
-        <a href="#experiment">The experiment</a>
-        <a href="#method">Method</a>
-        <a class="github-link" href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer" aria-label="Grandmaster vs Model source repository">
-          GitHub <span aria-hidden="true">↗</span>
-        </a>
+        <a href="#experiment">The match</a><a href="#method">Method</a>
+        <a class="github-link" href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer">View source <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
   </header>
   <main id="top">
     <div class="shell intro">
-      <div class="eyebrow"><span class="eyebrow-bar"></span> AN OPEN EXPERIMENT <span class="eyebrow-sep">/</span> GENEVA · 2026</div>
+      <div class="eyebrow"><span class="eyebrow-bar"></span> A PUBLIC CHESS EXPERIMENT <span class="eyebrow-sep">/</span> GENEVA 2026</div>
       <div class="intro-grid">
         <div>
           <h1>Predict the human.<br /><em>Not just the move.</em></h1>
-          <p class="standfirst">The world’s best chess players make thousands of possible decisions. We ask frontier AI models to predict the <em>one move</em> a grandmaster actually chooses.</p>
+          <p class="standfirst">Chess engines find strong moves. The harder question for a prediction experiment is which move a particular grandmaster will choose. Explore real championship decisions while we build a public, auditable model comparison.</p>
+          <div class="intro-links"><a href="#experiment" id="hero-cta" class="primary-link">Explore the board <span aria-hidden="true">↗</span></a><span class="hero-proof">REAL GAMES · OPEN METHODS · NO INVENTED RESULTS</span></div>
         </div>
         <div class="intro-meta" aria-label="Championship details">
           <span class="intro-meta-label">THE WORLD CHAMPIONSHIP</span>
           <div class="match-name">Gukesh <span>×</span> Sindarov</div>
-          <div class="match-date">24 NOV — 12 DEC 2026</div>
+          <div class="match-date">GAME 01 · 24 NOVEMBER 2026</div>
           <div class="match-location">Geneva, Switzerland</div>
-          <a href="https://worldchampionship.fide.com/schedule" target="_blank" rel="noopener noreferrer" class="subtle-link">Official FIDE schedule ↗</a>
+          <a href="https://worldchampionship.fide.com/schedule" target="_blank" rel="noopener noreferrer" class="subtle-link">Match calendar / FIDE ↗</a>
         </div>
       </div>
     </div>
-    <section id="experiment" class="shell experience" aria-label="Interactive forecasting board">
+    <section id="experiment" class="shell experience" aria-label="Interactive chessboard">
       <div class="experience-header">
-        <div class="experience-heading"><span class="section-counter">01 /</span> THE NEXT MOVE EXPERIMENT</div>
-        <div class="experience-actions"><label for="game-select" class="game-select-label">GAME</label><select id="game-select" class="game-select" aria-label="Championship game" disabled></select><div class="segment" role="group" aria-label="Board data source">
-          <button id="tab-live" class="segment-option" type="button" aria-pressed="false">Championship</button>
-          <button id="tab-example" class="segment-option active" type="button" aria-pressed="true">Illustrative preview</button>
-        </div></div>
+        <div class="experience-heading"><span class="section-counter">01 /</span> THE DECISION BOARD</div>
+        <div class="experience-actions">
+          <label for="game-select" class="game-select-label">GAME</label><select id="game-select" class="game-select" aria-label="Championship game"></select>
+          <div class="segment" role="group" aria-label="Choose a source">
+            <button id="tab-live" class="segment-option" type="button" aria-pressed="false">2026 Championship</button>
+            <button id="tab-archive" class="segment-option active" type="button" aria-pressed="true">2024 Grandmaster test</button>
+          </div>
+        </div>
+      </div>
+      <div class="source-strip" aria-live="polite">
+        <span class="source-light" id="source-light" aria-hidden="true"></span>
+        <span id="source-status">Loading verified historical moves…</span>
+        <a id="source-url" href="https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb" target="_blank" rel="noopener noreferrer">Lichess broadcast ↗</a>
+        <button id="refresh-button" class="small-action" type="button" title="Refresh broadcast moves">Refresh ↻</button>
       </div>
       <div class="experience-body">
         <div class="board-column">
-          <div class="board-heading"><div><span class="board-sup" id="position-kicker">ILLUSTRATIVE POSITION</span><h2 id="position-name">One position. Four decisions.</h2></div><button class="icon-button" id="flip-button" type="button" title="Rotate board" aria-label="Rotate chessboard">↻</button></div>
+          <div class="board-heading"><div><span class="board-sup" id="position-kicker">REAL CHAMPIONSHIP ARCHIVE</span><h2 id="position-name">A world title on the line</h2></div><button class="icon-button" id="flip-button" type="button" title="Rotate board" aria-label="Rotate chessboard">↻</button></div>
           <div class="board-wrap">
-            <div class="board-player top"><span class="player-disc dark-disc">♟</span><span id="top-player">Black pieces</span><span class="player-side" id="top-side">BLACK</span></div>
-            <div class="chess-board" id="board" role="img" aria-label="Chess position"></div>
-            <div class="board-player bottom"><span class="player-disc light-disc">♙</span><span id="bottom-player">White pieces</span><span class="player-side" id="bottom-side">WHITE</span></div>
+            <div class="board-player top"><span class="player-disc dark-disc">♟</span><span id="top-player">Gukesh D</span><span class="player-side" id="top-side">BLACK</span></div>
+            <div class="chess-board" id="board" role="group" aria-label="Chessboard; choose a piece and its destination to guess a move"></div>
+            <div class="board-player bottom"><span class="player-disc light-disc">♙</span><span id="bottom-player">Ding Liren</span><span class="player-side" id="bottom-side">WHITE</span></div>
           </div>
-          <div class="board-footer"><div><span class="position-tag" id="side-to-move">WHITE TO MOVE</span><span class="quiet" id="move-count">MOVE 8</span></div><button id="position-toggle" type="button" class="text-button" disabled>Show resulting position ↗</button></div>
+          <div class="board-footer"><div><span class="position-tag" id="side-to-move">WHITE TO MOVE</span><span class="quiet" id="move-count">MOVE 55</span></div><button id="share-button" type="button" class="text-button">Share position ↗</button></div>
+          <div class="replay-controls" aria-label="Game replay controls">
+            <button id="nav-start" type="button" aria-label="First position" title="First position">⇤</button>
+            <button id="nav-back" type="button" aria-label="Previous move" title="Previous move">←</button>
+            <span id="nav-position" aria-live="off">109 / 116</span>
+            <button id="nav-next" type="button" aria-label="Next move" title="Next move">→</button>
+            <button id="nav-end" type="button" aria-label="Last position" title="Last position">⇥</button>
+          </div>
+          <div class="board-context" id="board-context">Choose a move directly on the board, or use the list alongside it.</div>
         </div>
         <div class="decisions-column">
-          <div class="decision-topline"><span id="result-heading">WHO PREDICTED THE MOVE?</span><span class="disclaimer-dot" id="status-indicator">ILLUSTRATION</span></div>
-          <div class="result-headline"><span id="result-title">The same board.<br />Different instincts.</span></div>
-          <p class="decision-intro" id="result-description">Explore a scripted example of the interface. The choices below are illustrative, not responses from real AI models.</p>
+          <div class="decision-topline"><span id="result-heading">TRY THE GRANDMASTER TEST</span><span class="disclaimer-dot" id="status-indicator">HISTORICAL GAME</span></div>
+          <h2 class="result-headline" id="result-title">Which move did Ding choose?</h2>
+          <p class="decision-intro" id="result-description">12 December 2024. The final game of the World Championship. Choose the move you think Ding played, then reveal his decision.</p>
+          <div id="score-line" class="score-line" hidden></div>
           <div class="decisions" id="decision-list" aria-live="polite"></div>
-          <div class="result-summary" id="result-summary"><span class="result-icon">◎</span><div><strong>Why this distinction matters</strong><p>Matching a human move and finding the strongest engine move are different questions. Our scoreboard measures them separately.</p></div></div>
-          <div class="trace-row"><span class="trace-mark">⤷</span><span id="trace-text">No empirical claims are made by this illustration.</span></div>
+          <div class="guess-area" id="guess-area">
+            <label for="guess-select">YOUR MOVE <span class="quiet">/ STANDARD CHESS NOTATION</span></label>
+            <div class="guess-input"><select id="guess-select" aria-label="Select your predicted chess move"></select><button id="guess-button" type="button">Lock prediction</button></div>
+            <button id="reveal-button" type="button" class="text-button">Reveal the grandmaster’s move →</button>
+          </div>
+          <div class="result-summary" id="result-summary" aria-live="polite"><span class="result-icon">◎</span><div><strong>Historical decisions, genuine chess.</strong><p>This is a retrospective test of your prediction, not a claim about model performance.</p></div></div>
+          <div class="trace-row"><span class="trace-mark">⤷</span><span id="trace-text">Sourced to the 2024 Lichess championship broadcast.</span></div>
         </div>
       </div>
-      <div class="experience-bottom"><span>THE STANDARD <span class="thin-rule">—</span> predict first, observe second, score third.</span><span>OPEN METHODS · AUDITABLE RECORDS</span></div>
+      <div class="experience-bottom"><span>THE STANDARD <span class="thin-rule">—</span> FORECAST → PUBLISH → OBSERVE → VERIFY.</span><span id="bottom-source">HISTORICAL DATA: LICHESS · DEC 2024</span></div>
     </section>
     <section class="shell signals" aria-label="Experiment principles">
-      <div class="signal"><span class="signal-number">01</span><h3>Before the move.</h3><p>Models receive the same recorded chess position. Their predictions are published ahead of the human decision.</p></div>
-      <div class="signal"><span class="signal-number">02</span><h3>Against the human.</h3><p>Exact-match accuracy measures whether a model anticipates the player’s actual choice, not just a strong move.</p></div>
-      <div class="signal"><span class="signal-number">03</span><h3>Open to inspection.</h3><p>Every observation links back to a game position, model specification, prediction record, and outcome source.</p></div>
+      <div class="signal"><span class="signal-number">01 / IN THE MOMENT</span><h3>Before the move.</h3><p>Championship moves come from a documented public broadcast. Predictions must be published before the observed decision to qualify as prospective evidence.</p></div>
+      <div class="signal"><span class="signal-number">02 / TWO DIFFERENT QUESTIONS</span><h3>Choice versus strength.</h3><p>Did a model anticipate the player’s exact choice? Was that move strong? Exact matching and engine evaluation measure different things.</p></div>
+      <div class="signal"><span class="signal-number">03 / THE EVIDENCE</span><h3>Open to inspection.</h3><p>Our public repository contains the collection protocol, chess rules, tests, and published observations. We disclose gaps before displaying any model accuracy.</p></div>
     </section>
     <section id="method" class="shell methodology">
-      <div class="method-intro"><span class="section-counter">02 /</span><h2>Predictions without hindsight.</h2><p>Publishing a result is straightforward. Establishing that a prediction existed before the human move is the actual challenge.</p></div>
-      <div class="method-details"><div class="method-rule"><span>01 / INPUT</span><p>The board position, legal moves, model version, and prompt specification are recorded.</p></div><div class="method-rule"><span>02 / PUBLICATION</span><p>A public Git commit ahead of the next move provides an externally inspectable publication record. A local timestamp alone does not establish priority.</p></div><div class="method-rule"><span>03 / SCORING</span><p>Observed moves are sourced from a public broadcast. Exact matches are counted separately from Stockfish assessment, which is not yet integrated.</p></div><div class="method-rule"><span>04 / LIMITS</span><p>Git history does not independently attest model-provider identity or response origin. Those claims need provider evidence and additional controls.</p></div></div>
+      <div class="method-intro"><span class="section-counter">02 /</span><h2>Predictions without hindsight.</h2><p>Forecasting a grandmaster demands a chronology that survives scrutiny. The live board is an observation tool; the model scoreboard will use a separate, documented evidence standard.</p><a class="method-link" href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">Read the complete protocol ↗</a></div>
+      <div class="method-details"><div class="method-rule"><span>01 / INPUT</span><p>Models share a recorded position, legal moves, player identity, prompt, and explicit version.</p></div><div class="method-rule"><span>02 / PRIORITY</span><p>A forecast needs independent evidence of publication before the human move. Local timestamps are insufficient.</p></div><div class="method-rule"><span>03 / OBSERVATION</span><p>Chess positions are replayed from Lichess PGN. Feed retrieval time is distinct from the physical move time.</p></div><div class="method-rule"><span>04 / DISCLOSURE</span><p>No historical test is passed off as a prospective AI result. Engine evaluation and provider provenance are separate verification tasks.</p></div></div>
     </section>
   </main>
-  <footer class="site-footer"><div class="shell footer-row"><span class="footer-name">G / M</span><span>Independent open-source experiment. Not affiliated with FIDE or the players.</span><a href="https://worldchampionship.fide.com/" target="_blank" rel="noopener noreferrer">World Championship ↗</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-row"><span class="footer-name">G / M</span><span>Independent open-source experiment · No affiliation with FIDE or the players.</span><a href="https://lichess.org/broadcast" target="_blank" rel="noopener noreferrer">Broadcast data: Lichess ↗</a></div></footer>
 </body>
 </html>

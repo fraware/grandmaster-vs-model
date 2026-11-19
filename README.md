@@ -2,55 +2,44 @@
 
 **Predict the human. Not just the move.**
 
-A small, independently maintained experiment to evaluate whether general-purpose AI models anticipate the *actual choices* of grandmasters during the Gukesh–Sindarov 2026 FIDE World Chess Championship. The first classical game is scheduled for **24 November 2026**. See [FIDE's official match schedule](https://worldchampionship.fide.com/schedule).
+An open, independently maintained chess experiment. We compare the *actual next moves* of World Championship grandmasters with predictions submitted by frontier AI models. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-> **Current status — prelaunch prototype (19 November 2026).** The dashboard has an explicit scripted illustration. The championship ledger has zero observations and zero model predictions. OpenAI, Anthropic, and Gemini API adapters have offline unit tests; no real provider calls or engine evaluations have been executed. The project does not yet ingest a live championship feed or independently attest submitted model results. The repository source is public at [fraware/grandmaster-vs-model](https://github.com/fraware/grandmaster-vs-model). A working Pages deployment is not yet verified.
+[Open the interactive website](https://fraware.github.io/grandmaster-vs-model/) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
-## Why this project exists
+## What already works
 
-Chess engines select strong moves. The question here is whether models can identify the particular move a human chooses. A prediction that disagrees with Stockfish can be right about the player. A prediction that agrees with Stockfish can be wrong about the player. We maintain separate measures.
+- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). Visitors select a legal move, lock a prediction, reveal the player's decision, replay all positions, rotate the board, and share a position link. The retrospective guess score is local to that browser session; it is not a model evaluation.
+- **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and refreshes while the page is active. Failures are disclosed rather than replaced with fabricated moves. Later match games need their own confirmed broadcast IDs.
+- **Inspectable prediction ledger.** The repository contains a canonical forecast schema, local SHA-256 record integrity validation, duplicate rejection, move-legality checks, provider-agnostic prompt template, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
+- **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-This is not a generic chess arena, nor a claim to have invented human-move prediction. Directly relevant prior work includes [ChessDS DSC](https://github.com/ChessDS/chessds-dsc), [Maia-3](https://github.com/CSSLab/maia3), [MoveLens](https://chessassistlens.vercel.app/research), [ChessBench](https://chessbench.org/), and [LLMChessArena](https://github.com/DeadPackets/LLMChessArena). Our intended contribution is a public *prospective*, championship-specific evaluation with inspectable forecast records.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero real model forecasts** and **zero observed 2026 moves**. No paid model inference or Stockfish evaluation has been run. There is no leaderboard because there is not yet evidence to justify one. The website source has been pushed; GitHub Pages deployment is blocked until Pages is enabled in the repository settings. The browser-side Lichess endpoint has been tested with offline fixtures; live browser cross-origin behavior still needs a deployed-network check.
 
-## Run locally
+## Why this project is different
 
-No npm installation or browser framework is needed. Node.js 20+ is used for the ledger and tests; Python 3 is optional for serving the site.
+Prior systems already predict human chess moves. Relevant work includes [ChessDS DSC](https://github.com/ChessDS/chessds-dsc), [Maia-3](https://github.com/CSSLab/maia3), [MoveLens](https://chessassistlens.vercel.app/research), [ChessBench](https://chessbench.org/), and [LLMChessArena](https://github.com/DeadPackets/LLMChessArena). Historical replay and move-guessing games also predate this project. The intended contribution is **event-specific, prospective model forecasting with public pre-move records and reproducible scoring**, not an assertion that chess prediction itself was invented here.
 
-```bash
+An accurate prediction of a human's actual choice is different from choosing a move favored by a chess engine. These outcomes must be evaluated separately.
+
+## Quick start
+
+Node.js 20+ is needed for tests, record management, and model adapters; Python 3 is optional for the local site.
+
+```sh
 npm test
 npm run verify
 npm run build:data
 python3 -m http.server 8080
 ```
 
-Open `http://localhost:8080`. The initial view is an explicitly illustrative board. Select **Championship** for the empty live ledger. Select **Game** to inspect an individual game. A direct `file://` URL is not guaranteed to load the JSON snapshot due to browser origin restrictions.
+Open `http://localhost:8080/`. The historical challenge works from bundled game data. The live championship tab attempts a direct Lichess request. Browser networking or CORS policy might block that request; the failure appears in the interface. Direct `file://` navigation does not reliably permit JSON loading.
 
-The app has no external fonts, analytics, advertising, cookies, or third-party JavaScript.
+## Real model forecasts
 
-## Record a prospective forecast
+Collect an API prediction with an **explicit** provider/model version and credentials held in environment variables. The runner records the prompt and raw response, calls the common legal-move validator, and writes a locally checksummed JSON record.
 
-A validated forecast contains a game number, half-move (ply) number, FEN, model ID, exact model version, complete prompt, raw provider output, predicted legal move in UCI notation, and a reported UTC time. Records are immutable at the CLI level. They contain SHA-256 checksums of their content and of the prompt and response. **SHA-256 does not prove the time at which a record was created.**
-
-```bash
-# First game, initial position. This is an instruction example, not a real prediction.
-node scripts/ledger.mjs forecast \
-  --game 1 --ply 1 \
-  --fen 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' \
-  --model hypothetical-model --version exact-model-identifier \
-  --prompt-file ./prompt.txt --response-file ./response.txt \
-  --uci e2e4 --predicted-at 2026-11-24T14:00:00Z
-```
-
-The CLI rejects illegal chess moves, malformed FENs, inconsistent ply numbers, duplicate submissions, invalid timestamps, and corrupted record digests. The initial schema uses standard chess only; Chess960 and other variants are out of scope.
-
-**Required external priority evidence.** Commit each forecast on a publicly inspectable branch *before* the corresponding human move. Capture the commit URL/SHA and an independent record of the first public observation of the move. Git author and committer timestamps are operator-controlled; GitHub hosting history is helpful but not a complete time-attestation service. Do not count an unanchored prediction as an independently verified pre-move forecast.
-
-## Invoke a model API
-
-With the appropriate credential in the local environment, use the provider runner. Model identifiers are intentionally explicit and are never guessed.
-
-```bash
-export OPENAI_API_KEY='...'
+```sh
+export OPENAI_API_KEY='your-credential'
 node scripts/model-runner.mjs \
   --provider openai \
   --version YOUR_EXACT_MODEL_IDENTIFIER \
@@ -59,55 +48,26 @@ node scripts/model-runner.mjs \
   --game 1 --ply 1
 ```
 
-Other supported provider values: `anthropic` (`ANTHROPIC_API_KEY`) and `gemini` (`GEMINI_API_KEY`). Specify `--model-id` for a stable public slug. The optional `--history-file` points to a plain-text UCI move history. The runner sends a position, named player, legal move list, and a common prompt; it rejects responses other than a single legal UCI move. The runner does not grant external tools to the model. A response is recorded with its raw text and operator-side reported completion time. Call origin, API/model authenticity, request accounting, and chronology are not cryptographically attested by this code. Always publish the record prior to the next move.
+Alternative providers use `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; see `scripts/model-runner.mjs`. The runner has offline contract tests, not authenticated end-to-end API smoke tests.
 
-Provider endpoints are based on [OpenAI Responses](https://platform.openai.com/docs/api-reference/responses/create), [Anthropic Messages](https://docs.anthropic.com/en/api/messages), and [Google Gemini Generate Content](https://ai.google.dev/gemini-api/docs/generate-content). The adapters have mock transport tests and require a real credential-based smoke test before operational use. API syntax and model availability change, so verify them close to launch.
+**Publication standard:** A forecast must be publicly published *before the move* for a genuine prospective claim. Local timestamp fields, Git author timestamps, and local file hashes do not independently prove pre-move priority. A broadcast polling timestamp is not the time at which a player physically made a move. Provider identity and the absence of off-protocol information are also separate evidence obligations. Refer to [METHOD.md](METHOD.md) before publishing accuracy statistics.
 
-## Record an observed move
+## Files
 
-```bash
-node scripts/ledger.mjs outcome \
-  --game 1 --ply 1 \
-  --fen 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' \
-  --uci e2e4 \
-  --played-at 2026-11-24T14:05:00Z \
-  --source-url 'https://lichess.org/broadcast/YOUR-REAL-BROADCAST-URL'
+| Path | Role |
+| --- | --- |
+| `index.html`, `style.css`, `app.mjs` | Static responsive site and interactive board |
+| `src/chess.mjs` | Dependency-free standard chess rules, SAN/UCI and FEN |
+| `src/pgn.mjs` | Strict PGN parser and public Game 1 endpoint |
+| `data/archive-2024.json` | Historically sourced full game for local challenge |
+| `data/match.json` | Generated 2026 forecast and observed-move ledger |
+| `scripts/ledger.mjs` | Record, verify, rebuild ledger data |
+| `scripts/model-runner.mjs` | Optional real model API adapters |
+| `tests/` | Chess perft, protocols, provider mocks and PGN validation |
+| `.github/workflows/` | CI and GitHub Pages deployment |
 
-npm run verify
-npm run build:data
-```
+## Hosting
 
-The above is a **synthetic command example**. The `--played-at` field needs independent support; it must not be inferred from a polling timestamp. In the absence of a verified physical move time, retain the observation as provisionally sourced and exclude it from independently attested priority claims. To follow games without scraping, see [Lichess broadcast PGN and streaming API](https://lichess.org/broadcast/help). The 2026 championship round identifier has not been configured.
+GitHub Pages is configured through `Settings → Pages → Build and deployment → GitHub Actions`. The workflow automatically publishes the static files when Pages is enabled. The initial deployment returned HTTP 404 while Pages was disabled. Its deployment status is independent of a successful test run.
 
-## Interpret the output
-
-- **Exact next move**: whether the predicted UCI equals the broadcast-observed UCI at the same validated FEN.
-- **Eligibility**: operator-supplied forecast time precedes the reported human move time. This local check is provisional, not a verified public time anchor.
-- **Engine strength**: withheld until Stockfish version, hardware/compute, search limits, MultiPV, and evaluation conventions are fixed and recorded.
-- **Summary statistics**: withheld until prospective data exist. Moves from a single game are dependent observations; uncertainty analysis must account for game-level clustering and selection.
-
-Read [METHOD.md](METHOD.md) for the measurement and trust-boundary specification and [LAUNCH.md](LAUNCH.md) for the remaining tasks.
-
-## Repository layout
-
-```text
-index.html / style.css / app.mjs      static site, no frontend build
-src/chess.mjs                         standard-chess rules and SAN
-src/protocol.mjs                      forecast and outcome schema
-scripts/ledger.mjs                    record, verify, generate snapshots
-scripts/model-runner.mjs              model provider adapters
-src/                                zero third-party runtime dependencies
-data/match.json                       audited-or-provisional match data snapshot
-data/forecasts/                       forecast records (empty initially)
-data/outcomes/                        observed-move records (empty initially)
-tests/                                Node's built-in test runner
-.github/workflows/                    CI and GitHub Pages workflows
-```
-
-## Publication
-
-The repository is [fraware/grandmaster-vs-model](https://github.com/fraware/grandmaster-vs-model). CI and GitHub Pages workflows are included. GitHub Pages must be configured in repository settings to use GitHub Actions, and deployment success checked independently. The default branch is `main`.
-
-## Licence and attribution
-
-Original code and design are MIT licensed. Neither FIDE nor any model provider sponsors or endorses this project. Chessboard glyphs are Unicode characters rendered using the visitor's system font. Sports event information is attributed to FIDE.
+Source code and original design are licensed under MIT. World Championship scores and event details are sourced to Lichess/FIDE. This is an independent project with no affiliation or endorsement by FIDE, Lichess, players, or model providers.

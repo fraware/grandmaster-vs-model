@@ -24,4 +24,5 @@ jobs:
         run: |
           node --check app.mjs
           node --check src/chess.mjs
+          node --check src/pgn.mjs
           node --check scripts/model-runner.mjs

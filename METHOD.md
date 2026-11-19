@@ -43,3 +43,16 @@ Local SHA-256 is a digest, not a timestamp. Git commit author/committer metadata
 - Lichess broadcast: public real-time PGN and streaming documented for broadcast redisplay ([documentation](https://lichess.org/broadcast/help)).
 
 Novelty is the attempted real-time, championship-centered and transparently inspectable deployment, not the underlying task of human-move prediction or the use of chess as an LLM benchmark. No exhaustive exclusivity claim is made.
+
+## Public game ingestion (v0.2)
+
+- The site retrieves the Lichess Game 1 broadcast from the public, documented PGN endpoint `https://lichess.org/api/broadcast/round/xLgOJ6cb.pgn`. The identifier is linked to the [2026 championship broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb).
+- The endpoint is polled from visitors' browsers every 90 seconds while the page is active. Network failures or CORS limitations are displayed directly; no false success state is substituted.
+- PGN tags are not treated as executable code or inserted unescaped into HTML. The source is parsed, moves are matched to a single legal SAN and converted to UCI/FEN with the independently tested local chess rules. Unexpected or illegal tokens invalidate the response. Previously observed move prefixes cannot be silently changed or shortened during a page session.
+- Broadcast timestamps mean *time of receipt of the data by this browser*, not authenticated timestamps of physical moves. Displayed broadcast moves, even while live, cannot establish model prediction priority. No score receives an independent priority label on that basis.
+- The historic replay draws on the [Lichess 2024 World Championship Game 14 broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu), with winner, date, and length cross-checked against [FIDE's account](https://www.fide.com/fide-world-championship-game-14-gukesh-d-claims-title/). Its full 116-ply score is shipped with the site to keep the practice experience functional without a network connection. It was known retrospectively: guesses by website visitors do **not** count as prospective predictions in the 2026 benchmark.
+- Only 2026 Game 1 has a verified public broadcast identifier at this revision. Other games remain explicitly unconfigured. No game is synthesized, and no retrospective model forecasts are generated.
+
+## Browser deployment and limitations
+
+A successful local PGN parsing test and a unit-tested endpoint address do not guarantee that the public Lichess server permits cross-origin access from the deployed website. A live network and browser acceptance test is a separate release check. The site reports a failed request as unavailable and keeps the historical replay functional. There is no application server, credentialed proxy, or backend cache at present.
