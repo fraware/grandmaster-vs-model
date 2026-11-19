@@ -87,18 +87,36 @@ def test_home(browser, screenshot_dir: str | None) -> None:
     for label, viewport in [('desktop', {'width': 1440, 'height': 900}),
                             ('mobile', {'width': 390, 'height': 844}),
                             ('narrow', {'width': 320, 'height': 640})]:
-        page = browser.new_page(viewport=viewport, accept_downloads=True)
+        page = browser.new_page(viewport=viewport, accept_downloads=True, has_touch=label != 'desktop')
+        page.set_default_timeout(9000)
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         populate(page, source)
         assert page.locator('#board').count() == 0, 'Main page must not duplicate the board'
         assert page.locator('#challenge-board button.challenge-square').count() == 64
+        assert page.locator('#challenge-board button[tabindex="0"]').count() == 1
+        first_cell = page.locator('#challenge-board button.challenge-square').first
+        first_cell.focus()
+        first_cell.press('ArrowRight')
+        assert page.locator('#challenge-board button[data-visual="1"]').evaluate('(el) => el === document.activeElement'), 'Keyboard focus did not move'
+        page.locator('#challenge-board button[data-visual="1"]').press('ArrowLeft')
+        assert first_cell.evaluate('(el) => el === document.activeElement'), 'Keyboard focus did not return'
         assert page.locator('.challenge-step').count() == 3
+        # Updating a choice must not destroy/recreate all sixty-four buttons.
+        page.evaluate('window.__firstSquare = document.querySelector("#challenge-board .challenge-square")')
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), label
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-first.png'), full_page=True)
         # First prediction. Replayed position must show the chess move, not only highlights.
+        # The move list is an intentional accessibility fallback, not a large
+        # permanent control competing with the chessboard.
+        assert not page.locator('#challenge-move-select').is_visible()
+        page.locator('#challenge-move-details summary').click()
         page.locator('#challenge-move-select').select_option('b5c3')
+        assert 'white knight' in page.locator('#challenge-board button[aria-label^="c3,"]').get_attribute('aria-label'), 'Selected move preview did not move the piece'
+        assert page.evaluate('window.__firstSquare === document.querySelector("#challenge-board .challenge-square")'), 'Selecting a move rebuilt the board'
+        if screenshot_dir:
+            page.screenshot(path=str(Path(screenshot_dir) / f'{label}-selected.png'), full_page=True)
         assert 'Nc3' in page.locator('#challenge-hint').inner_text()
         if label == 'desktop':
             page.locator('#challenge-reveal').click()
@@ -110,12 +128,22 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert 'white knight' in page.locator('#challenge-board button[aria-label^="c3,"]').get_attribute('aria-label')
         assert page.locator('#challenge-mobile-reveal').is_hidden()
         page.locator('#challenge-next').click()
-        page.locator('#challenge-board button[aria-label^="f8,"]').click()
-        page.locator('#challenge-board button[aria-label^="a8,"]').click()
+        if label == 'desktop':
+            # Drag-and-drop must behave like chess software, not an HTML form.
+            page.locator('#challenge-board button[data-square="f8"]').drag_to(
+                page.locator('#challenge-board button[data-square="a8"]'), steps=14)
+        else:
+            for square in ('f8', 'a8'):
+                cell = page.locator(f'#challenge-board button[data-square="{square}"]')
+                rect = cell.bounding_box()
+                assert rect is not None
+                page.touchscreen.tap(rect['x'] + rect['width'] / 2, rect['y'] + rect['height'] / 2)
         assert page.locator('#challenge-move-select').input_value() == 'f8a8'
         page.locator('#challenge-reveal').click()
         page.locator('#challenge-next').click()
         wrong = page.locator('#challenge-move-select option').evaluate_all('''options => options.map(o => o.value).find(v => v && v !== "f4f2")''')
+        if not page.locator('#challenge-move-details').evaluate('(el) => el.open'):
+            page.locator('#challenge-move-details summary').click()
         page.locator('#challenge-move-select').select_option(wrong)
         page.locator('#challenge-reveal').click()
         assert 'Different move.' in page.locator('#challenge-answer-result').text_content()

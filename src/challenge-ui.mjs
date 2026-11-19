@@ -100,55 +100,210 @@ export function mountChallenge(archive, replay, retrospective = null) {
   }
 
   function setText(id, value) { get(id).textContent = value; }
+  let keyboardSquare = 0;
+  let pointer = null;
+  let dragPiece = null;
+  let suppressClick = false;
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isSmallScreen = () => window.matchMedia('(max-width: 720px)').matches;
+
+  /** Update the 64 existing buttons in place: move selection must retain focus. */
   function drawPosition(q) {
-    const {board: squares} = parseFen(revealed ? play(q.fen, q.answer.uci).fen : q.fen);
+    const fen = revealed ? play(q.fen, q.answer.uci).fen
+      : selectedUci ? play(q.fen, selectedUci).fen : q.fen;
+    const {board: squares} = parseFen(fen);
     const flipped = q.color === 'black';
-    const possibleTargets = origin ? q.legalMoves.filter(m => m.uci.startsWith(origin)).map(m => m.uci.slice(2,4)) : [];
-    board.replaceChildren();
-    board.setAttribute('aria-label',`${q.player}, ${q.color} to move. Choose a piece and a destination, or use the legal move selector.`);
+    const possibleTargets = origin
+      ? q.legalMoves.filter(m => m.uci.slice(0, 2) === origin).map(m => m.uci.slice(2, 4))
+      : [];
+    if (board.children.length !== 64) {
+      board.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      for (let visual = 0; visual < 64; visual++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'challenge-square';
+        cell.dataset.visual = String(visual);
+        fragment.append(cell);
+      }
+      board.append(fragment);
+    }
+    board.setAttribute('aria-label',
+      `${q.player}, ${q.color} to move. Tap or drag a piece to choose a legal move. Keyboard: arrow keys navigate, Enter selects.`);
     for (let visual = 0; visual < 64; visual++) {
-      const at = flipped ? 63-visual : visual;
-      const square = toSquare(at), piece = squares[at];
-      const row = Math.floor(visual/8), col = visual%8;
-      const cell = document.createElement('button');
-      cell.type = 'button';
-      cell.className = `challenge-square ${(row+col)%2 ? 'dark' : 'light'}`;
+      const cell = board.children[visual];
+      const at = flipped ? 63 - visual : visual;
+      const square = toSquare(at);
+      const piece = squares[at];
+      const row = Math.floor(visual / 8), col = visual % 8;
+      cell.dataset.square = square;
+      cell.className = `challenge-square ${(row + col) % 2 ? 'dark' : 'light'}`;
       cell.disabled = revealed || complete;
-      cell.setAttribute('aria-label',`${square}${piece === '.' ? ', empty' : `, ${piece === piece.toUpperCase() ? 'white' : 'black'} ${pieceName[piece.toUpperCase()]}`}${possibleTargets.includes(square)?', legal destination':''}`);
+      cell.tabIndex = visual === keyboardSquare ? 0 : -1;
+      const name = piece === '.' ? 'empty'
+        : `${piece === piece.toUpperCase() ? 'white' : 'black'} ${pieceName[piece.toUpperCase()]}`;
+      cell.setAttribute('aria-label', `${square}, ${name}${possibleTargets.includes(square) ? ', legal destination' : ''}`);
+      cell.setAttribute('aria-pressed', String(square === origin || !!selectedUci && square === selectedUci.slice(2, 4)));
       if (square === origin) cell.classList.add('selected');
       if (possibleTargets.includes(square)) cell.classList.add('target');
-      if (selectedUci && [selectedUci.slice(0,2), selectedUci.slice(2,4)].includes(square)) cell.classList.add('predicted');
-      if (revealed && [q.answer.uci.slice(0,2), q.answer.uci.slice(2,4)].includes(square)) cell.classList.add('answer');
-      if (revealed && square === q.answer.uci.slice(2,4)) cell.classList.add('answer-end');
+      if (selectedUci && [selectedUci.slice(0, 2), selectedUci.slice(2, 4)].includes(square)) cell.classList.add('predicted');
+      if (revealed && [q.answer.uci.slice(0, 2), q.answer.uci.slice(2, 4)].includes(square)) cell.classList.add('answer');
       if (piece !== '.') {
-        const glyph = document.createElement('span');
+        const glyph = cell.querySelector('.challenge-piece') || document.createElement('span');
         glyph.className = `challenge-piece ${piece === piece.toUpperCase() ? 'white' : 'black'}`;
         glyph.textContent = pieceGlyph[piece];
-        glyph.setAttribute('aria-hidden','true');
-        cell.append(glyph);
+        glyph.setAttribute('aria-hidden', 'true');
+        if (glyph.parentElement !== cell) cell.prepend(glyph);
+      } else {
+        cell.querySelector('.challenge-piece')?.remove();
       }
       if (row === 7) {
-        const file = document.createElement('span');file.className = 'challenge-coordinate file';file.textContent = square[0];cell.append(file);
-      }
+        let file = cell.querySelector('.challenge-coordinate.file');
+        if (!file) { file = document.createElement('span'); file.className = 'challenge-coordinate file'; cell.append(file); }
+        file.textContent = square[0];
+      } else cell.querySelector('.challenge-coordinate.file')?.remove();
       if (col === 0) {
-        const rank = document.createElement('span');rank.className = 'challenge-coordinate rank';rank.textContent = square[1];cell.append(rank);
-      }
-      cell.addEventListener('click', () => {
-        if (revealed || complete) return;
-        const candidates = origin ? q.legalMoves.filter(m => m.uci.slice(0,2) === origin && m.uci.slice(2,4) === square) : [];
-        if (candidates.length) {
-          const move = candidates.find(m => m.uci.length === 4) || candidates.find(m => m.uci.endsWith('q')) || candidates[0];
-          selectedUci = move.uci;
-          origin = null;
-          updateChoice();
-          return;
-        }
-        origin = q.legalMoves.some(m => m.uci.startsWith(square)) ? square : null;
-        selectedUci = null;
-        updateChoice();
-      });
-      board.append(cell);
+        let rank = cell.querySelector('.challenge-coordinate.rank');
+        if (!rank) { rank = document.createElement('span'); rank.className = 'challenge-coordinate rank'; cell.append(rank); }
+        rank.textContent = square[1];
+      } else cell.querySelector('.challenge-coordinate.rank')?.remove();
     }
+  }
+
+  function pickSquare(square) {
+    if (revealed || complete) return;
+    const q = questions[index];
+    const candidates = origin
+      ? q.legalMoves.filter(m => m.uci.slice(0, 2) === origin && m.uci.slice(2, 4) === square)
+      : [];
+    if (candidates.length) {
+      // Promotion is unambiguous in these recorded positions; queen promotion
+      // is the default elsewhere, with underpromotions available in the list.
+      const move = candidates.find(m => m.uci.length === 4) || candidates.find(m => m.uci.endsWith('q')) || candidates[0];
+      selectedUci = move.uci;
+      origin = null;
+    } else {
+      origin = q.legalMoves.some(m => m.uci.slice(0, 2) === square) ? square : null;
+      selectedUci = null;
+    }
+    updateChoice();
+  }
+
+  board.addEventListener('click', event => {
+    if (suppressClick || revealed || complete) return;
+    const cell = event.target.closest('.challenge-square');
+    if (!cell || !board.contains(cell)) return;
+    keyboardSquare = Number(cell.dataset.visual);
+    pickSquare(cell.dataset.square);
+  });
+
+  board.addEventListener('keydown', event => {
+    if (revealed || complete) return;
+    const cell = event.target.closest('.challenge-square');
+    if (!cell) return;
+    const current = Number(cell.dataset.visual);
+    let next = current;
+    if (event.key === 'ArrowLeft' && current % 8) next--;
+    else if (event.key === 'ArrowRight' && current % 8 < 7) next++;
+    else if (event.key === 'ArrowUp' && current >= 8) next -= 8;
+    else if (event.key === 'ArrowDown' && current < 56) next += 8;
+    else if (event.key === 'Home') next = Math.floor(current / 8) * 8;
+    else if (event.key === 'End') next = Math.floor(current / 8) * 8 + 7;
+    else return;
+    event.preventDefault();
+    keyboardSquare = next;
+    for (const square of board.children) square.tabIndex = Number(square.dataset.visual) === next ? 0 : -1;
+    board.children[next].focus();
+  });
+
+  function clearDrag() {
+    dragPiece?.remove();
+    dragPiece = null;
+    board.classList.remove('is-dragging');
+    board.querySelector('.drag-source')?.classList.remove('drag-source');
+    pointer = null;
+  }
+
+  /** Natural piece dragging for mouse, pen, and touch; tap-to-select still works. */
+  board.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || revealed || complete) return;
+    const cell = event.target.closest('.challenge-square');
+    if (!cell || !questions[index].legalMoves.some(m => m.uci.slice(0, 2) === cell.dataset.square)) return;
+    pointer = {
+      id:event.pointerId, source:cell.dataset.square,
+      x:event.clientX, y:event.clientY, dragging:false,
+    };
+  });
+
+  window.addEventListener('pointermove', event => {
+    if (!pointer || event.pointerId !== pointer.id || revealed || complete) return;
+    const distance = Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y);
+    if (!pointer.dragging && distance < 9) return;
+    if (!pointer.dragging) {
+      pointer.dragging = true;
+      const source = board.querySelector(`[data-square="${pointer.source}"]`);
+      const glyph = source?.querySelector('.challenge-piece');
+      if (!glyph) { clearDrag(); return; }
+      source.classList.add('drag-source');
+      board.classList.add('is-dragging');
+      dragPiece = document.createElement('div');
+      dragPiece.className = 'drag-piece';
+      const clone = glyph.cloneNode(true);
+      dragPiece.append(clone);
+      dragPiece.style.width = `${source.getBoundingClientRect().width}px`;
+      dragPiece.style.height = `${source.getBoundingClientRect().height}px`;
+      document.body.append(dragPiece);
+    }
+    if (event.cancelable) event.preventDefault();
+    dragPiece.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
+  }, {passive:false});
+
+  window.addEventListener('pointerup', event => {
+    if (!pointer || event.pointerId !== pointer.id) return;
+    const {source, dragging} = pointer;
+    const target = dragging
+      ? document.elementFromPoint(event.clientX, event.clientY)?.closest('.challenge-square')
+      : null;
+    const destination = target && board.contains(target) ? target.dataset.square : null;
+    clearDrag();
+    if (!dragging) return; // Native click handles tap and keyboard activation.
+    suppressClick = true;
+    window.setTimeout(() => { suppressClick = false; }, 0);
+    const moves = questions[index].legalMoves.filter(m => m.uci.slice(0, 2) === source && m.uci.slice(2, 4) === destination);
+    if (moves.length) {
+      selectedUci = (moves.find(m => m.uci.length === 4) || moves.find(m => m.uci.endsWith('q')) || moves[0]).uci;
+      origin = null;
+      keyboardSquare = Number(target.dataset.visual);
+      updateChoice({animatePreview:false});
+    } else if (destination === source) {
+      pickSquare(source);
+    }
+  });
+  window.addEventListener('pointercancel', event => {
+    if (pointer?.id === event.pointerId) clearDrag();
+  });
+
+  function animateBoardMove(from, to, duration = 420) {
+    if (reducedMotion()) return;
+    const destination = board.querySelector(`[data-square="${to}"] .challenge-piece`);
+    const cell = board.querySelector(`[data-square="${to}"]`);
+    if (!destination || !cell || !from) return;
+    const deltaX = from.x - cell.getBoundingClientRect().x;
+    const deltaY = from.y - cell.getBoundingClientRect().y;
+    if (typeof destination.animate !== 'function') return;
+    // A visitor can reveal immediately during a preview: cancel the previous
+    // animation before beginning the authoritative move transition.
+    for (const animation of destination.getAnimations()) animation.cancel();
+    destination.animate([
+      {transform:`translate(${deltaX}px, ${deltaY}px) scale(1.07)`, opacity:.87},
+      {transform:'translate(0,0) scale(1)', opacity:1},
+    ], {duration, easing:'cubic-bezier(.2,.78,.22,1)', fill:'both'});
+  }
+
+  function scrollToNextBoard() {
+    if (!isSmallScreen()) return;
+    // Avoid scrolling under a tap; users may start the next move immediately.
+    board.scrollIntoView({behavior:'instant', block:'center'});
   }
 
   function updateMobileDock() {
@@ -158,14 +313,18 @@ export function mountChallenge(archive, replay, retrospective = null) {
     document.body.classList.toggle('has-mobile-reveal', !mobileRevealButton.hidden);
   }
 
-  function updateChoice() {
+  function updateChoice({animatePreview = true} = {}) {
     const q = questions[index];
+    const sourcePosition = selectedUci && animatePreview
+      ? board.querySelector(`[data-square="${selectedUci.slice(0, 2)}"]`)?.getBoundingClientRect()
+      : null;
     chooser.value = selectedUci || '';
     revealButton.disabled = !selectedUci || revealed;
     setText('challenge-hint', selectedUci
-      ? `Your move: ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Ready to lock in.`
-      : origin ? `Choose a destination for ${origin}.` : 'Select a piece and destination, or pick a legal move.');
+      ? `Your choice: ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Change it on the board, or reveal the answer.`
+      : origin ? `Now choose the destination for ${origin}.` : 'Choose a move to reveal the answer.');
     drawPosition(q);
+    if (selectedUci && sourcePosition) animateBoardMove(sourcePosition, selectedUci.slice(2, 4), 240);
     updateMobileDock();
   }
 
@@ -207,6 +366,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
     selectedUci = null;
     origin = null;
     revealed = false;
+    keyboardSquare = 0;
+    clearDrag();
     updateChoice();
   }
 
@@ -214,6 +375,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
     if (!selectedUci || revealed || complete) return;
     const q = questions[index];
     if (!q.legalMoves.some(m => m.uci === selectedUci)) return;
+    const sourceCell = board.querySelector(`[data-square="${q.answer.uci.slice(0, 2)}"]`);
+    const sourcePosition = sourceCell?.getBoundingClientRect();
     answers.push(selectedUci);
     revealed = true;
     chooser.disabled = true;
@@ -235,7 +398,11 @@ export function mountChallenge(archive, replay, retrospective = null) {
     setText('challenge-hint','The recorded move is now on the board.');
     nextButton.textContent = index === questions.length - 1?'See your result →':'Next position →';
     drawPosition(q);
-    nextButton.focus();
+    animateBoardMove(sourcePosition, q.answer.uci.slice(2, 4));
+    nextButton.focus({preventScroll:true});
+    if (isSmallScreen()) window.setTimeout(() => {
+      if (revealed && !complete) feedback.scrollIntoView({behavior:reducedMotion() ? 'instant' : 'smooth', block:'center'});
+    }, reducedMotion() ? 0 : 450);
   }
 
   function finish() {
@@ -279,7 +446,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
     get('challenge-download').disabled = false;
     get('challenge-share').disabled = false;
     shareStatus.textContent = '';
-    get('challenge-share').focus();
+    get('challenge-share').focus({preventScroll:true});
+    if (isSmallScreen()) final.scrollIntoView({behavior:reducedMotion() ? 'instant' : 'smooth', block:'start'});
   }
 
   chooser.addEventListener('change', () => {
@@ -294,10 +462,10 @@ export function mountChallenge(archive, replay, retrospective = null) {
   nextButton.addEventListener('click',() => {
     if (!revealed || complete) return;
     if (index === questions.length-1) finish();
-    else {index++;render();chooser.focus();}
+    else {index++;render();scrollToNextBoard();board.children[0]?.focus({preventScroll:true});}
   });
   get('challenge-restart').addEventListener('click',()=>{
-    answers = [];index = 0;complete = false;render();chooser.focus();
+    answers = [];index = 0;complete = false;render();scrollToNextBoard();board.children[0]?.focus({preventScroll:true});
   });
   get('challenge-share').addEventListener('click',async () => {
     if (!complete) return;

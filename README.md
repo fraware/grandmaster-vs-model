@@ -14,8 +14,8 @@ Play a free three-move chess challenge built from the real 2024 World Championsh
 
 ## Play in under a minute
 
-1. Select a piece and destination on the board, or choose a legal move from the menu.
-2. Lock in your choice and reveal the actual move on the board. Repeat across three positions from the 2024 final.
+1. Tap a piece and its destination, or drag the piece on touchscreens and desktop. The board previews your choice before you commit. A collapsible legal-move list provides a keyboard-friendly alternative.
+2. Reveal the actual move with a short board animation. Repeat for three positions from the 2024 final. Arrow keys navigate the chessboard, with Enter or Space selecting a square. Reduced-motion preferences are respected.
 3. Share the three-square result with a friend. On supported mobile browsers, the share sheet includes a generated score image; the text-copy and PNG-download fallbacks work without an account.
 
 The primary homepage contains one chessboard. The full historical and live research interface is available separately at `lab.html`. The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The visitor score is held only in the current browser session. An optional recorded GPT comparison appears strictly after the visitor locks each move. Since the 2024 game was already public prior to the 2026 model release, any such response is a **retrospective demonstration**, not an unbiased forecasting benchmark, Elo rating, or global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
@@ -40,7 +40,7 @@ Run `npm run verify:retrospective` to check the published model evidence. GitHub
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
 
-**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero prospective 2026 model forecasts** and **zero observed 2026 moves**. The separate historical model demonstration has three real API responses. Authenticated provider checks and the 2024 retrospective demonstration are separate from the championship ledger; no 2026 match forecasts or Stockfish evaluation have been run. There is no prospective leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures.
+**Evidence status as of 19 November 2026:** The 2026 championship has not begun. The repository has **zero prospective 2026 model forecasts** and **zero observed 2026 moves**. The separate historical model demonstration has three real API responses. Authenticated provider checks and the 2024 retrospective demonstration are separate from the championship ledger; no 2026 match forecasts or Stockfish evaluation have been run. There is no prospective leaderboard. The browser-side Lichess endpoint has been tested with offline fixtures, including cache fallback; actual cross-origin behavior still needs an end-to-end deployed-network check. Desktop and mobile Chromium interaction tests passed with isolated network fixtures, including real touch events, mouse dragging, keyboard navigation, and share/export paths.
 
 ## Why this project is different
 
@@ -137,7 +137,7 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 
 ## Optional browser integration test
 
-The repository includes a reproducible Chromium smoke test at 320px, mobile, and desktop widths on the separate homepage and lab routes. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The browser test additionally completes the three-position challenge, checks exact-match scoring, verifies share text, native-fallback behavior and PNG export, and exercises source-replay and outage handling in the lab. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
+The repository includes a reproducible Chromium smoke test at 320px, mobile, and desktop widths on the separate homepage and lab routes. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The browser test additionally completes the three-position challenge, checks touch-based selection, mouse dragging, retained chessboard focus, keyboard navigation, exact-match scoring, share text, native-fallback behavior and PNG export, and exercises source-replay and outage handling in the lab. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
 
 ```sh
 python -m pip install playwright

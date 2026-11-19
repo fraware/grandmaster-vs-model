@@ -55,3 +55,20 @@ test('editorial visual identity is consistent across game, lab, favicon and shar
     assert.doesNotMatch(source, /#def47c|#121e19/i);
   }
 });
+
+
+test('direct-manipulation challenge keeps a single board and an accessible move-list fallback', async () => {
+  const html = await text('index.html');
+  const client = await text('src/challenge-ui.mjs');
+  const css = await text('landing.css');
+  assert.match(html, /<details class="move-alternative"/);
+  assert.match(html, /Prefer a move list\?/);
+  assert.match(html, /Tap a piece, then its destination\. Or drag to move\./);
+  assert.match(client, /board\.children\.length !== 64/);
+  assert.match(client, /document\.elementFromPoint\(event\.clientX, event\.clientY\)/);
+  assert.match(client, /ArrowLeft/);
+  assert.match(client, /destination\.animate/);
+  assert.match(client, /prefers-reduced-motion/);
+  assert.match(css, /\.challenge-square\{touch-action:none/);
+  assert.match(css, /\.drag-piece\{position:fixed/);
+});

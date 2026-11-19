@@ -72,9 +72,9 @@
             <div id="challenge-progress" class="challenge-progress" aria-label="Challenge progress"></div>
             <div class="challenge-prompt" id="challenge-prompt"><div class="challenge-phase" id="challenge-phase">Position 1</div><h2 id="challenge-heading">Your move.</h2><p id="challenge-description">What did Ding play here?</p></div>
             <div id="challenge-choice" class="challenge-choice">
-              <p class="tap-instruction"><span aria-hidden="true">↗</span> Choose a piece, then its destination.</p>
-              <div class="move-input"><label for="challenge-move-select">Or choose a move</label><select id="challenge-move-select" aria-label="Choose a legal chess move"><option value="">Loading moves…</option></select></div>
-              <div class="selected-move"><span id="challenge-hint" class="challenge-hint" aria-live="polite">Select a piece and destination, or pick a legal move.</span></div>
+              <p class="tap-instruction">Tap a piece, then its destination. Or drag to move.</p>
+              <details class="move-alternative" id="challenge-move-details"><summary>Prefer a move list?</summary><div class="move-input"><label for="challenge-move-select">Legal moves</label><select id="challenge-move-select" aria-label="Choose a legal chess move"><option value="">Loading moves…</option></select></div></details>
+              <div class="selected-move"><span id="challenge-hint" class="challenge-hint" aria-live="polite">Tap or drag a piece to choose your move.</span></div>
               <button type="button" id="challenge-reveal" class="challenge-primary" disabled>Reveal the move <span aria-hidden="true">→</span></button>
             </div>
             <div id="challenge-feedback" class="challenge-feedback" role="status" aria-live="polite" hidden><span id="challenge-answer-result" class="challenge-feedback-title"></span><strong id="challenge-answer-move"></strong><p id="challenge-answer-yours"></p></div>
