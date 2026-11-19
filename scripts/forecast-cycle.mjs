@@ -16,7 +16,7 @@ import {parsePgn,findChampionshipGame,GAME_ONE_PGN} from '../src/pgn.mjs';
 import {validateAppendOnly} from '../src/broadcast.mjs';
 import {extendObservation,ATTEMPT_SCHEMA,attemptKey,validateAttempt,publicSource} from '../src/collection.mjs';
 import {EVENT_ID,canonical} from '../src/protocol.mjs';
-import {withSans} from '../src/chess.mjs';
+import {START_FEN,withSans} from '../src/chess.mjs';
 import {collect} from './collection.mjs';
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
 const hash=x=>createHash('sha256').update(typeof x==='string'?x:canonical(x)).digest('hex');
@@ -51,6 +51,9 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
     if(existing?.moves.length)throw new Error('Broadcast lost previously recorded moves');
     return {status:'awaiting-identified-game',newAttempts:0};
   }
+  // This match uses standard chess from the initial position. Reject an
+  // unrelated/FEN-injected PGN, even if the player names happen to match.
+  if(sourceGame.positions[0]!==START_FEN)throw new Error('Non-standard championship starting position');
   // Validate observed history before any paid provider calls.
   const previousGame=existing?{moves:existing.moves}:null;
   validateAppendOnly(previousGame,sourceGame);
@@ -78,8 +81,13 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
     await collect({root:dir,write:true});
     return {status:'no-provider-credentials',newObservations:observations.moves.length-known,newAttempts:0};
   }
+  // Canonical player strings prevent untrusted PGN tag text from becoming
+  // instructions inside the provider prompt. Source identities are checked.
+  const identify=name=>/gukesh|dommaraju/i.test(name)?'Gukesh D':/sindarov/i.test(name)?'Javokhir Sindarov':null;
+  const actualWhite=identify(sourceGame.tags.White),actualBlack=identify(sourceGame.tags.Black);
+  if(!actualWhite||!actualBlack||actualWhite===actualBlack)throw new Error('Broadcast player identities incomplete');
   const legal=withSans(fen).map(x=>x.uci);
-  const prompt=makePrompt({fen,player,opponent:opponentName,game:1,history:sourceGame.moves.map(m=>m.uci).join(' ')});
+  const prompt=makePrompt({fen,player:side==='White'?actualWhite:actualBlack,opponent:side==='White'?actualBlack:actualWhite,game:1,history:sourceGame.moves.map(m=>m.uci).join(' ')});
   const outdir=join(dir,'data/attempts');await mkdir(outdir,{recursive:true});
   const pending=models.filter(m=>!existsSync(join(outdir,`g01-p${String(ply).padStart(3,'0')}-${m.id}.json`)));
   if(!pending.length){

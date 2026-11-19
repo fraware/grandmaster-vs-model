@@ -13,7 +13,7 @@ let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==
 let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
 let selectedGame=Number(query.get('game'))||1;if(selectedGame<1||selectedGame>14)selectedGame=1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
-let requestRunning=false,lastDirectAttempt=0;
+let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const setText=(id,text)=>{$(id).textContent=String(text)};
 const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
@@ -250,6 +250,26 @@ async function refreshBroadcast(){
   }finally{requestRunning=false;$('refresh-button').disabled=false;render();}
 }
 
+/** Refresh the published attempt index independently of the PGN broadcast.
+ * A site visitor staying on the live board sees new public model calls without
+ * reloading. Failed requests preserve the last validated index.
+ */
+async function refreshPublishedIndex(){
+  if(indexRequestRunning)return;
+  indexRequestRunning=true;lastIndexAttempt=Date.now();
+  try{
+    const response=await fetch('./data/collection.json',{cache:'no-store',signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const updated=await response.json();
+    if(updated?.schema!=='collection-index-v1'||!Array.isArray(updated.attempts)||!Array.isArray(updated.observedMoves)||updated.source!==GAME_ONE_PGN)throw new Error('Unrecognized published evidence');
+    if(updated.attempts.length>2000)throw new Error('Unexpected attempt count');
+    const registered=new Set((modelRoster?.models||[]).map(m=>m.id));
+    if(updated.attempts.some(a=>!registered.has(a.model?.id)))throw new Error('Unregistered model in public index');
+    collectionIndex=updated;
+    if(mode==='live')render();
+  }catch(error){console.warn('Public evidence refresh unavailable:',error);}
+  finally{indexRequestRunning=false;}
+}
 for(let g=1;g<=14;g++){const o=document.createElement('option');o.value=String(g);o.textContent=String(g).padStart(2,'0');$('game-select').append(o);}
 $('game-select').addEventListener('change',e=>{selectedGame=Number(e.target.value);selectedPly=selectedGame===1?(liveGame?.moves.length||0):0;syncUrl();render();});
 $('tab-live').addEventListener('click',()=>switchMode('live'));
@@ -304,5 +324,8 @@ render();initialize();
 // check at most every three minutes, or every five minutes after a failed request.
 setInterval(()=>{
   const interval=liveError?300000:180000;
-  if(!document.hidden&&mode==='live'&&selectedGame===1&&!requestRunning&&Date.now()-lastDirectAttempt>=interval)refreshBroadcast();
+  if(!document.hidden&&mode==='live'){
+    if(!indexRequestRunning&&Date.now()-lastIndexAttempt>=120000)refreshPublishedIndex();
+    if(selectedGame===1&&!requestRunning&&Date.now()-lastDirectAttempt>=interval)refreshBroadcast();
+  }
 },60000);

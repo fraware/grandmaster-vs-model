@@ -40,3 +40,10 @@
 - Offline test suite: 38 tests passed locally. Chromium mobile and desktop interaction smoke passed against injected historical and 2026 broadcast fixtures. Actual provider credentials and live deployed-origin cross-origin access have not been tested.
 - GitHub Pages activation was reported by the repository owner. The subsequent retry of an old run failed because the rerun contained duplicate `github-pages` artifacts; the v0.4 push will provide a clean workflow deployment attempt.
 - The roster is a verified model selection, not a reproducible, budget-matched benchmark across vendors. Prospective timing and cryptographic provider attestation remain unresolved.
+
+## v0.4.1 targeted fixes
+
+- The live UI polls the published model-attempt index separately from the source PGN. Unavailable or invalid updates keep the previous accepted index; no invented records are substituted.
+- The collector rejects nonstandard starting positions and maps player names from Lichess tags to fixed identities before constructing provider prompts. This prevents arbitrary untrusted player-tag text from entering a model request.
+- 39 local automated tests and desktop/mobile Chromium smoke passed, including offline player-tag injection tests. Direct provider API calls remain untested and no actual 2026 observations have been recorded.
+- GitHub Actions CI and Pages deployment for v0.4.0 both completed successfully. The next push is separately checked.
