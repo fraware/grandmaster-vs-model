@@ -6,6 +6,12 @@ An open, independently maintained chess experiment. We compare the *actual next 
 
 [Open the interactive website](https://fraware.github.io/grandmaster-vs-model/) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
+[![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
+
+![The interactive Grandmaster vs Model website: real 2024 game replay and the declared frontier model field](assets/preview.webp)
+
+*Screenshot of the sourced 2024 retrospective challenge. No 2026 model forecasts are represented.*
+
 ## What already works
 
 - **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). Visitors select a legal move, lock a prediction, reveal the player's decision, replay all positions, rotate the board, and share a position link. The retrospective guess score is local to that browser session; it is not a model evaluation.
