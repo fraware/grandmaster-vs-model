@@ -27,8 +27,36 @@ export function parsePrediction(text, legal){
   if(!legal.includes(candidate))throw new Error('Provider returned an illegal move: '+candidate);
   return candidate;
 }
+/**
+ * Convert a provider-owned HTTP error body into a finite operational code.
+ * Never embed arbitrary provider error text in exceptions, Actions logs, or
+ * public prediction evidence; an upstream proxy could echo secrets.
+ */
+export function classifyProviderHttpError(provider,status,body){
+  let message='';
+  try{
+    const payload=JSON.parse(body);
+    message=String(payload?.error?.message??payload?.message??'').slice(0,2000).toLowerCase();
+  }catch{return 'unclassified';}
+  if(provider==='anthropic'){
+    if(message.includes('anthropic-workspace-id')||(/workspace/.test(message)&&/scop|header|require/.test(message)))return 'workspace-required';
+    if(message.includes('spend limit'))return 'spend-limit';
+    if(message.includes('invalid api version'))return 'unsupported-api-version';
+  }
+  if(provider==='gemini'){
+    if(message.includes('project has been denied access'))return 'project-access-denied';
+    if(message.includes('api key not valid')||message.includes('api key is invalid'))return 'invalid-api-key';
+    if(message.includes('api has not been used')||message.includes('api is disabled'))return 'api-disabled';
+    if(message.includes('permission')&&message.includes('model'))return 'model-access-denied';
+  }
+  if(status===429)return 'rate-limited';
+  if(status===401)return 'authentication-failed';
+  if(status===403)return 'permission-denied';
+  return 'unclassified';
+}
+
 /** Client accepts injectable fetch to allow fully offline interface tests. */
-export async function requestModel({provider,version,prompt,apiKey,timeoutMs=45000,fetcher=fetch}){
+export async function requestModel({provider,version,prompt,apiKey,timeoutMs=45000,fetcher=fetch,workspaceId=null}){
   if(!apiKey)throw new Error(`Missing API credential for ${provider}`);
   if(!version)throw new Error('Model version/name required');
   let url,body,headers={'Content-Type':'application/json'};
@@ -36,7 +64,11 @@ export async function requestModel({provider,version,prompt,apiKey,timeoutMs=450
     url='https://api.openai.com/v1/responses';headers.Authorization=`Bearer ${apiKey}`;
     body={model:version,input:prompt,reasoning:{effort:'low'},max_output_tokens:2048,store:false};
   }else if(provider==='anthropic'){
-    url='https://api.anthropic.com/v1/messages';headers['x-api-key']=apiKey;headers['anthropic-version']='2026-10-21';
+    url='https://api.anthropic.com/v1/messages';headers.Authorization=`Bearer ${apiKey}`;headers['anthropic-version']='2026-10-21';
+    if(workspaceId){
+      if(!/^wrkspc_[A-Za-z0-9]+$/.test(workspaceId))throw new Error('Invalid Anthropic workspace ID format');
+      headers['anthropic-workspace-id']=workspaceId;
+    }
     body={model:version,max_tokens:2048,messages:[{role:'user',content:prompt}]};
   }else if(provider==='gemini'){
     if(!/^[a-zA-Z0-9._-]+$/.test(version))throw new Error('Unsafe Gemini model identifier');
@@ -51,7 +83,7 @@ export async function requestModel({provider,version,prompt,apiKey,timeoutMs=450
   }catch(e){throw new Error(`Provider transport error (${provider}): ${e.message}`);}
   const elapsedMs=Date.now()-started;
   const content=await response.text();
-  if(!response.ok)throw new Error(`${provider} HTTP ${response.status}: ${content.slice(0,400)}`);
+  if(!response.ok){const category=classifyProviderHttpError(provider,response.status,content);const error=new Error(`${provider} HTTP ${response.status}: ${category}`);error.safeCode=category;throw error;}
   let json;try{json=JSON.parse(content);}catch{throw new Error(`${provider} did not return JSON`);}
   let output;
   if(provider==='openai')output=(json.output||[]).flatMap(item=>item.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('\n');
@@ -72,7 +104,7 @@ async function main(){
   if(!apiKey)throw new Error(`Set ${envName} in the environment (never commit secrets)`);
   const history=o['history-file']?(await readFile(o['history-file'],'utf8')).trim():'';
   const prompt=makePrompt({fen:o.fen,player:o.player,opponent:o.opponent,game,history});
-  const result=await requestModel({provider,version:o.version,prompt,apiKey});
+  const result=await requestModel({provider,version:o.version,prompt,apiKey,workspaceId:provider==='anthropic'?process.env.ANTHROPIC_WORKSPACE_ID||null:null});
   const legal=withSans(o.fen).map(x=>x.uci);
   const uci=parsePrediction(result.output,legal);
   const recordedTime=new Date().toISOString();

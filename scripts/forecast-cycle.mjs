@@ -98,7 +98,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
     const startedAt=clock().toISOString();
     let status='request-failed',response='',predictedUci=null,error=null,providerResponseId=null,providerReportedModel=null,elapsedMs=null,usage=null;
     try{
-      const reply=await providerRequest({provider:model.provider,version:model.version,prompt,apiKey:keys[providerKeys[model.provider]],timeoutMs:40000,fetcher});
+      const reply=await providerRequest({provider:model.provider,version:model.version,prompt,apiKey:keys[providerKeys[model.provider]],timeoutMs:40000,fetcher,workspaceId:model.provider==='anthropic'?(keys.ANTHROPIC_WORKSPACE_ID||null):null});
       response=reply.output;
       providerResponseId=reply.responseId;
       providerReportedModel=reply.model;

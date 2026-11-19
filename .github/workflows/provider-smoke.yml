@@ -27,6 +27,9 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+          # The initial check already succeeded for OpenAI; retest only failures.
+          SMOKE_PROVIDERS: anthropic,gemini
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node scripts/provider-smoke.mjs
       - name: Preserve sanitized provider check report

@@ -46,3 +46,11 @@ test('rejects unsupported or duplicate roster entries before provider attempts',
   const invalid={...roster,models:[{...roster.models[0],provider:'rogue'}]};
   await assert.rejects(()=>checkProviders({roster:invalid,keys:{},clock}),/Malformed/);
 });
+
+test('restricted provider rerun does not spend credits on already verified models',async()=>{
+ const invoked=[];
+ const report=await checkProviders({roster,onlyProviders:['anthropic','gemini'],keys:{OPENAI_API_KEY:'key',ANTHROPIC_API_KEY:'key'},clock,request:async opts=>{invoked.push(opts.provider);return {output:'g1f3',responseId:null,model:opts.version,elapsedMs:1,usage:null};}});
+ assert.deepEqual(invoked,['anthropic']);
+ assert.deepEqual(report.providers.map(p=>p.provider),['anthropic','gemini']);
+ assert.deepEqual(report.providers.map(p=>p.status),['success','credential-missing']);
+});

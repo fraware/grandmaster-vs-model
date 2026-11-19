@@ -75,3 +75,5 @@ The browser refreshes `data/collection.json` periodically for active live specta
 ## Authenticated provider integration checks (November 2026)
 
 The separate `provider-smoke.yml` workflow submits a single synthetic, explicitly non-forecast chess prompt to each configured provider. Its output records only sanitized operational metadata and one legal-move parse outcome. The smoke check does not establish pre-move prediction priority, replay accuracy, provider identity attestation, or a verified performance measurement. No test results enter `data/collection.json`. A failed model request is reported by category without including provider-supplied HTTP error bodies or credential material.
+
+The provider adapters convert non-successful HTTP responses into a small fixed set of non-sensitive diagnostic codes. Provider-supplied error text is never printed verbatim. Anthropic API calls support an optional workspace identifier, as specified by the vendor for keys not scoped to a single workspace. Gemini 403 responses are classified only if the API provides a recognized explanation. An HTTP failure never counts as an evaluated model prediction.

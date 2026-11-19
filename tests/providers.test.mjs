@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {START_FEN} from '../src/chess.mjs';
-import {makePrompt,parsePrediction,requestModel} from '../scripts/model-runner.mjs';
+import {makePrompt,parsePrediction,requestModel,classifyProviderHttpError} from '../scripts/model-runner.mjs';
 test('shared prompt defines a prospective human-choice task and legal moves',()=>{
  const x=makePrompt({fen:START_FEN,player:'Test player',opponent:'Test opponent',game:1});
  assert.match(x,/predicting a HUMAN chess decision/);assert.match(x,/e2e4/);assert.match(x,/Current FEN:/);
@@ -22,4 +22,23 @@ for(const provider of Object.keys(fixtures))test(`offline adapter test ${provide
 });
 test('transport errors are explicit and do not create records',async()=>{
  await assert.rejects(()=>requestModel({provider:'openai',version:'test',prompt:'test',apiKey:'test',fetcher:async()=>({ok:false,status:429,text:async()=>'{"error":"rate limit"}'})}),/HTTP 429/);
+});
+
+test('Anthropic workspace-scoped requests use documented 2026 API headers',async()=>{
+ let options;
+ const fetcher=async (url,opts)=>{options=opts;return {ok:true,text:async()=>JSON.stringify(fixtures.anthropic)};};
+ await requestModel({provider:'anthropic',version:'claude-fable-5-2',prompt:'test',apiKey:'private-key',workspaceId:'wrkspc_01ABCDE',fetcher});
+ assert.equal(options.headers.Authorization,'Bearer private-key');
+ assert.equal(options.headers['anthropic-workspace-id'],'wrkspc_01ABCDE');
+ assert.equal(options.headers['anthropic-version'],'2026-10-21');
+ await assert.rejects(()=>requestModel({provider:'anthropic',version:'claude-fable-5-2',prompt:'test',apiKey:'private-key',workspaceId:'bad\nheader',fetcher}),/workspace ID/);
+});
+
+test('provider HTTP error text is never echoed to callers',async()=>{
+ const secret='SENSITIVE_SECRET_DO_NOT_LOG';
+ const err=await requestModel({provider:'anthropic',version:'claude-fable-5-2',prompt:'test',apiKey:'x',fetcher:async()=>({ok:false,status:400,text:async()=>JSON.stringify({error:{message:`This API key is not scoped to a workspace. Set anthropic-workspace-id. ${secret}`}})})}).then(()=>null,e=>e);
+ assert.equal(err.safeCode,'workspace-required');
+ assert.doesNotMatch(err.message,/SENSITIVE_SECRET/);
+ assert.equal(classifyProviderHttpError('gemini',403,JSON.stringify({error:{message:'Your project has been denied access'}})),'project-access-denied');
+ assert.equal(classifyProviderHttpError('gemini',403,'plaintext unknown'),'unclassified');
 });
