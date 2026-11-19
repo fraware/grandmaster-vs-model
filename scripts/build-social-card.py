@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Build the static 1200x630 social preview image.
+"""Render the editorial website's 1200×630 social-preview image.
 
-Optional dependency: Pillow >= 10. No external services or fonts are bundled.
-The original vector composition uses only chess symbols and project typography.
+This artwork is a typographic invitation, not a purported championship
+position or a claim about prospective model accuracy. Requires Pillow >= 10.
 """
 from __future__ import annotations
 
@@ -18,38 +18,34 @@ SANS_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 
 
 def font(path: str, size: int) -> ImageFont.FreeTypeFont:
-    """Load commonly available system fonts without distributing font files."""
-    if not Path(path).exists():
+    """Load common OS fonts without distributing licensed font binaries."""
+    if not Path(path).is_file():
         raise FileNotFoundError(f'Missing system font: {path}')
     return ImageFont.truetype(path, size)
 
 
 def main() -> None:
-    canvas = Image.new('RGB', (1200, 630), '#121e19')
-    draw = ImageDraw.Draw(canvas)
-    ink, accent, sage = '#eaeedf', '#def47c', '#74876c'
-    draw.rectangle((0, 0, 1200, 9), fill=accent)
-    draw.rectangle((0, 9, 1200, 10), fill='#334b39')
-    draw.text((78, 65), 'G R A N D M A S T E R   v s   M O D E L', font=font(SANS_BOLD, 16), fill=ink)
-    draw.line((78, 126, 123, 126), fill=accent, width=4)
-    draw.text((78, 161), 'GPT scored 3/3.', font=font(SERIF, 59), fill=ink)
-    draw.text((78, 245), 'Can you match it?', font=font(ITALIC, 57), fill=accent)
-    draw.text((80, 380), 'Three real World Championship moves.', font=font(SANS, 21), fill='#c2cfbf')
-    draw.text((80, 417), 'One-minute challenge. No signup.', font=font(SANS, 21), fill='#c2cfbf')
-    draw.rectangle((78, 502, 488, 559), fill=accent)
-    draw.text((100, 519), 'PLAY THE THREE-MOVE CHALLENGE', font=font(SANS_BOLD, 17), fill='#121e19')
-    draw.text((80, 585), 'RETROSPECTIVE 2024 GAME · TESTED IN 2026  /  OPEN SOURCE', font=font(SANS_BOLD, 12), fill='#abc19b')
-    # The illustration is a chess motif, not a claim of a particular position.
-    bx, by, tile = 798, 109, 42
-    draw.rectangle((bx-12, by-12, bx+tile*8+12, by+tile*8+12), fill='#304634')
-    for rank in range(8):
-        for file in range(8):
-            fill = '#e2e5d6' if (rank+file)%2==0 else sage
-            draw.rectangle((bx+file*tile, by+rank*tile, bx+(file+1)*tile-1, by+(rank+1)*tile-1), fill=fill)
-    # A single symbolic knight silhouette keeps the graphic illustrative.
-    draw.text((864, 185), '♞', font=font(SANS, 176), fill='#18271d')
+    paper, ink, oxblood, muted, rule = '#F6F1E8', '#191715', '#6B2F2A', '#6F675D', '#D5CAB9'
+    image = Image.new('RGB', (1200, 630), paper)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 11, 630), fill=oxblood)
+    draw.text((75, 54), 'GRANDMASTER   /   MODEL', font=font(SANS_BOLD, 18), fill=ink)
+    draw.line((75, 103, 1120, 103), fill=rule, width=2)
+
+    draw.text((71, 157), 'Could you match', font=font(SERIF, 58), fill=ink)
+    draw.text((71, 242), 'a world champion?', font=font(ITALIC, 60), fill=oxblood)
+    draw.text((77, 362), 'Three positions from a real World Championship final.', font=font(SANS, 21), fill=muted)
+    draw.text((77, 400), 'Predict the move. Reveal the answer. Share your score.', font=font(SANS, 21), fill=muted)
+
+    # A single knight serves as an editorial symbol, never as a game-position diagram.
+    draw.text((874, 132), '♞', font=font(SANS, 236), fill=oxblood)
+    draw.line((75, 493, 1120, 493), fill=rule, width=2)
+    draw.text((76, 518), 'Play free. No account.', font=font(SANS_BOLD, 19), fill=ink)
+    draw.text((76, 565), 'fraware.github.io/grandmaster-vs-model', font=font(SANS, 18), fill=oxblood)
+    draw.text((840, 581), '2024 game · 2026 retrospective test', font=font(SANS, 13), fill=muted)
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(OUT, optimize=True)
+    image.save(OUT, optimize=True)
     print(f'Wrote {OUT} ({OUT.stat().st_size} bytes)')
 
 

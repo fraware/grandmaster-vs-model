@@ -8,9 +8,9 @@ export const CHALLENGE_SCHEMA = 'grandmaster-challenge-v1';
 export const CHALLENGE_PLIES = Object.freeze([28, 61, 108]);
 const expectedUci = ['b5c3', 'f8a8', 'f4f2'];
 const chapters = [
-  {stage: '01 / THE OPENING', title: 'What did Ding play?', detail: 'Ding Liren · White to move · Move 15'},
-  {stage: '02 / THE MIDDLEGAME', title: 'What did Gukesh play?', detail: 'Gukesh D · Black to move · Move 31'},
-  {stage: '03 / THE ENDGAME', title: 'One last move.', detail: 'Ding Liren · White to move · Move 55'},
+  {stage: 'Opening · position 1', title: 'What did Ding play?', detail: 'Ding Liren · White to move · Move 15'},
+  {stage: 'Middlegame · position 2', title: 'What did Gukesh play?', detail: 'Gukesh D · Black to move · Move 31'},
+  {stage: 'Endgame · position 3', title: 'One last move.', detail: 'Ding Liren · White to move · Move 55'},
 ];
 
 /** Validate the underlying game and construct three reproducible positions. */

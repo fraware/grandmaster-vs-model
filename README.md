@@ -1,6 +1,6 @@
 # Grandmaster vs Model
 
-**Three real positions. Your guesses versus a recorded model response. One score.**
+**Could you match a world champion? Three real positions, three decisions, one score.**
 
 Play a free three-move chess challenge built from the real 2024 World Championship final. Choose the move, reveal the grandmaster’s decision, and share your score. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
@@ -10,7 +10,7 @@ Play a free three-move chess challenge built from the real 2024 World Championsh
 
 ![Grandmaster vs Model three-move chess challenge, showing a real World Championship position](assets/preview.webp)
 
-*Actual browser capture of the playable historical challenge. It is separate from the upcoming 2026 model experiment.*
+*Actual Chromium capture of the new editorial-style historical challenge. Its retrospective GPT comparison is distinct from the upcoming 2026 model experiment.*
 
 ## Play in under a minute
 

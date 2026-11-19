@@ -37,3 +37,21 @@ test('production Pages workflow includes every client-side module and image asse
   assert.match(entrance,/retrospective-2024\.json/);
   assert.match(yaml,/verify:retrospective/);
 });
+
+test('editorial visual identity is consistent across game, lab, favicon and share image', async () => {
+  const game = await text('landing.css');
+  const lab = await text('style.css');
+  const icon = await text('favicon.svg');
+  const exportScript = await text('src/challenge-ui.mjs');
+  const previewBuilder = await text('scripts/build-social-card.py');
+  assert.match(game, /--paper:#f6f1e8/);
+  assert.match(game, /--accent:#6b2f2a/);
+  assert.match(game, /--board-dark:#8a664a/);
+  assert.match(lab, /--board-dark:#8a664a/);
+  assert.match(icon, /#6b2f2a/);
+  assert.match(exportScript, /#F6F1E8/);
+  assert.match(previewBuilder, /#F6F1E8/);
+  for (const source of [game, exportScript, previewBuilder]) {
+    assert.doesNotMatch(source, /#def47c|#121e19/i);
+  }
+});

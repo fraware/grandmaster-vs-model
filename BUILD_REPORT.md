@@ -35,3 +35,10 @@ Added an independently verified, one-time three-call provider workflow using 202
 ### 0.7.0 authenticated integration
 
 The first live OpenAI integration run (GitHub Actions 44514351159) completed three authenticated responses. Raw output moves were `b5c3`, `f8a8`, and `f4f2`, matching all three selected recorded moves. Public evidence was downloaded from the workflow artifact, validated against the pinned source with `npm run verify:retrospective`, and checked into `data/retrospective-2024.json` for repeatable local review. The 3/3 result is retrospective, potentially memorized, and distinct from the 2026 prospective protocol.
+
+
+## 0.8.0 — Editorial visual identity (19 November 2026)
+
+Replaced the homepage’s dark green and fluorescent accents with a paper, ink, oxblood, and wood color system. The site now uses restrained journal typography, unadorned navigation, flat controls, and lighter game framing. Reworked the introductory text and all user-facing share surfaces, including the generated 1200×630 Open Graph image and the browser-rendered 1200×630 personal scorecard. The README preview is captured directly from Chromium. The historical chess game and model evidence are unchanged. No API calls are made by the redesign.
+
+Verification: full Node test suite, chess ledger, prospective collection index, retrospective evidence validation, and desktop/mobile/narrow Chromium challenge and research-page smoke checks. Browser tests rely on deterministic network fixtures and do not establish end-to-end access to the public GitHub Pages URL.

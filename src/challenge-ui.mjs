@@ -24,50 +24,51 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
   canvas.height = 630;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unavailable');
-  ctx.fillStyle = '#121e19';
+  const paper = '#F6F1E8', ink = '#191715', oxblood = '#6B2F2A', muted = '#6F675D', rule = '#D5CAB9';
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#def47c';
-  ctx.fillRect(0, 0, 1200, 8);
-  ctx.fillStyle = '#e9efdb';
-  ctx.font = '600 27px Georgia, serif';
-  ctx.fillText('GRANDMASTER  vs  MODEL', 72, 87);
-  ctx.fillStyle = '#def47c';
-  ctx.font = '700 19px Arial, sans-serif';
-  ctx.fillText('THE THREE-MOVE CHALLENGE', 72, 160);
-  ctx.font = '400 200px Georgia, serif';
-  ctx.fillText(`${score.correct}/3`, 57, 373);
+  ctx.fillStyle = oxblood;
+  ctx.fillRect(0, 0, 10, 630);
+  ctx.font = 'bold 24px Georgia, serif';
+  ctx.fillStyle = ink;
+  ctx.fillText('GRANDMASTER  /  MODEL', 70, 83);
+  ctx.fillStyle = rule;
+  ctx.fillRect(70, 106, 1060, 2);
+  ctx.font = '24px Georgia, serif';
+  ctx.fillStyle = muted;
+  ctx.fillText('Three moves from a World Championship final.', 73, 162);
+  ctx.fillStyle = oxblood;
+  ctx.font = '178px Georgia, serif';
+  ctx.fillText(`${score.correct}/3`, 62, 355);
   if (matches) {
     matches.forEach((hit, i) => {
-      ctx.fillStyle = hit ? '#cce6a9' : '#ac6b56';
-      ctx.fillRect(73 + i * 79, 409, 62, 62);
-      ctx.fillStyle = '#11221a';
-      ctx.font = '700 34px Arial, sans-serif';
-      ctx.fillText(hit ? '✓' : '×', 92 + i * 79, 451);
+      const x = 73 + i * 76;
+      ctx.fillStyle = hit ? '#315844' : '#8F483A';
+      ctx.fillRect(x, 388, 56, 56);
+      ctx.fillStyle = '#FBF8F2';
+      ctx.font = 'bold 30px Georgia, serif';
+      ctx.fillText(hit ? '✓' : '×', x + 14, 427);
     });
   }
-  ctx.fillStyle = '#e9efdb';
-  ctx.font = '400 34px Georgia, serif';
-  ctx.fillText(rivalScore === null ? 'Can you predict the grandmaster’s next move?' : rivalScore === 3 ? 'GPT scored 3/3. Can you match it?' : `GPT scored ${rivalScore}/3. Can you do better?`, 72, 530);
-  ctx.fillStyle = '#a9b9a6';
-  ctx.font = '21px Arial, sans-serif';
-  ctx.fillText('fraware.github.io/grandmaster-vs-model', 72, 575);
+  ctx.fillStyle = rule;
+  ctx.fillRect(70, 491, 1060, 2);
+  ctx.fillStyle = ink;
+  ctx.font = '36px Georgia, serif';
+  const comparison = rivalScore === null
+    ? 'Can you predict the next move?'
+    : `My score: ${score.correct}/3. GPT: ${rivalScore}/3.`;
+  ctx.fillText(comparison, 73, 548);
+  ctx.fillStyle = muted;
+  ctx.font = '19px Arial, sans-serif';
+  ctx.fillText('fraware.github.io/grandmaster-vs-model', 73, 591);
   if (rivalScore !== null) {
-    ctx.font = '15px Arial, sans-serif';
-    ctx.fillText('Retrospective 2024 game, tested in 2026. Not a prospective forecast.', 72, 612);
+    ctx.font = '14px Arial, sans-serif';
+    ctx.fillText('Retrospective game, tested in 2026', 720, 591);
   }
-  // An abstract chessboard motif, not a purported position from the match.
-  const startX = 855, startY = 164, cell = 34;
-  ctx.fillStyle = '#23372a';
-  ctx.fillRect(startX - 12, startY - 12, 8 * cell + 24, 8 * cell + 24);
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      ctx.fillStyle = (row + col) % 2 ? '#71876c' : '#d7ddc4';
-      ctx.fillRect(startX + col * cell, startY + row * cell, cell, cell);
-    }
-  }
-  ctx.fillStyle = '#17261f';
-  ctx.font = '202px Georgia, serif';
-  ctx.fillText('♞', startX + 62, startY + 220);
+  // Symbolic knight artwork: the card does not depict a historical position.
+  ctx.fillStyle = oxblood;
+  ctx.font = '270px Georgia, serif';
+  ctx.fillText('♞', 855, 380);
   return canvas;
 }
 
@@ -94,8 +95,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
   const mobileRevealButton = get('challenge-mobile-reveal');
   if (model?.complete) {
     setText('hero-subtitle', model.score === 3
-      ? 'Three real moves from the 2024 World Championship. GPT matched all three in a retrospective API test. Now it’s your turn.'
-      : "Can you predict the grandmaster's moves better than a real GPT model? Three historical positions. No signup.");
+      ? 'Three positions from the 2024 final. Make your prediction, see Ding’s move, and compare it with a recorded retrospective GPT response.'
+      : 'Three positions from the 2024 final. Predict each move, reveal the decision, and compare it with a recorded GPT response.');
   }
 
   function setText(id, value) { get(id).textContent = value; }
@@ -170,13 +171,13 @@ export function mountChallenge(archive, replay, retrospective = null) {
 
   function render() {
     const q = questions[index];
-    setText('challenge-count',`${index+1} OF ${questions.length}`);
+    setText('challenge-count',`${index+1} of ${questions.length}`);
     setText('challenge-phase',q.stage);
     setText('challenge-heading',q.title);
     setText('challenge-description',q.detail);
     setText('challenge-player',q.player);
-    setText('challenge-color',q.color.toUpperCase() + ' TO MOVE');
-    setText('challenge-move-index',`MOVE ${Math.floor(q.ply/2)+1}`);
+    setText('challenge-color',`${q.color[0].toUpperCase()}${q.color.slice(1)} to move`);
+    setText('challenge-move-index',`Move ${Math.floor(q.ply/2)+1}`);
     const progress = get('challenge-progress');
     progress.replaceChildren();
     questions.forEach((_,i) => {
@@ -240,8 +241,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
   function finish() {
     complete = true;
     const result = scoreChallenge(questions, answers);
-    setText('challenge-count','CHALLENGE COMPLETE');
-    setText('challenge-phase','YOUR RESULT / WORLD CHAMPIONSHIP 2024');
+    setText('challenge-count','Challenge complete');
+    setText('challenge-phase','Your result · 2024 final');
     setText('challenge-heading', 'The result is in.');
     setText('challenge-description', 'Three positions. Three real decisions.');
     get('challenge-prompt').hidden = true;

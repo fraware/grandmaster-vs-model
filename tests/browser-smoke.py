@@ -162,10 +162,11 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         download = info.value
         assert download.suggested_filename == 'grandmaster-vs-model-result.png'
         assert Path(download.path()).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+        assert tuple(int.from_bytes(Path(download.path()).read_bytes()[n:n+4], 'big') for n in (16, 20)) == (1200, 630)
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-result.png'), full_page=True)
         page.locator('#challenge-restart').click()
-        assert '1 OF 3' in page.locator('#challenge-count').inner_text()
+        assert '1 of 3' in page.locator('#challenge-count').inner_text()
         assert page.locator('#challenge-reveal').is_disabled()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         assert not errors, errors
