@@ -135,3 +135,10 @@
 @media(max-width:760px){.challenge{margin-bottom:50px}.challenge-topbar{font-size:9px;padding:15px 15px}.challenge-topbar span:last-child{display:none}.challenge-grid{grid-template-columns:1fr}.challenge-left{border-right:0;border-bottom:1px solid var(--line);padding:17px 15px 19px}.challenge-board{max-width:min(500px,100%);border-width:3px}.challenge-piece{font-size:clamp(29px,8.7vw,52px)}.challenge-right{padding:24px 22px 26px}.challenge-prompt{padding:25px 0 16px}.challenge-prompt h2{font-size:clamp(30px,8vw,43px);margin:11px 0}.challenge-assurance{padding-top:16px;margin-top:25px}.challenge-board-bottom{padding-top:12px}.experiment-intro{padding-top:29px;gap:18px}.intro h1{font-size:clamp(43px,9.1vw,65px)}.intro-grid{gap:20px}.intro-meta{border-left:0;padding-left:0}.intro{padding-bottom:28px}}
 @media(prefers-reduced-motion:reduce){.challenge-square{transition:none}}
 @media(max-width:760px){.experience-body{grid-template-columns:minmax(0,1fr)}.board-column,.decisions-column{min-width:0}}
+/* The technical experiment has its own route, separate from the game entrance. */
+.lab-intro{padding-top:64px;padding-bottom:44px}
+.lab-intro .eyebrow{display:block;color:var(--accent)}
+.lab-intro h1{font:400 clamp(46px,6vw,75px)/1.1 var(--font-serif);letter-spacing:-2px;margin:17px 0}
+.lab-intro p{font-size:16px;color:var(--ink-soft);line-height:1.65;max-width:700px;margin:0}
+.lab-back{display:inline-block;margin-top:22px;color:var(--accent);text-decoration:underline;text-underline-offset:4px;font-weight:650;font-size:13px}
+@media(max-width:760px){.lab-intro{padding-top:30px;padding-bottom:29px}.lab-intro h1{font-size:45px}.lab-intro p{font-size:14px}}

@@ -1,22 +1,28 @@
-# Release verification — 0.5.0 (19 November 2026)
+# Release verification — 0.6.0 (19 November 2026)
 
-The audience-facing site now leads with a three-move historical challenge sourced from Ding–Gukesh, World Championship Game 14 (12 December 2024). The changes preserve the existing match replay, public source feed, collection records, model roster, and published research protocol.
+## Objective and implementation
 
-## Production behavior
+Redesigned the product for immediate participation. The public entry route now contains **one** sourced interactive chessboard, three positions, one exact-match score, and one primary friend-sharing action. A linked `lab.html` retains the complete live/retrospective chess explorer, documented model roster, and evidence protocol. Existing legacy links with a `mode` query parameter redirect to the lab.
 
-- Three deterministic, legally reconstructed positions at plies 28, 61, and 108, with independent score calculation and published source attribution.
-- Mouse, touch and keyboard-accessible legal move selection, immediate historical reveal, sequential progress and one-click restart.
-- Native share or clipboard fallback; browser-generated score graphic downloadable as PNG. No account, tracking, server-side visitor score, or inference cost.
-- Open Graph and X/Twitter 1200×630 PNG social preview; complete portable source code; homepage and README updated to foreground the interactive product.
-- The historical score is explicitly distinct from prospective AI model performance. No 2026 match move or model prediction has been fabricated.
+## Changes
 
-## Verification
+- Separate, responsive game entrance (`index.html`, `landing.css`, `src/home.mjs`) with dark-green/ivory visual system and intentional typography. No external fonts, scripts, trackers or accounts.
+- Enhanced the replay to show the grandmaster's actual resulting board position, highlighted squares, visually distinct progress and source attribution.
+- Mobile reveal dock becomes available after a legal prediction; the fallback move picker remains keyboard accessible.
+- Final result screen now contains one prominent score, three per-position tiles and direct result sharing. Native file share is attempted on supported browsers; fallback paths preserve the score and link.
+- Shared text is generated from actual local answers; there are no fictional leaderboard ranks or AI-model scores.
+- Regenerated 1200×630 social preview and README screenshot from the real tested interface. Open Graph and basic Schema.org metadata describe the actual game.
+- Retained the research experience as `lab.html` with its original code, data integrity checks and broadcast reader.
+- Updated Pages publication to include both page routes and their styles.
 
-- `npm test` — **53/53 passed**.
-- `npm run verify` — local ledger integrity passed (zero 2026 forecasts/outcomes at verification).
-- `npm run verify:collection` — collection schema/integrity passed (zero championship attempts/moves).
-- `npm run build:data` and `npm run build:collection` — regeneration succeeded.
-- `CHROMIUM_PATH=/usr/bin/chromium python tests/browser-smoke.py` — desktop/mobile challenge flow, exact scoring, sharing, PNG export, board-click controls, legacy historical explorer, mocked live feed and outage fallback passed.
-- Small-screen overflow was corrected at 320px; no horizontal overflow at 320, 360, 390, 768, 1280 or 1920px in the local fixture harness.
+## Evidence and tests
 
-**Verification boundaries:** Browser test data for the 2026 tab are fixtures. No authenticated provider invocation was performed in this release. A successful GitHub Pages workflow proves artifact publication but does not independently establish live-origin browser behavior. Provider access from the earlier checks remains confirmed for OpenAI only; Anthropic and Gemini need access remediation. Live chronological priority is not attested by the historical challenge.
+- `npm test`: 54 passed, 0 failed.
+- `npm run verify`: passed with 0 recorded 2026 forecasts/outcomes.
+- `npm run verify:collection`: passed with 0 championship attempts/moves.
+- `CHROMIUM_PATH=/usr/bin/chromium python tests/browser-smoke.py`: passed the entire 3-position flow on desktop (1440px), mobile (390px) and narrow mobile (320px), including clickable legal moves, actual played board, 2/3 scoring, share grid, downloadable PNG, restart, and horizontal-overflow checks.
+- Separate lab test: historical replay and guess/reveal, recorded model roster, simulated live broadcast, and feed-outage fallback passed using explicit fixtures.
+
+## Scope and limitations
+
+Browser fixtures establish local presentation and logical behavior, **not** independent deployed-origin connectivity or real network access to Lichess. The historical challenge is genuine; no live 2026 model forecasts, ranking, or engine scores exist at this checkpoint. The latest observed credential test confirms one successful OpenAI inference and unresolved Anthropic/Google access errors. GitHub Pages publication is verified only once the matching GitHub Actions run succeeds.

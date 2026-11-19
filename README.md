@@ -4,7 +4,7 @@
 
 Play a free three-move chess challenge built from the real 2024 World Championship final. Choose the move, reveal the grandmaster’s decision, and share your score. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Play the three-move challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the three-move challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
@@ -15,14 +15,14 @@ Play a free three-move chess challenge built from the real 2024 World Championsh
 ## Play in under a minute
 
 1. Select a piece and destination on the board, or choose a legal move from the menu.
-2. Reveal the real grandmaster move. Repeat for three fixed positions from the 2024 final.
-3. Share your exact-match score as text or save a 1200×630 result image. Restart without an account.
+2. Lock in your choice and reveal the actual move on the board. Repeat across three positions from the 2024 final.
+3. Share the three-square result with a friend. On supported mobile browsers, the share sheet includes a generated score image; the text-copy and PNG-download fallbacks work without an account.
 
-The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The score is held only in the current browser session. It is **not** an AI-versus-human performance figure, an Elo rating, a chess-strength assessment, or a global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
+The primary homepage contains one chessboard. The full historical and live research interface is available separately at `lab.html`. The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The score is held only in the current browser session. It is **not** an AI-versus-human performance figure, an Elo rating, a chess-strength assessment, or a global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
 
 ## What already works
 
-- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). The homepage challenge provides three curated positions, an exact-match score, and a shareable result. The detailed board below it supports inspecting all recorded positions, replaying moves, and sharing position links.
+- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). The homepage challenge provides three curated positions, an exact-match score, and a shareable result. The separate [research lab](https://fraware.github.io/grandmaster-vs-model/lab.html) supports inspecting all recorded positions, replaying moves, comparing public model attempts and sharing position links.
 - **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and checks for updates at most every three minutes while the live tab is active. A legally checked same-origin snapshot is also generated during Pages deployments; visitors still have a recent cached position if their direct request fails. Neither retrieval time establishes the physical playing time. Later match games need their own confirmed broadcast IDs.
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.
@@ -47,11 +47,11 @@ npm run verify:collection
 python3 -m http.server 8080
 ```
 
-Open `http://localhost:8080/`. The historical challenge works from bundled game data. The live championship tab attempts a direct Lichess request. Browser networking or CORS policy might block that request; an optional validated cached broadcast is used as a fallback. The fallback timestamp is explicitly labelled as a fetch time, not a move time. Direct `file://` navigation does not reliably permit JSON loading.
+Open `http://localhost:8080/`. The homepage challenge works from bundled game data with no live network dependency. Open `http://localhost:8080/lab.html?mode=live` for the championship broadcast, which attempts a direct Lichess request. Browser networking or CORS policy might block that request; an optional validated cached broadcast is used as a fallback. The fallback timestamp is explicitly labelled as a fetch time, not a move time. Direct `file://` navigation does not reliably permit JSON loading.
 
 ## Public broadcast cache
 
-The Pages workflow attempts to fetch the official Game 1 PGN during deployment and writes a legally checked same-origin cache into the **published artifact only**. It does not modify tracked source files or represent a forecast. A failed fetch preserves the packaged default, without inventing moves. The direct browser request supplies fresher observations while the live tab is open; it is limited to one initial request plus a three-minute interval (five minutes if an error occurs). The retrospective challenge does not continually poll Lichess.
+The Pages workflow attempts to fetch the official Game 1 PGN during deployment and writes a legally checked same-origin cache into the **published artifact only**. It does not modify tracked source files or represent a forecast. A failed fetch preserves the packaged default, without inventing moves. The direct browser request supplies fresher observations while the live tab is open; it is limited to one initial request plus a three-minute interval (five minutes if an error occurs). The homepage challenge never polls Lichess. The research lab checks the live feed only while its live view is active.
 
 An operator may regenerate a cache locally using `node scripts/cache-broadcast.mjs --out /path/to/live-game1.json`. The committed default under `data/live-game1.json` is intentionally empty prior to 24 November 2026. The site rejects illegal cached moves, mismatched players, and changed live history within a browsing session. The build cache is a best-effort availability mechanism, **not immutable source evidence, publication priority, or a record of physical move times**. The capture workflow is scheduled at five-minute intervals within selected UTC hours on championship dates. An actual new observation or model attempt triggers a data commit, which triggers a Pages build and refreshes the cached broadcast. GitHub Actions schedules are best effort; delays and missed positions are expected. The browser direct feed remains available without automated collection. While the live tab is active, the website also refreshes the same-origin public attempt index at most once every two minutes, without requiring a reload.
 
@@ -99,7 +99,9 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 
 | Path | Role |
 | --- | --- |
-| `index.html`, `style.css`, `app.mjs` | Static responsive site and interactive board |
+| `index.html`, `landing.css`, `src/home.mjs` | Single-purpose challenge entrance with no model calls |
+| `lab.html`, `style.css`, `app.mjs` | Full historical/live research explorer and model evidence UI |
+| `src/challenge.mjs`, `src/challenge-ui.mjs` | Sourced three-position challenge, local scoring and share images |
 | `src/chess.mjs` | Dependency-free standard chess rules, SAN/UCI and FEN |
 | `src/challenge.mjs`, `src/challenge-ui.mjs` | Sourced three-position human challenge, score, and share image |
 | `assets/share-cover.png` | Social-preview image used by Open Graph and X cards |
@@ -119,7 +121,7 @@ The earlier [`scripts/model-runner.mjs`](scripts/model-runner.mjs) is also avail
 
 ## Optional browser integration test
 
-The repository includes a reproducible Chromium smoke test for desktop and mobile DOM interactions. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The browser test additionally completes the three-position challenge, checks exact-match scoring, verifies sharing and PNG export, and exercises the legal prediction/reveal controls and failure handling for direct PGN requests. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
+The repository includes a reproducible Chromium smoke test at 320px, mobile, and desktop widths on the separate homepage and lab routes. It uses a clearly artificial six-ply PGN fixture to exercise the live view without presenting those moves as observed championship data. The browser test additionally completes the three-position challenge, checks exact-match scoring, verifies share text, native-fallback behavior and PNG export, and exercises source-replay and outage handling in the lab. This is distinct from testing the actual deployed origin or Lichess cross-origin policy.
 
 ```sh
 python -m pip install playwright

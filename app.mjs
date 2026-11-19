@@ -307,7 +307,7 @@ async function initialize(){
     const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
     if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
     archive=historical;archiveReplay=replay;matchData=ledger;modelRoster=roster;collectionIndex=collection;
-    mountChallenge(historical,replay);
+    if ($('challenge-board')) mountChallenge(historical,replay);
     if(cached){
       try{liveGame=restoreSnapshot(cached);liveSnapshotAt=cached.fetchedAt?new Date(cached.fetchedAt):null;}
       catch(error){console.warn('Broadcast cache rejected:',error);}

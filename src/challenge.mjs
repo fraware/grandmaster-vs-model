@@ -8,9 +8,9 @@ export const CHALLENGE_SCHEMA = 'grandmaster-challenge-v1';
 export const CHALLENGE_PLIES = Object.freeze([28, 61, 108]);
 const expectedUci = ['b5c3', 'f8a8', 'f4f2'];
 const chapters = [
-  {stage: '01 / OPENING', title: 'Find the continuation', detail: 'Move 15. Ding Liren has the white pieces.'},
-  {stage: '02 / MIDDLEGAME', title: 'A decision under pressure', detail: 'Move 31. Gukesh has the black pieces.'},
-  {stage: '03 / ENDGAME', title: 'The final turning point', detail: 'Move 55. Ding Liren has the white pieces.'},
+  {stage: '01 / THE OPENING', title: 'What did Ding play?', detail: 'Ding Liren · White to move · Move 15'},
+  {stage: '02 / THE MIDDLEGAME', title: 'What did Gukesh play?', detail: 'Gukesh D · Black to move · Move 31'},
+  {stage: '03 / THE ENDGAME', title: 'One last move.', detail: 'Ding Liren · White to move · Move 55'},
 ];
 
 /** Validate the underlying game and construct three reproducible positions. */
@@ -61,13 +61,18 @@ export function scoreChallenge(questions, answers) {
 }
 
 /** Sharing deliberately excludes any fabricated public ranking or model comparison. */
-export function challengeShareText(correct, url) {
+export function challengeShareText(correct, url, matches = null) {
   if (!Number.isInteger(correct) || correct < 0 || correct > CHALLENGE_PLIES.length) {
     throw new Error('Invalid challenge score');
+  }
+  if (matches !== null && (!Array.isArray(matches) || matches.length !== 3 ||
+      matches.some(x => typeof x !== 'boolean') || matches.filter(Boolean).length !== correct)) {
+    throw new Error('Inconsistent challenge result');
   }
   const u = new URL(url);
   if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Invalid challenge URL');
   u.hash = 'challenge';
   u.search = '';
-  return `I matched ${correct}/3 moves from the 2024 World Chess Championship final. Can you predict the grandmasters' next moves?\n${u.toString()}`;
+  const grid = matches ? `${matches.map(hit => hit ? '🟩' : '⬛').join('')}\n` : '';
+  return `I guessed ${correct}/3 moves from the 2024 World Chess Championship final.\n${grid}\nThink you can beat my score?\n${u.toString()}`;
 }

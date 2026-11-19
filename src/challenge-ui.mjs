@@ -3,7 +3,7 @@
  * All answers are reconstructed from the sourced match. No network, account,
  * API key, saved identity, model prediction, or global ranking is involved.
  */
-import {parseFen, toSquare} from './chess.mjs';
+import {parseFen, play, toSquare} from './chess.mjs';
 import {createChallenge, scoreChallenge, challengeShareText} from './challenge.mjs';
 
 const pieceGlyph = {K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟'};
@@ -11,50 +11,58 @@ const pieceName = {K:'king', Q:'queen', R:'rook', B:'bishop', N:'knight', P:'paw
 const get = id => document.getElementById(id);
 
 /** A privacy-preserving result card constructed without remote rendering. */
-export function drawChallengeCard(score) {
+export function drawChallengeCard(score, matches = null) {
+  if (!Number.isInteger(score?.correct) || score.correct < 0 || score.correct > 3 || score.total !== 3) {
+    throw new Error('Invalid challenge score for export');
+  }
+  if (matches !== null && (!Array.isArray(matches) || matches.length !== 3 || matches.some(x => typeof x !== 'boolean') || matches.filter(Boolean).length !== score.correct)) {
+    throw new Error('Inconsistent challenge answers for export');
+  }
   const canvas = document.createElement('canvas');
   canvas.width = 1200;
   canvas.height = 630;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unavailable');
-  ctx.fillStyle = '#f5f2eb';
+  ctx.fillStyle = '#121e19';
   ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#292c26';
-  ctx.fillRect(0, 0, 1200, 12);
-  ctx.font = '600 25px Georgia, serif';
-  ctx.fillText('GRANDMASTER  vs  MODEL', 68, 94);
-  ctx.fillStyle = '#98432e';
-  ctx.fillRect(68, 135, 54, 5);
-  ctx.font = '600 20px Arial, sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('THE THREE-MOVE CHALLENGE', 68, 196);
-  ctx.letterSpacing = '0px';
-  ctx.fillStyle = '#292c26';
-  ctx.font = 'normal 215px Georgia, serif';
-  ctx.fillText(`${score.correct}/3`, 60, 415);
-  ctx.font = 'normal 35px Georgia, serif';
-  ctx.fillText('grandmaster moves predicted', 73, 482);
-  ctx.fillStyle = '#5e625b';
-  ctx.font = '23px Arial, sans-serif';
-  ctx.fillText('Real positions · 2024 World Chess Championship final', 73, 553);
-  ctx.fillStyle = '#292c26';
-  ctx.fillRect(897, 140, 231, 312);
-  ctx.fillStyle = '#d8d7c8';
+  ctx.fillStyle = '#def47c';
+  ctx.fillRect(0, 0, 1200, 8);
+  ctx.fillStyle = '#e9efdb';
+  ctx.font = '600 27px Georgia, serif';
+  ctx.fillText('GRANDMASTER  vs  MODEL', 72, 87);
+  ctx.fillStyle = '#def47c';
+  ctx.font = '700 19px Arial, sans-serif';
+  ctx.fillText('THE THREE-MOVE CHALLENGE', 72, 160);
+  ctx.font = '400 200px Georgia, serif';
+  ctx.fillText(`${score.correct}/3`, 57, 373);
+  if (matches) {
+    matches.forEach((hit, i) => {
+      ctx.fillStyle = hit ? '#cce6a9' : '#ac6b56';
+      ctx.fillRect(73 + i * 79, 409, 62, 62);
+      ctx.fillStyle = '#11221a';
+      ctx.font = '700 34px Arial, sans-serif';
+      ctx.fillText(hit ? '✓' : '×', 92 + i * 79, 451);
+    });
+  }
+  ctx.fillStyle = '#e9efdb';
+  ctx.font = '400 34px Georgia, serif';
+  ctx.fillText('Can you predict the grandmaster’s next move?', 72, 530);
+  ctx.fillStyle = '#a9b9a6';
+  ctx.font = '21px Arial, sans-serif';
+  ctx.fillText('fraware.github.io/grandmaster-vs-model', 72, 575);
+  // An abstract chessboard motif, not a purported position from the match.
+  const startX = 855, startY = 164, cell = 34;
+  ctx.fillStyle = '#23372a';
+  ctx.fillRect(startX - 12, startY - 12, 8 * cell + 24, 8 * cell + 24);
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      ctx.fillStyle = (row + col) % 2 ? '#7e896e' : '#e9e6d9';
-      ctx.fillRect(910 + col * 27, 156 + row * 27, 27, 27);
+      ctx.fillStyle = (row + col) % 2 ? '#71876c' : '#d7ddc4';
+      ctx.fillRect(startX + col * cell, startY + row * cell, cell, cell);
     }
   }
-  ctx.fillStyle = '#f5f2eb';
-  ctx.font = '118px Georgia, serif';
-  ctx.fillText('♞', 951, 326);
-  ctx.fillStyle = '#98432e';
-  ctx.font = '600 23px Arial, sans-serif';
-  ctx.fillText('TRY IT YOURSELF', 900, 510);
-  ctx.fillStyle = '#5e625b';
-  ctx.font = '20px Arial, sans-serif';
-  ctx.fillText('fraware.github.io/grandmaster-vs-model', 750, 569);
+  ctx.fillStyle = '#17261f';
+  ctx.font = '202px Georgia, serif';
+  ctx.fillText('♞', startX + 62, startY + 220);
   return canvas;
 }
 
@@ -75,10 +83,11 @@ export function mountChallenge(archive, replay) {
   const final = get('challenge-finished');
   const choice = get('challenge-choice');
   const shareStatus = get('challenge-share-status');
+  const mobileRevealButton = get('challenge-mobile-reveal');
 
   function setText(id, value) { get(id).textContent = value; }
   function drawPosition(q) {
-    const {board: squares} = parseFen(q.fen);
+    const {board: squares} = parseFen(revealed ? play(q.fen, q.answer.uci).fen : q.fen);
     const flipped = q.color === 'black';
     const possibleTargets = origin ? q.legalMoves.filter(m => m.uci.startsWith(origin)).map(m => m.uci.slice(2,4)) : [];
     board.replaceChildren();
@@ -96,6 +105,7 @@ export function mountChallenge(archive, replay) {
       if (possibleTargets.includes(square)) cell.classList.add('target');
       if (selectedUci && [selectedUci.slice(0,2), selectedUci.slice(2,4)].includes(square)) cell.classList.add('predicted');
       if (revealed && [q.answer.uci.slice(0,2), q.answer.uci.slice(2,4)].includes(square)) cell.classList.add('answer');
+      if (revealed && square === q.answer.uci.slice(2,4)) cell.classList.add('answer-end');
       if (piece !== '.') {
         const glyph = document.createElement('span');
         glyph.className = `challenge-piece ${piece === piece.toUpperCase() ? 'white' : 'black'}`;
@@ -127,14 +137,22 @@ export function mountChallenge(archive, replay) {
     }
   }
 
+  function updateMobileDock() {
+    if (!mobileRevealButton) return;
+    mobileRevealButton.hidden = !selectedUci || revealed || complete;
+    mobileRevealButton.disabled = !selectedUci || revealed || complete;
+    document.body.classList.toggle('has-mobile-reveal', !mobileRevealButton.hidden);
+  }
+
   function updateChoice() {
     const q = questions[index];
     chooser.value = selectedUci || '';
     revealButton.disabled = !selectedUci || revealed;
     setText('challenge-hint', selectedUci
-      ? `Your choice: ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Reveal to compare.`
+      ? `Your move: ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Ready to lock in.`
       : origin ? `Choose a destination for ${origin}.` : 'Select a piece and destination, or pick a legal move.');
     drawPosition(q);
+    updateMobileDock();
   }
 
   function render() {
@@ -169,6 +187,7 @@ export function mountChallenge(archive, replay) {
     feedback.hidden = true;
     final.hidden = true;
     choice.hidden = false;
+    get('challenge-prompt').hidden = false;
     board.hidden = false;
     selectedUci = null;
     origin = null;
@@ -184,6 +203,7 @@ export function mountChallenge(archive, replay) {
     revealed = true;
     chooser.disabled = true;
     revealButton.hidden = true;
+    updateMobileDock();
     nextButton.hidden = false;
     const match = selectedUci === q.answer.uci;
     setText('challenge-answer-result', match?'Exact match.':'Different move.');
@@ -191,7 +211,7 @@ export function mountChallenge(archive, replay) {
     setText('challenge-answer-yours',`You chose ${q.legalMoves.find(m => m.uci === selectedUci).san}.`);
     feedback.classList.toggle('correct',match);
     feedback.hidden = false;
-    setText('challenge-hint','The answer is from the recorded 2024 championship game.');
+    setText('challenge-hint','The recorded move is now on the board.');
     nextButton.textContent = index === questions.length - 1?'See your result →':'Next position →';
     drawPosition(q);
     nextButton.focus();
@@ -202,15 +222,29 @@ export function mountChallenge(archive, replay) {
     const result = scoreChallenge(questions, answers);
     setText('challenge-count','CHALLENGE COMPLETE');
     setText('challenge-phase','YOUR RESULT / WORLD CHAMPIONSHIP 2024');
-    setText('challenge-heading',`${result.correct} out of ${result.total}.`);
-    setText('challenge-description', 'You predicted the exact human move in three real championship positions.');
+    setText('challenge-heading', 'The result is in.');
+    setText('challenge-description', 'Three positions. Three real decisions.');
+    get('challenge-prompt').hidden = true;
     get('challenge-progress').querySelectorAll('span').forEach(el=>{el.classList.add('done');el.classList.remove('current');});
     choice.hidden = true;
     feedback.hidden = true;
     nextButton.hidden = true;
     final.hidden = false;
-    setText('challenge-result-label', `${result.correct} / ${result.total} exact matches`);
-    setText('challenge-result-note', 'Personal score from a retrospective game. No AI model is scored here.');
+    setText('challenge-result-label', `${result.correct} of ${result.total}.`);
+    const resultTiles = get('challenge-result-tiles');
+    if (resultTiles) {
+      resultTiles.replaceChildren();
+      questions.forEach((q, i) => {
+        const hit = q.answer.uci === answers[i];
+        const tile = document.createElement('span');
+        tile.className = `challenge-result-tile${hit ? ' hit' : ''}`;
+        tile.textContent = hit ? '✓' : '×';
+        tile.setAttribute('aria-label', `Position ${i + 1}: ${hit ? 'exact match' : 'different move'}`);
+        resultTiles.append(tile);
+      });
+    }
+    updateMobileDock();
+    setText('challenge-result-note', 'Exact grandmaster moves predicted. A historical challenge, not an AI model comparison.');
     get('challenge-download').disabled = false;
     get('challenge-share').disabled = false;
     shareStatus.textContent = '';
@@ -225,6 +259,7 @@ export function mountChallenge(archive, replay) {
     updateChoice();
   });
   revealButton.addEventListener('click',reveal);
+  if (mobileRevealButton) mobileRevealButton.addEventListener('click', reveal);
   nextButton.addEventListener('click',() => {
     if (!revealed || complete) return;
     if (index === questions.length-1) finish();
@@ -237,10 +272,28 @@ export function mountChallenge(archive, replay) {
     if (!complete) return;
     const score = scoreChallenge(questions,answers);
     const url = new URL('.', document.baseURI);url.hash='challenge';
-    const text = challengeShareText(score.correct,url.href);
+    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]));
     try {
       if (navigator.share) {
-        await navigator.share({title:'Grandmaster vs Model — Three moves',text});
+        const title = 'Can you predict a grandmaster’s next move?';
+        let shared = false;
+        if (navigator.canShare && typeof File !== 'undefined') {
+          try {
+            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]));
+            const imageBlob = await new Promise(resolve => card.toBlob(resolve, 'image/png'));
+            if (imageBlob) {
+              const file = new File([imageBlob], 'grandmaster-vs-model-score.png', {type:'image/png'});
+              if (navigator.canShare({files:[file]})) {
+                await navigator.share({title,text,files:[file]});
+                shared = true;
+              }
+            }
+          } catch (error) {
+            if (error?.name === 'AbortError') return;
+            // File attachments are optional: fall back to native text sharing.
+          }
+        }
+        if (!shared) await navigator.share({title,text});
         shareStatus.textContent = 'Shared.';
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -262,7 +315,7 @@ export function mountChallenge(archive, replay) {
   get('challenge-download').addEventListener('click',async () => {
     if (!complete) return;
     try {
-      const canvas = drawChallengeCard(scoreChallenge(questions,answers));
+      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]));
       const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
       if (!blob) throw new Error('Image encoding unavailable');
       const url = URL.createObjectURL(blob);

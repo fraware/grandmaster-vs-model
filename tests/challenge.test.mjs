@@ -37,3 +37,12 @@ test('share text uses canonical challenge URL without user result claims in quer
   assert.throws(() => challengeShareText(4, 'https://example.org'));
   assert.throws(() => challengeShareText(1, 'javascript:alert(1)'));
 });
+
+test('challenge share grid reflects actual answers, and rejects inconsistent outcomes', () => {
+  const t=challengeShareText(2,'https://fraware.github.io/grandmaster-vs-model/?source=friend#method',[true,false,true]);
+  assert.match(t,/🟩⬛🟩/u);
+  assert.match(t,/2\/3 moves/);
+  assert.ok(t.endsWith('/#challenge'));
+  assert.throws(()=>challengeShareText(2,'https://example.org/',[true,false,false]),/Inconsistent/);
+  assert.throws(()=>challengeShareText(2,'https://example.org/',[true,false,'yes']),/Inconsistent/);
+});
