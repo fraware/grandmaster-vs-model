@@ -20,7 +20,7 @@ jobs:
         run: |
           npm run build:data
           git diff --exit-code -- data/match.json
-          npm run verify:collection && npm run verify:retrospective && npm run verify:history
+          npm run verify:collection && npm run verify:retrospective && npm run verify:history && npm run verify:2026
           npm run build:collection
           git diff --exit-code -- data/collection.json
       - name: JavaScript syntax
@@ -34,6 +34,8 @@ jobs:
           node --check src/chess.mjs
           node --check src/pgn.mjs
           node --check src/history.mjs
+          node --check src/match-2026.mjs
+          node --check scripts/verify-match-2026.mjs
           node --check scripts/build-history-2024.mjs
           node --check src/broadcast.mjs
           node --check scripts/cache-broadcast.mjs
@@ -43,3 +45,17 @@ jobs:
           node --check scripts/forecast-cycle.mjs
           node --check scripts/collection.mjs
           node --check src/collection.mjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned browser test runtime
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Test the historical game and all 14 registered live round selections
+        run: python tests/browser-smoke.py

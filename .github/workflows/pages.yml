@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test && npm run verify && npm run build:data && git diff --exit-code -- data/match.json && npm run verify:collection && npm run verify:retrospective && npm run verify:history && npm run build:collection && git diff --exit-code -- data/collection.json
+      - run: npm test && npm run verify && npm run build:data && git diff --exit-code -- data/match.json && npm run verify:collection && npm run verify:retrospective && npm run verify:history && npm run verify:2026 && npm run build:collection && git diff --exit-code -- data/collection.json
       - name: Stage static site
         run: |
           mkdir -p _site

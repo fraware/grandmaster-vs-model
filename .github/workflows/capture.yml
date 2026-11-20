@@ -4,7 +4,8 @@ on:
   schedule:
     # GitHub cron is best effort, not a precision real-time scheduler.
     # The collector enforces the match date window independently.
-    - cron: '*/5 12-21 * 11,12 *'
+    - cron: '*/5 13-23 * 11,12 *'
+    - cron: '*/5 0-1 * 11,12 *'
 permissions:
   contents: write
 concurrency:
@@ -22,13 +23,15 @@ jobs:
         with:
           node-version: '22'
       - name: Validate current data before sampling
-        run: npm test && npm run verify && npm run verify:collection
-      - name: Poll Game 1 and sample credentialed models once
+        run: npm test && npm run verify:2026 && npm run verify && npm run verify:collection
+      - name: Poll the scheduled championship round and record a bounded predeclared sample
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CAPTURE_SAMPLE_EVERY: '5'
+          CAPTURE_MAX_REQUESTS: '900'
         run: npm run capture:once
       - name: Check collection integrity
         run: |

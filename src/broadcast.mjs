@@ -1,9 +1,10 @@
 /** Validated, source-attributed broadcast caches. A retrieval time is not a move time. */
 import {START_FEN, play} from './chess.mjs';
-import {GAME_ONE_PGN, findChampionshipGame, parsePgn} from './pgn.mjs';
+import {findChampionshipGame, parsePgn} from './pgn.mjs';
+import {roundInfo} from './match-2026.mjs';
 
 export const BROADCAST_SCHEMA = 'broadcast-snapshot-v1';
-export const GAME_ONE_ROUND_ID = 'xLgOJ6cb';
+export const GAME_ONE_ROUND_ID = roundInfo(1).roundId;
 
 export function validateAppendOnly(previous, current) {
   if (!previous || !current) return;
@@ -18,7 +19,7 @@ export function validateAppendOnly(previous, current) {
 }
 
 /** Serializes legal moves into a small file suitable for static site hosting. */
-export function snapshotFromPgn(pgn, fetchedAt) {
+export function snapshotFromPgn(pgn, fetchedAt, round=roundInfo(1)) {
   if (typeof fetchedAt !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(fetchedAt) || Number.isNaN(Date.parse(fetchedAt))) {
     throw new Error('A valid UTC retrieval timestamp is needed');
   }
@@ -27,8 +28,8 @@ export function snapshotFromPgn(pgn, fetchedAt) {
   if (!selected && games.some(g => g.moves.length)) throw new Error('Target championship game not identified');
   return {
     schema: BROADCAST_SCHEMA,
-    roundId: GAME_ONE_ROUND_ID,
-    source: GAME_ONE_PGN,
+    roundId: round.roundId,
+    source: round.pgnUrl,
     fetchedAt,
     game: selected ? {
       white: selected.tags.White || null,
@@ -40,8 +41,8 @@ export function snapshotFromPgn(pgn, fetchedAt) {
 }
 
 /** A cached file is untrusted input, even if served from the project's own site. */
-export function restoreSnapshot(data) {
-  if (!data || data.schema !== BROADCAST_SCHEMA || data.roundId !== GAME_ONE_ROUND_ID || data.source !== GAME_ONE_PGN) {
+export function restoreSnapshot(data,round=roundInfo(1)) {
+  if (!data || data.schema !== BROADCAST_SCHEMA || data.roundId !== round.roundId || data.source !== round.pgnUrl) {
     throw new Error('Unexpected broadcast snapshot identity');
   }
   if (data.game === null) return null;

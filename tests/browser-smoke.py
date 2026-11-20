@@ -39,7 +39,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
     if kind == 'lab':
-        module_names += ['src/broadcast.mjs', 'src/history.mjs']
+        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
@@ -54,6 +54,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
         './data/live-game1.json': json.loads((ROOT / 'data/live-game1.json').read_text()),
         './data/models.json': json.loads((ROOT / 'data/models.json').read_text()),
         './data/collection.json': json.loads((ROOT / 'data/collection.json').read_text()),
+        './data/broadcast-2026.json': json.loads((ROOT / 'data/broadcast-2026.json').read_text()),
         './data/retrospective-2024.json': json.loads((ROOT / 'data/retrospective-2024.json').read_text()),
     }
     return html, '\n'.join(source), responses
@@ -337,7 +338,14 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     page.locator('#game-select').select_option('14')
     assert '0 / 116 PLIES' in page.locator('#nav-position').inner_text()
     page.locator('#tab-live').click()
+    page.wait_for_function("document.getElementById('result-title').textContent.includes('Broadcast move')", timeout=5000)
     assert 'Broadcast move · 3…a6' in page.locator('#result-title').inner_text()
+    # Every prospective round uses a confirmed, distinct source URL.
+    registry = source[2]['./data/broadcast-2026.json']['rounds']
+    for record in registry:
+        page.locator('#game-select').select_option(str(record['game']))
+        assert page.locator('#source-url').get_attribute('href') == record['url']
+        assert page.locator('#board button.square').count() == 64
     if screenshot_dir:
         page.screenshot(path=str(Path(screenshot_dir) / 'lab-live.png'), full_page=True)
     assert not errors, errors
@@ -345,7 +353,7 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     outage = browser.new_page()
     populate(outage, source, online=False)
     outage.locator('#tab-live').click()
-    assert 'Broadcast unavailable' in outage.locator('#source-status').inner_text()
+    assert 'broadcast unavailable' in outage.locator('#source-status').inner_text().lower()
     outage.close()
 
 

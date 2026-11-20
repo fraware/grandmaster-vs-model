@@ -1,0 +1,122 @@
+{
+  "schema": "championship-broadcast-registry-v1",
+  "event": "fide-world-championship-2026",
+  "tourId": "qfkdt8mn",
+  "tourUrl": "https://lichess.org/broadcast/fide-world-chess-championship-2026/qfkdt8mn",
+  "verifiedAt": "2026-11-20T10:06:01.539Z",
+  "metadataSource": "https://lichess.org/api/broadcast/qfkdt8mn",
+  "rounds": [
+    {
+      "game": 1,
+      "roundId": "xLgOJ6cb",
+      "name": "Game 1",
+      "startsAt": "2026-11-24T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/xLgOJ6cb.pgn"
+    },
+    {
+      "game": 2,
+      "roundId": "L3j03TZq",
+      "name": "Game 2",
+      "startsAt": "2026-11-25T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-2/L3j03TZq",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/L3j03TZq.pgn"
+    },
+    {
+      "game": 3,
+      "roundId": "fnmEB1kH",
+      "name": "Game 3",
+      "startsAt": "2026-11-26T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-3/fnmEB1kH",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/fnmEB1kH.pgn"
+    },
+    {
+      "game": 4,
+      "roundId": "wIwJtPqz",
+      "name": "Game 4",
+      "startsAt": "2026-11-28T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-4/wIwJtPqz",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/wIwJtPqz.pgn"
+    },
+    {
+      "game": 5,
+      "roundId": "ueVpeXxW",
+      "name": "Game 5",
+      "startsAt": "2026-11-29T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-5/ueVpeXxW",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/ueVpeXxW.pgn"
+    },
+    {
+      "game": 6,
+      "roundId": "b0ACq4LF",
+      "name": "Game 6",
+      "startsAt": "2026-11-30T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-6/b0ACq4LF",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/b0ACq4LF.pgn"
+    },
+    {
+      "game": 7,
+      "roundId": "OZYNuhhF",
+      "name": "Game 7",
+      "startsAt": "2026-12-02T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-7/OZYNuhhF",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/OZYNuhhF.pgn"
+    },
+    {
+      "game": 8,
+      "roundId": "K9grUNXr",
+      "name": "Game 8",
+      "startsAt": "2026-12-03T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-8/K9grUNXr",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/K9grUNXr.pgn"
+    },
+    {
+      "game": 9,
+      "roundId": "gBI5kKDi",
+      "name": "Game 9",
+      "startsAt": "2026-12-04T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-9/gBI5kKDi",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/gBI5kKDi.pgn"
+    },
+    {
+      "game": 10,
+      "roundId": "NhfhTSep",
+      "name": "Game 10",
+      "startsAt": "2026-12-06T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-10/NhfhTSep",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/NhfhTSep.pgn"
+    },
+    {
+      "game": 11,
+      "roundId": "bAU22Apj",
+      "name": "Game 11",
+      "startsAt": "2026-12-07T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-11/bAU22Apj",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/bAU22Apj.pgn"
+    },
+    {
+      "game": 12,
+      "roundId": "vRbnvNEi",
+      "name": "Game 12",
+      "startsAt": "2026-12-08T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-12/vRbnvNEi",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/vRbnvNEi.pgn"
+    },
+    {
+      "game": 13,
+      "roundId": "S4C6oJ1k",
+      "name": "Game 13",
+      "startsAt": "2026-12-10T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-13/S4C6oJ1k",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/S4C6oJ1k.pgn"
+    },
+    {
+      "game": 14,
+      "roundId": "MDkKXuQD",
+      "name": "Game 14",
+      "startsAt": "2026-12-11T14:00:00.000Z",
+      "url": "https://lichess.org/broadcast/fide-world-chess-championship-2026/game-14/MDkKXuQD",
+      "pgnUrl": "https://lichess.org/api/broadcast/round/MDkKXuQD.pgn"
+    }
+  ]
+}

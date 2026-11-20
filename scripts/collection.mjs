@@ -13,8 +13,15 @@ const digest=x=>createHash('sha256').update(typeof x==='string'?x:canonical(x)).
 export async function collect({root=defaultRoot,write=false}={}){
   const path=resolve(root); const get=async p=>JSON.parse(await readFile(join(path,p),'utf8'));
   const models=await get('data/models.json');
-  const observations=existsSync(join(path,'data/observations/game1.json'))?await get('data/observations/game1.json'):null;
-  if(observations)validateObservation(observations);
+  const observations=[];
+  const observationDir=join(path,'data/observations');
+  if(existsSync(observationDir)){
+    for(const name of (await readdir(observationDir)).filter(n=>/^game(?:[1-9]|1[0-4])\.json$/.test(n)).sort((a,b)=>Number(a.match(/\d+/)[0])-Number(b.match(/\d+/)[0]))){
+      const doc=await get('data/observations/'+name);
+      if(name!==`game${doc.game}.json`)throw new Error('Noncanonical observation filename');
+      validateObservation(doc);observations.push(doc);
+    }
+  }
   const dir=join(path,'data/attempts'), attempts=[];
   if(existsSync(dir)){
     for(const name of (await readdir(dir)).filter(n=>/^[a-z0-9-]+\.json$/.test(n)).sort()){
@@ -22,7 +29,7 @@ export async function collect({root=defaultRoot,write=false}={}){
       const {digest:stored,...raw}=doc;
       if(stored!==digest(raw))throw new Error('Attempt checksum mismatch: '+name);
       validateAttempt(raw);
-      if(name!==`g01-p${String(raw.ply).padStart(3,'0')}-${raw.model.id}.json`)throw new Error('Noncanonical attempt filename: '+name);
+      if(name!==`g${String(raw.game).padStart(2,'0')}-p${String(raw.ply).padStart(3,'0')}-${raw.model.id}.json`)throw new Error('Noncanonical attempt filename: '+name);
       if(raw.promptSha256!==digest(raw.prompt)||raw.responseSha256!==digest(raw.response))throw new Error('Request/response checksum mismatch: '+name);
       attempts.push(raw);
     }
