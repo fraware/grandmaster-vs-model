@@ -26,7 +26,9 @@ export async function collect({root=defaultRoot,write=false}={}){
   const reservations=[];
   const reservationDir=join(path,'data/claims');
   if(existsSync(reservationDir)){
-    for(const name of (await readdir(reservationDir)).filter(n=>/^[a-z0-9-]+\.json$/.test(n)).sort()){
+    for(const name of (await readdir(reservationDir)).filter(n=>n.endsWith('.json')).sort()){
+      if(!/^[a-z0-9-]+\.json$/.test(name))
+        throw new Error('Invalid reservation filename: '+name);
       const doc=await get('data/claims/'+name);
       const {digest:stored,...raw}=doc;
       if(stored!==digest(raw))throw new Error('Reservation checksum mismatch: '+name);
