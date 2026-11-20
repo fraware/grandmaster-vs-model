@@ -98,4 +98,7 @@ test('attested forecast manifest uses NUL-separated filenames and limits signing
   assert.match(yaml,/steps\.evidence\.outputs\.new_attempts == 'true'/);
   assert.match(yaml,/continue-on-error: true/);
   assert.match(yaml,/CAPTURE_PROVIDERS: 'openai'/);
+  assert.match(yaml,/name: capture-recovery-/);
+  assert.match(yaml,/steps\.evidence\.outputs\.changed == 'true'/);
+  assert.match(yaml,/retention-days: 30/);
 });
