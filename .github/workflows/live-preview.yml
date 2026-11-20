@@ -42,4 +42,8 @@ jobs:
             exit 0
           fi
           git commit -m 'Refresh rendered live spectator previews'
+          # Developers may have advanced this branch during rendering.
+          # Rebase the immutable image commit, never force-push source code.
+          git fetch origin feat/live-spectator-challenge
+          git rebase origin/feat/live-spectator-challenge
           git push origin HEAD:feat/live-spectator-challenge
