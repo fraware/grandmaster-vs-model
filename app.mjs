@@ -5,8 +5,7 @@ import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
-import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,
-  spectatorShareText} from './src/spectator.mjs';
+import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText} from './src/spectator.mjs';
 import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
