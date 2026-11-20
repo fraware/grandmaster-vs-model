@@ -52,6 +52,7 @@ jobs:
           node --check src/reservations.mjs
           node --check src/spectator.mjs
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/live-spectator-smoke.py').read_text())"
+          python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/returning-spectator-smoke.py').read_text())"
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/production-preflight.py').read_text())"
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/pregame-selector-smoke.py').read_text())"
   browser:
@@ -71,5 +72,7 @@ jobs:
         run: python tests/browser-smoke.py
       - name: Play a full spectator prediction, reveal, and continuation
         run: python tests/live-spectator-smoke.py
+      - name: Preserve a prediction across real browser tab closure and return
+        run: python tests/returning-spectator-smoke.py
       - name: Test game-day production preflight schedule selection offline
         run: python tests/pregame-selector-smoke.py

@@ -42,7 +42,7 @@ FIDE's scheduled first game is **24 November 2026**. The separate `lab.html` is 
 
 The public site now has two linked activities. The homepage remains the immediate three-position 2024 chess challenge, which uses actual historical moves and a plainly retrospective model demonstration. The separate 2026 board now lets visitors make a **local opening guess before Game 1**, and use the identical interaction on the latest sourced position during a confirmed live session. Each locked guess resolves only through the legally checked official broadcast; the user can immediately continue at the latest position. All 14 broadcast sources remain selectable.
 
-The core conversion path is home or direct shared link → 2026 board → tap/drag/select a legal move → locally locked guess → official feed receipt → match/different reveal → next move → voluntary share. A visitor never triggers a paid model request. These predictions are tab-local entertainment, not authenticated pre-move observations. Human match rates must not appear in model results or be promoted as independent prospective accuracy.
+The core conversion path is home or direct shared link → 2026 board → tap/drag/select a legal move → locally locked guess → official feed receipt → match/different reveal → next move → voluntary share. A visitor never triggers a paid model request. These predictions are browser-local entertainment, not authenticated pre-move observations. Human match rates must not appear in model results or be promoted as independent prospective accuracy.
 
 **Release tests:** `npm test`, `npm run verify:2026`, `python tests/browser-smoke.py` and `python tests/live-spectator-smoke.py`. The new Playwright sequence covers pregame locking, source outage, PGN advancement, two scored moves, model-ledger separation and mouse/touch controls. Following deployment, verify actual public URLs and interact with the board on real mobile hardware. Browser fixtures are not substitutes for production-network or external usability studies. No observed engagement, sharing rate or GitHub Trending ranking is claimed.
 
@@ -65,3 +65,7 @@ Each scheduled hourly observer uploads a uniquely named, 90-day source artifact.
 ## Automatic game-day browser readiness
 
 At 13:25 UTC on each scheduled classical game date, the GitHub Actions preflight is intended to test the live Pages route and public PGN for **that day's game**. Verify both its success and the JSON artifact before presenting any round as operationally tested. This is a best-effort scheduled run, not guaranteed real-time monitoring or evidence of player move times. Game 1's first check is scheduled for 24 November 2026, ahead of the 14:00 UTC announced opening.
+
+## Returning participants (v1.11)
+
+The pregame interaction now retains a local opening prediction across normal tab closure using browser site storage and migrates older in-tab predictions. A returning visitor is directed to the saved reveal from sourced PGN, then can continue to the latest position. Test cross-tab changes, storage access failures, loss of site data, external/other-device visits and browser back/forward behavior. No account or telemetry is introduced; do not describe these records as independently authenticated prediction timestamps.
