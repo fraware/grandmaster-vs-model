@@ -46,7 +46,8 @@ jobs:
           node --check scripts/collection.mjs
           node --check src/collection.mjs
   browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.57 does not support GitHub's Ubuntu 26.04 image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
