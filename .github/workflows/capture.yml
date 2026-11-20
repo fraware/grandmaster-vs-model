@@ -8,6 +8,7 @@ on:
     - cron: '2-59/5 0-1 * 11,12 *'
 permissions:
   contents: write
+  actions: write
   id-token: write
   attestations: write
 concurrency:
@@ -56,6 +57,7 @@ jobs:
           git push origin HEAD:main
           git fetch --quiet origin main:refs/remotes/origin/main
           git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          echo 'published=true' >> "$GITHUB_OUTPUT"
           if [ -n "$new_claims" ]; then
             echo 'execute=true' >> "$GITHUB_OUTPUT"
           fi
@@ -111,6 +113,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Publish sourced observations and recorded attempts
+        id: final_publish
         run: |
           if [ -z "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then
             echo 'No new observations or model attempts'
@@ -121,3 +124,11 @@ jobs:
           git add -- data/observations data/attempts data/collection.json
           git commit -m 'Record championship broadcast observations and model attempts'
           git push origin HEAD:main
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+      - name: Dispatch GitHub Pages explicitly for bot-authored data commits
+        # GITHUB_TOKEN push events intentionally do not trigger Pages workflows.
+        # Dispatch even if inference failed after a successful claim publication.
+        if: ${{ always() && (steps.reservation.outputs.published == 'true' || steps.final_publish.outputs.published == 'true') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
