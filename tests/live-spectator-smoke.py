@@ -105,7 +105,7 @@ def run_spectator_test(browser) -> None:
         assert "1 waiting" in page.locator("#spectator-stats").inner_text()
 
         next_pgn = PGN.replace("3. Bb5 a6 *", "3. Bb5 a6 4. Ba4 *")
-        page.evaluate("window.__fixturePgn = pgn", next_pgn)
+        page.evaluate("(pgn) => { window.__fixturePgn = pgn; }", next_pgn)
         page.locator("#refresh-button").click()
         page.get_by_text("2 matched / 2 resolved", exact=False).first.wait_for()
         assert "Exact match." in page.locator("#spectator-message").inner_text()
