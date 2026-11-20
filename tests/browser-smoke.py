@@ -388,7 +388,7 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert '0 / 116 PLIES' in page.locator('#nav-position').inner_text()
     page.locator('#tab-live').click()
     page.wait_for_function("document.getElementById('result-title').textContent.includes('Broadcast move')", timeout=5000)
-    assert 'Broadcast move · 3…a6' in page.locator('#result-title').inner_text()
+    assert 'Broadcast move · 3…a6' in page.locator('#result-title').text_content()
     # Every prospective round uses a confirmed, distinct source URL.
     registry = source[2]['./data/broadcast-2026.json']['rounds']
     for record in registry:

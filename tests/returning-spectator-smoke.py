@@ -122,7 +122,7 @@ def test_close_reopen_and_reveal(browser):
         )
         assert "6 / 6 PLIES" in third.locator("#nav-position").inner_text()
         assert "1 waiting" in third.locator("#spectator-stats").inner_text()
-        assert "Prediction locked." in third.locator("#spectator-message").inner_text()
+        assert "Prediction locked." in third.locator("#spectator-message").text_content()
         next_pgn = PGN.replace("3. Bb5 a6 *", "3. Bb5 a6 4. Ba4 *")
         third.evaluate("(pgn) => { window.__fixturePgn = pgn; }", next_pgn)
         third.locator("#refresh-button").click()
@@ -191,7 +191,7 @@ def test_legacy_migration(browser):
         page.close()
         later = open_fixture_page(ctx, source)
         later.get_by_text("Prediction locked.", exact=False).first.wait_for()
-        assert "d4" in later.locator("#spectator-message").inner_text()
+        assert "d4" in later.locator("#spectator-message").text_content()
         assert local_choices(later) == legacy
     finally:
         ctx.close()

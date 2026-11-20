@@ -30,7 +30,7 @@ def run_spectator_test(browser) -> None:
         page.on("pageerror", lambda error: errors.append(str(error)))
         populate(page, source, pgn=pregame, now_iso="2026-11-20T12:00:00Z")
         page.locator("#tab-live").click()
-        assert "Your next move." in page.locator("#lab-title").inner_text()
+        assert "Your next move." in page.locator("#lab-title").text_content()
         assert "PREGAME" in page.locator("#spectator-phase").inner_text()
         assert page.locator("#guess-area").is_visible()
         assert page.locator("#board button.square").count() == 64
@@ -56,7 +56,7 @@ def run_spectator_test(browser) -> None:
                 assert bounds is not None
                 page.touchscreen.tap(bounds["x"] + bounds["width"] / 2,
                                      bounds["y"] + bounds["height"] / 2)
-        assert "Prediction locked." in page.locator("#spectator-message").inner_text()
+        assert "Prediction locked." in page.locator("#spectator-message").text_content()
         assert "LOCKED" in page.locator("#decision-list").inner_text()
         assert page.locator("#guess-area").is_hidden()
         assert page.locator("#spectator-next").is_hidden()
@@ -66,7 +66,7 @@ def run_spectator_test(browser) -> None:
         page.evaluate("window.__fixtureOnline = false")
         page.locator("#refresh-button").click()
         page.get_by_text("broadcast unavailable", exact=False).first.wait_for()
-        assert "Prediction locked." in page.locator("#spectator-message").inner_text()
+        assert "Prediction locked." in page.locator("#spectator-message").text_content()
 
         # An append-only official PGN later resolves the exact opening guess.
         page.evaluate("""({pgn,now}) => {
@@ -78,7 +78,7 @@ def run_spectator_test(browser) -> None:
         page.get_by_text("Exact match.", exact=False).first.wait_for()
         assert "1 matched / 1 resolved" in page.locator("#spectator-stats").inner_text()
         assert page.locator("#spectator-next").is_visible()
-        assert "You matched the move." in page.locator("#result-title").inner_text()
+        assert "You matched the move." in page.locator("#result-title").text_content()
         assert "physical" in page.locator("#spectator-detail").inner_text()
 
         # Continue from the resolved opening to the latest position.
@@ -107,7 +107,7 @@ def run_spectator_test(browser) -> None:
             page.mouse.move(finish["x"] + finish["width"]/2,
                             finish["y"] + finish["height"]/2, steps=8)
             page.mouse.up()
-        detail = page.locator("#spectator-message").inner_text()
+        detail = page.locator("#spectator-message").text_content()
         assert "Prediction locked." in detail, (
             f"{label}: second move was not locked; spectator={detail}; "
             f"selector={page.locator('#guess-select').input_value()}; "
@@ -119,7 +119,7 @@ def run_spectator_test(browser) -> None:
         page.evaluate("(pgn) => { window.__fixturePgn = pgn; }", next_pgn)
         page.locator("#refresh-button").click()
         page.get_by_text("2 matched / 2 resolved", exact=False).first.wait_for()
-        assert "Exact match." in page.locator("#spectator-message").inner_text()
+        assert "Exact match." in page.locator("#spectator-message").text_content()
 
         # The scientific model count stays untouched by spectator predictions.
         assert page.locator("#model-attempt-total").inner_text() == "0"
@@ -127,7 +127,7 @@ def run_spectator_test(browser) -> None:
         assert page.locator("#spectator-panel").is_hidden()
         page.locator("#tab-live").click()
         page.locator("#nav-start").click()
-        assert "Exact match." in page.locator("#spectator-message").inner_text()
+        assert "Exact match." in page.locator("#spectator-message").text_content()
         assert not errors, errors
         page.close()
 
