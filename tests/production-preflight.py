@@ -77,7 +77,10 @@ def run() -> int:
                 page.wait_for_function(
                     """() => {
                       const source = document.getElementById('source-status')?.textContent || '';
-                      return /checked|unavailable|recorded moves/.test(source);
+                      // An existing cached-at timestamp is not proof that the
+                      // page's own current cross-origin fetch has completed.
+                      return /\\d+ moves observed · checked/.test(source) ||
+                        /broadcast unavailable|direct refresh unavailable/i.test(source);
                     }""",
                     timeout=20_000,
                 )
@@ -149,10 +152,10 @@ def run() -> int:
                         "Lichess broadcast fetch failed from the Pages origin "
                         "(possible CORS, HTTP, or connectivity issue)"
                     )
-                if "unavailable" in status.lower():
+                if "moves observed" not in status or "checked" not in status:
                     raise AssertionError(
-                        "Live page displayed an unavailable broadcast even "
-                        "though its direct browser request succeeded"
+                        "Deployed app did not complete its own cross-origin "
+                        "broadcast refresh; cached source timestamps do not count"
                     )
                 if report["mobileHorizontalOverflow"]:
                     raise AssertionError("Mobile layout has horizontal overflow")
