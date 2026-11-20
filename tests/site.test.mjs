@@ -193,3 +193,17 @@ test('both pages ship the same chess-first typography, board and contrast',async
   assert.doesNotMatch(theme,/@import|@font-face|https?:\/\/fonts\./);
   assert.doesNotMatch(theme,/backdrop-filter|linear-gradient|radial-gradient/);
 });
+
+test('the share graphic and favicon match the tournament identity without remote assets',async()=>{
+  const index=await text('index.html');
+  const icon=await text('favicon.svg');
+  const screenshot=await text('.github/workflows/preview.yml');
+  const generator=await text('scripts/build-social-card.py');
+  assert.match(index,/assets\/share-cover\.png\?v=5/);
+  assert.match(icon,/#d7ed75/);
+  assert.match(generator,/FONT_ROOT.*dejavu/);
+  assert.match(generator,/WHAT WOULD/);
+  assert.match(generator,/YOU PLAY/);
+  assert.match(screenshot,/python scripts\/build-social-card\.py/);
+  assert.match(screenshot,/assets\/preview\.webp assets\/share-cover\.png/);
+});
