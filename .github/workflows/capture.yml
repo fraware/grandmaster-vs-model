@@ -26,7 +26,39 @@ jobs:
           node-version: '22'
       - name: Validate current data before sampling
         run: npm test && npm run verify:2026 && npm run verify && npm run verify:collection
-      - name: Poll the scheduled championship round and record a bounded predeclared sample
+      - name: Prepare immutable reservations without calling providers
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CAPTURE_SAMPLE_EVERY: '5'
+          CAPTURE_MAX_REQUESTS: '900'
+          CAPTURE_PROVIDERS: 'openai'
+        run: npm run capture:reserve
+      - name: Validate reserved source observations and model slots
+        run: npm run verify:collection
+      - name: Publish reservations to GitHub before spending
+        id: reservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          new_claims="$(git ls-files --others --exclude-standard -- data/claims)"
+          if [ -z "$(git status --porcelain -- data/claims data/observations data/collection.json)" ]; then
+            echo 'No new source observations or reservations'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- data/claims data/observations data/collection.json
+          git commit -m 'Reserve championship requests before inference'
+          git push origin HEAD:main
+          git fetch --quiet origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          if [ -n "$new_claims" ]; then
+            echo 'execute=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Execute only remotely committed reservations
+        if: steps.reservation.outputs.execute == 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -34,10 +66,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CAPTURE_SAMPLE_EVERY: '5'
           CAPTURE_MAX_REQUESTS: '900'
-          # Only the provider with a successful authenticated integration check.
-          # Expand this allowlist after separately verifying other providers.
           CAPTURE_PROVIDERS: 'openai'
-        run: npm run capture:once
+        run: npm run capture:execute
       - name: Check collection integrity
         run: |
           npm run verify:collection
@@ -72,6 +102,7 @@ jobs:
         with:
           name: capture-recovery-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            data/claims/
             data/observations/
             data/attempts/
             data/collection.json
