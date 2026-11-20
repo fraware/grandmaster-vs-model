@@ -43,6 +43,7 @@ jobs:
           node --check scripts/provider-smoke.mjs
           node --check scripts/model-runner.mjs
           node --check scripts/forecast-cycle.mjs
+          node --check scripts/stream-observer.mjs
           node --check scripts/collection.mjs
           node --check src/collection.mjs
   browser:

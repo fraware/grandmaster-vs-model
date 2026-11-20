@@ -1,0 +1,21 @@
+name: Probe public championship streaming API
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/stream-probe.yml'
+permissions:
+  contents: read
+jobs:
+  public-stream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline streaming-adapter tests
+        run: node --test tests/stream-observer.test.mjs
+      - name: Inspect live Lichess stream response without model credentials
+        run: npm run stream:probe
