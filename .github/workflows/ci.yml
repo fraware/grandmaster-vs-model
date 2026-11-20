@@ -2,6 +2,7 @@ name: Test and verify
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
