@@ -1,10 +1,15 @@
 name: Production spectator and Lichess browser preflight
 on:
   workflow_dispatch:
+  # One credential-free pregame check 35 minutes before each listed round.
+  # GitHub scheduled workflows are best effort and may start late or be skipped.
+  schedule:
+    - cron: '25 13 24,25,26,28,29,30 11 *'
+    - cron: '25 13 2,3,4,6,7,8,10,11 12 *'
   push:
-    branches: [feat/production-live-preflight]
     paths:
       - tests/production-preflight.py
+      - tests/pregame-selector-smoke.py
       - .github/workflows/production-preflight.yml
 permissions:
   contents: read
@@ -13,20 +18,36 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
+      - name: Exclude future years from the fixed 2026 schedule
+        id: season
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == schedule && "$(date -u +%Y)" != "2026" ]]; then
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'eligible=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.season.outputs.eligible == 'true'
       - uses: actions/setup-python@v5
+        if: steps.season.outputs.eligible == 'true'
         with:
           python-version: '3.12'
       - name: Install pinned Chromium runtime
+        if: steps.season.outputs.eligible == 'true'
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
+      - name: Check round-specific preflight target selection
+        if: steps.season.outputs.eligible == 'true'
+        run: python tests/pregame-selector-smoke.py
       - name: Verify deployed Pages and real Lichess cross-origin access
+        if: steps.season.outputs.eligible == 'true'
         run: python tests/production-preflight.py
       - name: Retain browser evidence on success or failure
-        if: always()
+        if: ${{ always() && steps.season.outputs.eligible == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: public-chess-preflight
           path: artifacts/production-preflight/
-          retention-days: 7
+          retention-days: 60

@@ -61,3 +61,7 @@ Before Game 1, verify the hourly read-only source workflow is enabled, that ever
 ## Recover and reconcile match-day shadow artifacts
 
 Each scheduled hourly observer uploads a uniquely named, 90-day source artifact. Reconcile downloaded artifacts through `npm run reconcile:shadow -- --dir DIRECTORY --out NEW_REPORT.json`, preserving their original names and content. Check the report for contradictory histories, missing sessions and anomalous operator timestamps. The deterministic output is not a signed physical move timeline, and its source records must not be substituted for canonical provider prediction attempts. Real data from Game 1 or later rounds are necessary before any empirical latency statistics can be reported.
+
+## Automatic game-day browser readiness
+
+At 13:25 UTC on each scheduled classical game date, the GitHub Actions preflight is intended to test the live Pages route and public PGN for **that day's game**. Verify both its success and the JSON artifact before presenting any round as operationally tested. This is a best-effort scheduled run, not guaranteed real-time monitoring or evidence of player move times. Game 1's first check is scheduled for 24 November 2026, ahead of the 14:00 UTC announced opening.

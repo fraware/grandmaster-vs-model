@@ -12,7 +12,7 @@ Install with:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import sys
@@ -20,12 +20,53 @@ from typing import Any
 
 from playwright.sync_api import sync_playwright
 
-SITE_URL = (
-    "https://fraware.github.io/grandmaster-vs-model/"
-    "lab.html?mode=live&game=1#experiment"
-)
-BROADCAST_URL = "https://lichess.org/api/broadcast/round/xLgOJ6cb.pgn"
+ROOT = Path(__file__).resolve().parent.parent
+REGISTRY = ROOT / "data" / "broadcast-2026.json"
+SITE_BASE = "https://fraware.github.io/grandmaster-vs-model/"
 ARTIFACT_DIR = Path("artifacts/production-preflight")
+
+
+def select_target(instant: datetime) -> dict[str, Any]:
+    """Select the exact pinned round for a given aware UTC instant.
+
+    The chosen session is based on the published schedule, never an inference
+    that players have physically started their game.
+    """
+    if instant.tzinfo is None or instant.utcoffset() is None:
+        raise ValueError("Round selection needs a timezone-aware instant")
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    rounds = registry.get("rounds")
+    if registry.get("schema") != "championship-broadcast-registry-v1" or (
+        registry.get("event") != "fide-world-championship-2026"
+        or not isinstance(rounds, list) or len(rounds) != 14
+    ):
+        raise ValueError("Invalid pinned championship registry")
+    previous = None
+    for i, round_data in enumerate(rounds, start=1):
+        when = datetime.fromisoformat(round_data["startsAt"].replace("Z", "+00:00"))
+        if round_data.get("game") != i or when.tzinfo is None or (
+            previous is not None and when <= previous
+        ) or not round_data.get("pgnUrl", "").startswith(
+            "https://lichess.org/api/broadcast/round/"
+        ):
+            raise ValueError("Invalid championship round schedule or source")
+        previous = when
+    target = next(
+        (
+            row for row in rounds
+            if instant < datetime.fromisoformat(
+                row["startsAt"].replace("Z", "+00:00")
+            ) + timedelta(hours=11)
+        ),
+        rounds[-1],
+    )
+    return {
+        "game": target["game"],
+        "roundId": target["roundId"],
+        "scheduledStartAt": target["startsAt"],
+        "site": SITE_BASE + f'lab.html?mode=live&game={target["game"]}#experiment',
+        "source": target["pgnUrl"],
+    }
 
 
 def _utc_now() -> str:
@@ -47,8 +88,11 @@ def run() -> int:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
         "schema": "production-browser-preflight-v1",
-        "site": SITE_URL,
-        "source": BROADCAST_URL,
+        "site": None,
+        "source": None,
+        "game": None,
+        "roundId": None,
+        "scheduledStartAt": None,
         "checkedAt": _utc_now(),
         "result": "pending",
         "browser": "Chromium via Playwright 1.57",
@@ -56,6 +100,10 @@ def run() -> int:
         "providerRequests": 0,
     }
     try:
+        target = select_target(datetime.now(timezone.utc))
+        report.update(target)
+        site_url = target["site"]
+        broadcast_url = target["source"]
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 headless=True, args=["--no-sandbox"]
@@ -68,7 +116,7 @@ def run() -> int:
                 )
                 errors: list[str] = []
                 page.on("pageerror", lambda error: errors.append(str(error)[:300]))
-                page.goto(SITE_URL, wait_until="domcontentloaded", timeout=30_000)
+                page.goto(site_url, wait_until="domcontentloaded", timeout=30_000)
                 page.locator("#board button.square").first.wait_for(timeout=20_000)
                 page.wait_for_function(
                     "() => document.querySelectorAll('#board button.square').length === 64",
@@ -89,6 +137,7 @@ def run() -> int:
                     "title": page.title(),
                     "sourceStatus": status,
                     "gameOptions": page.locator("#game-select option").count(),
+                    "selectedGame": page.locator("#game-select").input_value(),
                     "modeLive": page.locator("#tab-live").get_attribute("aria-pressed"),
                     "boardSquares": page.locator("#board button.square").count(),
                     "spectatorPanel": page.locator("#spectator-panel").is_visible(),
@@ -123,7 +172,7 @@ def run() -> int:
                         };
                       }
                     }""",
-                    BROADCAST_URL,
+                    broadcast_url,
                 )
                 report["broadcastFetch"] = browser_fetch
                 page.screenshot(
@@ -143,6 +192,10 @@ def run() -> int:
                     raise AssertionError("Deployed site did not enter live mode")
                 if report["page"]["gameOptions"] != 14:
                     raise AssertionError("Deployed game registry is incomplete")
+                if report["page"]["selectedGame"] != str(target["game"]):
+                    raise AssertionError(
+                        "The deployed page selected a different championship game"
+                    )
                 if not report["page"]["spectatorPanel"]:
                     raise AssertionError("Deployed spectator challenge did not mount")
                 if errors:
