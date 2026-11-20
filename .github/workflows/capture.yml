@@ -49,7 +49,7 @@ jobs:
           set -euo pipefail
           mapfile -d '' files < <(git ls-files --others --exclude-standard -z -- data/attempts)
           if (( ${#files[@]} > 0 )); then
-            printf '%s\\0' "${files[@]}" | xargs -0 sha256sum > "$RUNNER_TEMP/forecast-attempts.sha256"
+            printf '%s\0' "${files[@]}" | xargs -0 sha256sum > "$RUNNER_TEMP/forecast-attempts.sha256"
             echo 'new_attempts=true' >> "$GITHUB_OUTPUT"
             echo "Prepared ${#files[@]} forecast record(s) for signed provenance"
           else
