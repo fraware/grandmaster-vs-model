@@ -10,19 +10,25 @@
  * Download artifacts with GitHub's supported run-download functionality;
  * artifact names and file digests alone are not cryptographic attestations.
  */
-import {readFile,readdir,writeFile,mkdir} from 'node:fs/promises';
-import {resolve,join,dirname} from 'node:path';
+import {readFile,readdir,writeFile,mkdir,realpath,stat} from 'node:fs/promises';
+import {resolve,join,dirname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {reconcileShadowArtifacts} from '../src/shadow-reconcile.mjs';
 
 const own=fileURLToPath(import.meta.url);
 const ARTIFACT=/^shadow-broadcast-[1-9][0-9]{0,19}-[1-9][0-9]{0,5}$/;
 const SIZE_LIMIT=2_000_000;
-async function jsonFile(path,{optional=false}={}){
-  let content;
-  try{content=await readFile(path,'utf8');}
+async function jsonFile(path,{optional=false,scope}={}){
+  let actual;
+  try{actual=await realpath(path);}
   catch(error){if(optional&&error?.code==='ENOENT')return null;throw error;}
-  if(Buffer.byteLength(content)>SIZE_LIMIT)throw new Error('Artifact JSON exceeds size limit');
+  const parent=await realpath(scope);
+  if(!actual.startsWith(parent+sep))
+    throw new Error('Artifact file escapes its declared download directory');
+  const info=await stat(actual);
+  if(!info.isFile()||info.size>SIZE_LIMIT)
+    throw new Error('Artifact JSON exceeds size limit or is not a regular file');
+  const content=await readFile(actual,'utf8');
   return JSON.parse(content);
 }
 export async function reconcileDirectory(inputDir){
@@ -35,9 +41,9 @@ export async function reconcileDirectory(inputDir){
   const artifacts=[];
   for(const entry of entries){
     const parent=join(root,entry.name);
-    const summary=await jsonFile(join(parent,'artifacts/shadow/session.json'));
+    const summary=await jsonFile(join(parent,'artifacts/shadow/session.json'),{scope:parent});
     const observation=await jsonFile(
-      join(parent,`data/observations/game${summary.game}.json`),{optional:true});
+      join(parent,`data/observations/game${summary.game}.json`),{optional:true,scope:parent});
     artifacts.push({artifact:entry.name,summary,observation});
   }
   return reconcileShadowArtifacts(artifacts);
