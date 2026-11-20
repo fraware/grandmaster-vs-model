@@ -301,3 +301,41 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid rgba
   .tap-instruction,.challenge-prompt p{display:none}
   .challenge-choice{margin-top:3px}
 }
+
+
+/*
+ * First-screen desktop challenge. Preserve the editorial typography and board
+ * palette while keeping all 64 squares in view on common laptop viewports.
+ * The single-column touch layout retains its independent spacing rules.
+ */
+@media (min-width:721px) {
+  .header-inner{min-height:64px}
+  .playground{padding-top:18px}
+  .hero-topline{margin-bottom:9px}
+  .intro-row{margin-bottom:16px;align-items:center}
+  .intro-row h1{max-width:760px;font-size:clamp(44px,4.6vw,62px);line-height:1}
+  .intro-row p{font-size:15px;line-height:1.4;margin-top:9px;max-width:740px}
+  .intro-side{display:none}
+  .challenge-topbar{min-height:42px;padding:11px 20px}
+  .challenge-left{padding:15px 24px 16px}
+  .challenge-board-meta{margin-bottom:8px}
+  .board-instruction{margin:0 0 9px}
+  .challenge-board{max-width:440px;border-width:8px}
+  .challenge-piece{font-size:clamp(30px,3.3vw,48px)}
+  .challenge-board-bottom{padding-top:9px}
+  .challenge-right{padding:22px 28px}
+  .challenge-prompt{padding-top:18px;padding-bottom:8px}
+  .challenge-prompt h2{font-size:clamp(36px,3.6vw,49px);line-height:1.04;margin:9px 0}
+  .challenge-prompt p{font-size:17px;line-height:1.4}
+  .challenge-choice{margin-top:7px}
+  .tap-instruction{font-size:14px;line-height:1.45;margin-bottom:12px}
+  .selected-move{min-height:38px}
+  .challenge-assurance{padding-top:11px;font-size:10px}
+}
+@media (min-width:721px) and (max-height:800px) {
+  .playground{padding-top:12px}
+  .intro-row h1{font-size:clamp(40px,4.3vw,54px)}
+  .intro-row p{font-size:14px}
+  .challenge-board{max-width:390px}
+  .challenge-right{padding:18px 22px}
+}

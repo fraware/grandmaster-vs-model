@@ -107,6 +107,13 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         # Updating a choice must not destroy/recreate all sixty-four buttons.
         page.evaluate('window.__firstSquare = document.querySelector("#challenge-board .challenge-square")')
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), label
+        if label == 'desktop':
+            # Critical first-impression constraint. No scrolling to see a full board.
+            board_bounds = page.locator('#challenge-board').bounding_box()
+            assert board_bounds is not None
+            assert board_bounds['y'] + board_bounds['height'] <= viewport['height'] - 16, (
+                f"Chessboard extends below first desktop viewport: {board_bounds}"
+            )
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-first.png'), full_page=True)
         # First prediction. Replayed position must show the chess move, not only highlights.
@@ -240,6 +247,18 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert not errors, errors
         page.close()
 
+    # A compact laptop also displays the entire chessboard before scrolling.
+    laptop = browser.new_page(viewport={'width': 1280, 'height': 800})
+    try:
+        populate(laptop, source)
+        board = laptop.locator('#challenge-board').bounding_box()
+        assert board is not None
+        assert board['y'] + board['height'] <= 784, (
+            f"Board exceeds 1280x800 laptop viewport: {board}"
+        )
+        assert laptop.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    finally:
+        laptop.close()
 
 
 def test_full_session_and_fast_input(browser) -> None:

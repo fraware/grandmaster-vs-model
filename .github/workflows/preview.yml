@@ -1,0 +1,43 @@
+name: Refresh desktop chess challenge preview
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - landing.css
+      - scripts/capture-preview.py
+      - .github/workflows/preview.yml
+permissions:
+  contents: write
+concurrency:
+  group: chess-visual-preview
+  cancel-in-progress: false
+jobs:
+  screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned visual runtime
+        run: |
+          python -m pip install playwright==1.57.0 Pillow==12.0.0
+          python -m playwright install --with-deps chromium
+      - name: Validate first-screen board and regenerate screenshot
+        run: python scripts/capture-preview.py
+      - name: Commit the actual browser preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- assets/preview.webp; then
+            echo 'Preview already matches the rendered site'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- assets/preview.webp
+          git commit -m 'Update verified desktop challenge preview'
+          git push origin HEAD:"${GITHUB_REF_NAME}"
