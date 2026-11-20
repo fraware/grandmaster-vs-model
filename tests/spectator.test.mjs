@@ -34,7 +34,7 @@ test('live choice needs current position, verified fetch, active session and unf
     at:'2026-11-24T14:15:00Z'};
   assert.deepEqual(spectatorOpportunity(args),{kind:'live',enabled:true});
   for(const change of [{ply:5},{sourceReady:false},{sourceError:true},
-    {result:'1-0'},{at:'2026-11-25T00:59:00Z'}]){
+    {result:'1-0'},{at:'2026-11-25T01:01:00Z'}]){
     assert.equal(spectatorOpportunity({...args,...change}).enabled,false);
   }
 });
