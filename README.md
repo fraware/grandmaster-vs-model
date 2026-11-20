@@ -24,6 +24,10 @@ Play a free chess challenge built from the real 2024 World Championship final. M
 
 The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [live chess interface](app.mjs). Reproduce the isolated unit tests with `npm test` and the full spectator browser sequence with `python tests/live-spectator-smoke.py` after installing the pinned Playwright/Chromium environment described in [CI](.github/workflows/ci.yml).
 
+![Actual Chromium rendering of the playable 2026 championship board before Game 1](assets/live-preview.webp)
+
+*Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
+
 ## Complete 2024 championship game records
 
 The historical reader now includes **all 14 games and all 1,270 recorded half-moves**, including SAN, UCI, and the legal board position before and after each move. Each game is source-linked to its Lichess broadcast and cross-checked against the separately published PGN Mentor match record. The full source-by-source verification, move counts, checksums, licensing, and limitations are in [DATA_AUDIT.md](DATA_AUDIT.md).
