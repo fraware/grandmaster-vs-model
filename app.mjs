@@ -522,9 +522,9 @@ $('board').addEventListener('pointerdown',event=>{
   if(!cell||cell.disabled){dragStart=null;return;}
   dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY,
     pointerId:event.pointerId};
-  // Mouse/pen/touch release must reach the board even if the pointer travels
-  // off the source square during a drag. Only a legal destination is accepted.
-  try{$('board').setPointerCapture(event.pointerId);}catch{/* Unsupported capture. */}
+  // A global pointerup observer handles release across squares. Do not set
+  // pointer capture on taps: doing so retargets the native click to the board
+  // and breaks the two-tap selection interaction.
 });
 window.addEventListener('pointerup',event=>{
   const start=dragStart;dragStart=null;
