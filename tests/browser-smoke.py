@@ -107,6 +107,13 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         # Updating a choice must not destroy/recreate all sixty-four buttons.
         page.evaluate('window.__firstSquare = document.querySelector("#challenge-board .challenge-square")')
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), label
+        if label == 'desktop':
+            # Critical first-impression constraint. No scrolling to see a full board.
+            board_bounds = page.locator('#challenge-board').bounding_box()
+            assert board_bounds is not None
+            assert board_bounds['y'] + board_bounds['height'] <= viewport['height'] - 16, (
+                f"Chessboard extends below first desktop viewport: {board_bounds}"
+            )
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-first.png'), full_page=True)
         # First prediction. Replayed position must show the chess move, not only highlights.
