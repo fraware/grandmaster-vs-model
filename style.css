@@ -205,3 +205,9 @@ body[data-mode="live"] .board-player.bottom{margin-top:4px}
 @media(prefers-reduced-motion:reduce){
   .spectator-actions button{transition:none}
 }
+
+/* Local calendar export is deliberately secondary to the playing action. */
+#spectator-calendar{background:transparent;color:var(--accent)}
+#spectator-calendar:hover{background:var(--accent-dark);color:var(--paper)}
+#spectator-calendar-status:empty{display:none}
+#spectator-calendar-status{font-size:11px;color:var(--ink-soft)}

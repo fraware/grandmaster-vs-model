@@ -41,7 +41,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     if kind == 'home':
         module_names += ['src/match-2026.mjs', 'src/home-entry.mjs']
     if kind == 'lab':
-        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs']
+        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs', 'src/calendar.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
