@@ -120,6 +120,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert invitation.bounding_box()['y'] < viewport['height'], 'Live entry must be above the fold'
         assert page.locator('#live-invite-link').count() == 1
         assert page.locator('#live-invite-title').inner_text()
+        assert page.locator('#challenge-live-next-link').is_hidden()
         if label == 'desktop':
             historic_board = page.locator('#challenge-board').bounding_box()
             assert historic_board is not None
@@ -201,6 +202,14 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert 'Different move.' in page.locator('#challenge-answer-result').text_content()
         (page.locator('#challenge-next') if label == 'desktop' else page.locator('#challenge-mobile-reveal')).click()
         assert '2 of 3.' in page.locator('#challenge-result-label').inner_text()
+        # The completed historical game leads into the correctly scheduled 2026 board.
+        event_link = page.locator('#challenge-live-next-link')
+        assert event_link.is_visible()
+        assert event_link.get_attribute('href') == page.locator('#live-hero-link').get_attribute('href')
+        assert event_link.inner_text().strip()
+        assert '2026' in page.locator('#challenge-live-next-status').inner_text()
+        assert 'Gukesh vs Sindarov' in page.locator('.challenge-live-next-copy p').text_content()
+        assert page.locator('#challenge-live-next-time').inner_text()
         assert page.locator('#challenge-prompt').is_hidden()
         assert page.locator('.challenge-result-tile').count() == 3
         assert page.locator('.challenge-result-tile.hit').count() == 2

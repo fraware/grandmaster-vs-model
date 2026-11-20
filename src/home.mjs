@@ -12,6 +12,8 @@ function updateLiveInvite(){
   };
   set('live-invite-status',data.status);
   set('live-invite-time',data.time);
+  set('challenge-live-next-status',data.status);
+  set('challenge-live-next-time',data.time);
   set('live-invite-title',data.title);
   set('live-invite-description',data.description);
   const link=document.getElementById('live-invite-link');
@@ -19,6 +21,13 @@ function updateLiveInvite(){
     link.href=data.href;
     const label=link.querySelector('span:first-child');
     if(label)label.textContent=data.action;
+  }
+  const resultLink=document.getElementById('challenge-live-next-link');
+  if(resultLink){
+    resultLink.href=data.href;
+    const label=resultLink.querySelector('span:first-child');
+    if(label)label.textContent=data.action;
+    resultLink.setAttribute('aria-label',`${data.action}. 2026 Championship Game ${data.game}, scheduled ${data.time}.`);
   }
   const heroLink=document.getElementById('live-hero-link');
   if(heroLink){
