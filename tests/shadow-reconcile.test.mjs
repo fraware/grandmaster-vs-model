@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {START_FEN,play} from '../src/chess.mjs';
 import {extendObservation} from '../src/collection.mjs';
 import {roundInfo} from '../src/match-2026.mjs';
@@ -134,6 +136,15 @@ test('directory ingester reads actual expected GitHub artifact layout without to
     assert.equal(output.inputArtifactCount,2);
     assert.equal(output.reportedDistinctMoves,1);
     assert.equal(output.sessions.filter(x=>x.reportedMoveCount===0).length,1);
+    const destination=join(root,'report.json');
+    const binary=fileURLToPath(new URL('../scripts/reconcile-shadow.mjs',import.meta.url));
+    execFileSync(process.execPath,[binary,'--dir',root,'--out',destination],{
+      timeout:15000,stdio:'pipe'
+    });
+    const generated=JSON.parse(await readFile(destination,'utf8'));
+    assert.deepEqual(generated,output);
+    assert.throws(()=>execFileSync(process.execPath,
+      [binary,'--dir',root,'--out',destination],{timeout:15000,stdio:'pipe'}));
     await assert.rejects(()=>reconcileDirectory(join(root,'missing')),/ENOENT/);
   }finally{await rm(root,{recursive:true,force:true});}
 });
