@@ -14,7 +14,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare the checksums file used by championship capture
+        run: sha256sum data/models.json > "$RUNNER_TEMP/model-roster.sha256"
       - name: Attest the pinned model roster without invoking a provider
         uses: actions/attest@v4
         with:
-          subject-path: data/models.json
+          subject-checksums: ${{ runner.temp }}/model-roster.sha256
