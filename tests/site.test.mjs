@@ -117,3 +117,12 @@ test('production capture must publish reservations before spending on API calls'
   assert.match(pkg.scripts['capture:reserve'],/--reserve$/);
   assert.match(pkg.scripts['capture:execute'],/--execute$/);
 });
+
+test('bot-authored forecast commits explicitly dispatch the public Pages deployment',async()=>{
+  const capture=await text('.github/workflows/capture.yml');
+  const pages=await text('.github/workflows/pages.yml');
+  assert.match(capture,/actions: write/);
+  assert.match(capture,/gh workflow run pages\.yml --ref main/);
+  assert.match(capture,/always\(\) && \(steps\.reservation\.outputs\.published/);
+  assert.match(pages,/workflow_dispatch:/);
+});
