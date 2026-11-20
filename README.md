@@ -12,6 +12,12 @@ Play a free chess challenge built from the real 2024 World Championship final. M
 
 *Actual Chromium capture of the new editorial-style historical challenge. Its retrospective GPT comparison is distinct from the upcoming 2026 model experiment.*
 
+## Complete 2024 championship game records
+
+The historical reader now includes **all 14 games and all 1,270 recorded half-moves**, including SAN, UCI, and the legal board position before and after each move. Each game is source-linked to its Lichess broadcast and cross-checked against the separately published PGN Mentor match record. The full source-by-source verification, move counts, checksums, licensing, and limitations are in [DATA_AUDIT.md](DATA_AUDIT.md).
+
+Open [the full match replay](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=archive&game=1#experiment) and select any game. Historical games are distinct from the unplayed 2026 championship.
+
 ## Play without a tutorial
 
 1. Tap or drag a legal piece to its destination. The selected piece moves on the board; the choice locks automatically and the recorded grandmaster move is revealed. No separate Reveal confirmation is needed. The alternative move list remains accessible for keyboard and assistive-technology users.
@@ -35,7 +41,7 @@ Run `npm run verify:retrospective` to check the published model evidence. GitHub
 
 ## What already works
 
-- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). The homepage challenge provides three curated positions, an exact-match score, and a shareable result. The separate [research lab](https://fraware.github.io/grandmaster-vs-model/lab.html) supports inspecting all recorded positions, replaying moves, comparing public model attempts and sharing position links.
+- **Real historical challenge.** The 2024 World Championship final (Ding–Gukesh, Game 14, 12 December) is supplied as 116 *legally verified* half-moves, reconstructed from its [Lichess broadcast](https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu). The homepage challenge provides three curated positions, an exact-match score, and a shareable result. The separate [research lab](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=archive&game=1#experiment) lets visitors select any of the 14 championship games, replay every recorded move, examine the validated positions and share game-specific links. The separate 2026 experiment displays only genuinely observed moves and recorded model attempts.
 - **Real 2026 broadcast input.** Game 1 has a [public Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb). The site requests its PGN through Lichess's public API, reconstructs legal chess positions, and checks for updates at most every three minutes while the live tab is active. A legally checked same-origin snapshot is also generated during Pages deployments; visitors still have a recent cached position if their direct request fails. Neither retrieval time establishes the physical playing time. Later match games need their own confirmed broadcast IDs.
 - **Inspectable prediction ledger.** The repository contains a validated source-reception ledger, digest-protected provider-attempt records, duplicate rejection, chess-legality checks, a shared prompt, and optional REST adapters for OpenAI, Anthropic, and Gemini (tested offline only).
 - **Local-first site.** No external fonts, trackers, cookies, ads, mandatory account, or third-party JavaScript. The browser requests public game PGN directly from Lichess; no credential leaves the browser.

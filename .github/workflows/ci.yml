@@ -20,7 +20,7 @@ jobs:
         run: |
           npm run build:data
           git diff --exit-code -- data/match.json
-          npm run verify:collection && npm run verify:retrospective
+          npm run verify:collection && npm run verify:retrospective && npm run verify:history
           npm run build:collection
           git diff --exit-code -- data/collection.json
       - name: JavaScript syntax
@@ -33,6 +33,8 @@ jobs:
           node --check scripts/retrospective-run.mjs
           node --check src/chess.mjs
           node --check src/pgn.mjs
+          node --check src/history.mjs
+          node --check scripts/build-history-2024.mjs
           node --check src/broadcast.mjs
           node --check scripts/cache-broadcast.mjs
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/browser-smoke.py').read_text())"

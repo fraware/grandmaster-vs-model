@@ -1,0 +1,24 @@
+[Event "FIDE World Championship Match 2024"]
+[Site "Singapore SGP"]
+[Date "2024.11.26"]
+[Round "2"]
+[White "Ding, Liren"]
+[Black "Gukesh D"]
+[Result "1/2-1/2"]
+[WhiteElo "2728"]
+[WhiteTitle "GM"]
+[WhiteFideId "8603677"]
+[BlackElo "2783"]
+[BlackTitle "GM"]
+[BlackFideId "46616543"]
+[TimeControl "40/7200:1800+30"]
+[Variant "Standard"]
+[ECO "C50"]
+[Opening "Italian Game: Giuoco Pianissimo, Italian Four Knights Variation"]
+[BroadcastName "FIDE World Championship 2024"]
+[BroadcastURL "https://lichess.org/broadcast/fide-world-championship-2024/game-2/YL0LEwAL"]
+[GameURL "https://lichess.org/broadcast/fide-world-championship-2024/game-2/YL0LEwAL/AljZUNDm"]
+
+1. e4 { [%eval 0.18] [%clk 1:59:50] } 1... e5 { [%eval 0.21] [%clk 1:59:53] } 2. Nf3 { [%eval 0.13] [%clk 1:59:45] } 2... Nc6 { [%eval 0.17] [%clk 1:59:47] } 3. Bc4 { [%eval 0.08] [%clk 1:59:42] } 3... Bc5 { [%eval 0.2] [%clk 1:59:41] } 4. d3 { [%eval 0.16] [%clk 1:59:06] } 4... Nf6 { [%eval 0.1] [%clk 1:59:34] } 5. Nc3 { [%eval 0.08] [%clk 1:59:00] } 5... a6 { [%eval 0.11] [%clk 1:58:44] } 6. a4 { [%eval 0.05] [%clk 1:58:43] } 6... d6 { [%eval 0.14] [%clk 1:55:29] } 7. O-O { [%eval 0.0] [%clk 1:58:37] } 7... h6 { [%eval 0.11] [%clk 1:49:54] } 8. Be3 { [%eval 0.18] [%clk 1:58:05] } 8... Be6 { [%eval 0.12] [%clk 1:49:29] } 9. a5 { [%eval 0.07] [%clk 1:57:41] } 9... Bxc4 { [%eval 0.13] [%clk 1:41:43] } 10. dxc4 { [%eval 0.14] [%clk 1:57:03] } 10... O-O { [%eval 0.27] [%clk 1:37:22] } 11. Bxc5 { [%eval 0.19] [%clk 1:56:16] } 11... dxc5 { [%eval 0.25] [%clk 1:37:13] } 12. b3 { [%eval 0.29] [%clk 1:56:09] } 12... Qxd1 { [%eval 0.29] [%clk 1:25:37] } 13. Rfxd1 { [%eval 0.33] [%clk 1:55:44] } 13... Rad8 { [%eval 0.27] [%clk 1:25:30] } 14. Rdc1 { [%eval 0.26] [%clk 1:46:12] } 14... Nd4 { [%eval 0.35] [%clk 0:57:58] } 15. Ne1 { [%eval 0.33] [%clk 1:32:54] } 15... Rd6 { [%eval 0.25] [%clk 0:57:23] } 16. Kf1 { [%eval 0.19] [%clk 1:29:54] } 16... g6 { [%eval 0.25] [%clk 0:55:20] } 17. Rd1 { [%eval 0.22] [%clk 1:06:36] } 17... Rfd8 { [%eval 0.36] [%clk 0:51:15] } 18. f3 { [%eval 0.42] [%clk 1:03:54] } 18... Kg7 { [%eval 0.28] [%clk 0:46:25] } 19. Kf2 { [%eval 0.37] [%clk 0:47:46] } 19... h5 { [%eval 0.47] [%clk 0:40:44] } 20. Ne2 { [%eval 0.07] [%clk 0:43:11] } 20... Nc6 { [%eval 0.14] [%clk 0:37:57] } 21. Nc3 { [%eval 0.0] [%clk 0:38:41] } 21... Nd4 { [%eval 0.45] [%clk 0:35:41] } 22. Ne2 { [%eval 0.06] [%clk 0:38:37] } 22... Nc6 { [%eval 0.13] [%clk 0:35:36] } 23. Nc3 { [%eval 0.0] [%clk 0:38:35] } 23... Nd4 { [%eval 0.4] [%clk 0:35:28] } 1/2-1/2
+
+

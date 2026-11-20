@@ -4,6 +4,7 @@
 import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs';
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_BROADCAST,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
+import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
 const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
@@ -11,8 +12,8 @@ const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
 const requestedMode=query.get('mode');
 let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
-let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
-let selectedGame=Number(query.get('game'))||1;if(selectedGame<1||selectedGame>14)selectedGame=1;
+let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,historicalGames=null,liveGame=null,liveCheckedAt=null,liveSnapshotAt=null,liveError=null;
+let selectedGame=Number(query.get('game'))||(mode==='archive'?14:1);if(selectedGame<1||selectedGame>14)selectedGame=mode==='archive'?14:1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -21,7 +22,7 @@ const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':'
 const isArchive=()=>mode==='archive';
 
 function game(){
-  if(isArchive())return archiveReplay;
+  if(isArchive())return historicalGames?.[selectedGame-1]||(selectedGame===14?archiveReplay:null);
   return selectedGame===1?liveGame:null;
 }
 function currentIndex(){const data=game();return Math.max(0,Math.min(selectedPly??data?.moves?.length??0,data?.moves?.length??0));}
@@ -32,15 +33,16 @@ function selectIndex(n){
 function syncUrl(){
   const url=new URL(location.href);
   url.searchParams.set('mode',mode);
-  if(!isArchive())url.searchParams.set('game',String(selectedGame));else url.searchParams.delete('game');
+  url.searchParams.set('game',String(selectedGame));
   if(selectedPly!==null)url.searchParams.set('ply',String(selectedPly));else url.searchParams.delete('ply');
   history.replaceState(null,'',url);
 }
 function switchMode(next,manual=true){
   mode=next;
   if(manual)userChangedMode=true;
+  selectedGame=isArchive()?14:1;
   selectedPly=isArchive()?(archive?.highlightPly||1)-1:(liveGame?.moves.length??0);
-  originSquare=null;selectedArrow=null;
+  originSquare=null;selectedArrow=null;guesses.clear();revealedPly.clear();
   syncUrl();render();
 }
 function arrowSvg(uci){
@@ -77,7 +79,7 @@ function drawBoard(fen,arrow,interactive){
   board.insertAdjacentHTML('beforeend',arrowSvg(arrow));
 }
 function boardClick(square,legal){
-  if(!isArchive()||currentIndex()>=archiveReplay.moves.length||revealedPly.has(currentIndex()))return;
+  if(!isArchive()||!game()||currentIndex()>=game().moves.length||revealedPly.has(currentIndex()))return;
   const fromChoices=originSquare?legal.filter(m=>m.uci.startsWith(originSquare)&&m.uci.slice(2,4)===square):[];
   if(fromChoices.length){
     const selected=fromChoices.find(m=>m.uci.length===4)||fromChoices.find(m=>m.uci.endsWith('q'))||fromChoices[0];
@@ -87,8 +89,8 @@ function boardClick(square,legal){
   selectedArrow=null;render();
 }
 function renderPlayerNames(data){
-  const white=isArchive()?archive?.white:(data?.tags?.White||'White player');
-  const black=isArchive()?archive?.black:(data?.tags?.Black||'Black player');
+  const white=data?.tags?.White||(isArchive()?archive?.white:'White player');
+  const black=data?.tags?.Black||(isArchive()?archive?.black:'Black player');
   setText('top-player',flipped?white:black);setText('top-side',flipped?'WHITE':'BLACK');
   setText('bottom-player',flipped?black:white);setText('bottom-side',flipped?'BLACK':'WHITE');
 }
@@ -102,8 +104,9 @@ function setSourceStatus(){
   const a=$('source-url'),refresh=$('refresh-button');
   if(isArchive()){
     $('source-light').classList.add('connected');
-    setText('source-status',archive?`Verified 2024 championship archive · ${archiveReplay.moves.length/2} moves · 12 Dec 2024`:'Loading historic game…');
-    a.href=archive?.source||'https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D';a.textContent='View original game ↗';refresh.hidden=true;
+    const selected=game();
+    setText('source-status',selected?`Verified 2024 championship · Game ${selectedGame}/14 · ${selected.moves.length} half-moves · ${selected.date||'2024'}`:'Loading historical game…');
+    a.href=selected?.source||archive?.source||'https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D';a.textContent='View original game ↗';refresh.hidden=true;
   }else{
     a.href=GAME_ONE_BROADCAST;a.textContent='Original broadcast ↗';refresh.hidden=selectedGame!==1;
     $('source-light').classList.toggle('connected',Boolean(liveCheckedAt&&!liveError)||Boolean(liveGame?.moves.length));
@@ -116,26 +119,28 @@ function setSourceStatus(){
   }
 }
 function renderArchive(){
-  if(!archive||!archiveReplay){
+  const data=game();
+  if(!data){
     setText('result-title','Preparing the archive');setText('result-description','Loading the recorded game.');$('decision-list').replaceChildren();$('guess-area').hidden=true;return;
   }
-  const i=currentIndex(),next=archiveReplay.moves[i]||null,prior=i?archiveReplay.moves[i-1]:null;
+  const i=currentIndex(),next=data.moves[i]||null,prior=i?data.moves[i-1]:null;
   const revealed=revealedPly.has(i),guess=guesses.get(i)||null;
   $('guess-area').hidden=!next||revealed;
   setText('position-kicker','SINGAPORE · WORLD CHAMPIONSHIP 2024');
-  setText('position-name',i===108?'The move that changed history':`Game 14 · ${humanMoveLabel(i)}`);
+  setText('position-name',selectedGame===14&&i===108?'The move that changed history':`Game ${selectedGame} · ${humanMoveLabel(i)}`);
   setText('result-heading','PLAY THE HUMAN');setText('status-indicator','HISTORICAL · VERIFIED');
-  setText('result-title',next?`What did ${i%2===0?'Ding':'Gukesh'} play?`:'The game is complete.');
-  setText('result-description',next?'Select a legal move, or choose a piece and destination on the board. Commit your choice to compare it with the historical move.':'Ding resigned after move 58…Ke5. Gukesh won the 2024 World Championship.');
+  const player=i%2===0?data.tags.White:data.tags.Black;
+  setText('result-title',next?`What did ${player.split(' ')[0]} play?`:'The game is complete.');
+  setText('result-description',next?'Choose a legal move and reveal the actual recorded choice. The same source is available move by move for all 14 games.':`Game ${selectedGame} finished ${data.tags.Result}. Navigate to replay its recorded positions.`);
   const rows=[];
   if(guess){
-    const san=withSans(archiveReplay.positions[i]).find(x=>x.uci===guess)?.san||guess;
+    const san=withSans(data.positions[i]).find(x=>x.uci===guess)?.san||guess;
     rows.push(decisionRow({label:'Your predicted move',subtitle:'Your local, retrospective guess',move:guess,san,status:revealed?(guess===next?.uci?'MATCH':'OTHER'):'LOCKED',id:'you',matched:revealed&&guess===next?.uci}));
   }
-  if(next&&revealed)rows.push(decisionRow({label:i%2===0?archive.white:archive.black,subtitle:'Grandmaster’s recorded choice · 2024',move:next.uci,san:next.san,status:'PLAYED',actual:true}));
+  if(next&&revealed)rows.push(decisionRow({label:player,subtitle:'Grandmaster’s recorded choice · 2024',move:next.uci,san:next.san,status:'PLAYED',actual:true}));
   if(!rows.length&&prior)rows.push(decisionRow({label:'Last recorded move',subtitle:'Move already played · navigate to continue',move:prior.uci,san:prior.san,status:'HISTORY',actual:true}));
   $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>A real grandmaster decision awaits.</strong><p>Select the move you expect. The actual choice stays concealed until you reveal it.</p></div>';
-  const moveOptions=next?withSans(archiveReplay.positions[i]).sort((a,b)=>a.san.localeCompare(b.san)):[];
+  const moveOptions=next?withSans(data.positions[i]).sort((a,b)=>a.san.localeCompare(b.san)):[];
   const select=$('guess-select');
   select.innerHTML='<option value="">Select a legal move…</option>'+moveOptions.map(x=>`<option value="${x.uci}">${escapeHtml(x.san)} · ${x.uci}</option>`).join('');
   if(selectedArrow&&moveOptions.some(x=>x.uci===selectedArrow))select.value=selectedArrow;
@@ -143,16 +148,16 @@ function renderArchive(){
   $('guess-button').disabled=!select.value||Boolean(guess);
   $('reveal-button').disabled=!next;
   $('reveal-button').textContent=guess?'Reveal the move →':'Skip prediction · reveal move →';
-  const stats=Array.from(guesses).filter(([ply])=>revealedPly.has(ply)),matched=stats.filter(([ply,uci])=>archiveReplay.moves[ply]?.uci===uci).length;
+  const stats=Array.from(guesses).filter(([ply])=>revealedPly.has(ply)),matched=stats.filter(([ply,uci])=>data.moves[ply]?.uci===uci).length;
   $('score-line').hidden=!stats.length;setText('score-line',`${matched} exact matches in ${stats.length} revealed predictions · local session, not a model benchmark`);
   if(revealed){
     const matchedThis=guess===next?.uci;
-    resultSummary(next?.san=== 'Rf2'&&i===108?'The deciding mistake: 55.Rf2':matchedThis?'An exact prediction.':'The grandmaster chose '+next?.san,
-      i===108?'Ding’s rook exchange lost the drawn ending. The historical broadcast records 55.Rf2; independent analysis is linked in the source.':guess?(matchedThis?'Your guess matches the recorded move.':'An alternative legal move is not necessarily an inferior chess move.'):'This historical observation is recorded, not a live forecast.');
+    resultSummary(selectedGame===14&&next?.san=== 'Rf2'&&i===108?'The deciding mistake: 55.Rf2':matchedThis?'An exact prediction.':'The grandmaster chose '+next?.san,
+      selectedGame===14&&i===108?'Ding’s rook exchange lost the drawn ending. The historical broadcast records 55.Rf2; independent analysis is linked in the source.':guess?(matchedThis?'Your guess matches the recorded move.':'An alternative legal move is not necessarily an inferior chess move.'):'This historical observation is recorded, not a live forecast.');
   }else resultSummary('The actual move is concealed.','Predict first, reveal second. In this archive the outcome is historical and already public.');
-  setText('trace-text','Historical moves: Lichess Game 14 (12 December 2024). No model inference or prospective claims.');
-  setText('bottom-source','HISTORICAL GAME · LICHESS · 2024');
-  drawBoard(archiveReplay.positions[i],revealed?next?.uci:selectedArrow,Boolean(next&&!revealed));
+  setText('trace-text',`Historical moves: Lichess Game ${selectedGame} (${data.date}). Full match cross-checked against PGN Mentor. This is not a prospective model forecast.`);
+  setText('bottom-source',`2024 MATCH · GAME ${selectedGame}/14 · VERIFIED SOURCE PGN`);
+  drawBoard(data.positions[i],revealed?next?.uci:selectedArrow,Boolean(next&&!revealed));
 }
 function renderModelRoster(){
   const models=modelRoster?.models||[];
@@ -206,7 +211,7 @@ function render(){
   const historical=isArchive(),data=game(),i=currentIndex();
   $('tab-live').classList.toggle('active',!historical);$('tab-archive').classList.toggle('active',historical);
   $('tab-live').setAttribute('aria-pressed',String(!historical));$('tab-archive').setAttribute('aria-pressed',String(historical));
-  $('game-select').disabled=historical;$('game-select').value=String(selectedGame);
+  $('game-select').disabled=historical&&!historicalGames;$('game-select').value=String(selectedGame);
   setSourceStatus();
   const fen=data?.positions[i]||START_FEN,state=parseFen(fen);
   renderPlayerNames(data);
@@ -219,13 +224,14 @@ function render(){
 }
 
 function recordGuess(){
-  if(!archiveReplay||!isArchive())return;
+  const data=game();
+  if(!data||!isArchive())return;
   const i=currentIndex(),uci=$('guess-select').value;
-  if(i>=archiveReplay.moves.length||revealedPly.has(i)||guesses.has(i))return;
-  if(!withSans(archiveReplay.positions[i]).some(m=>m.uci===uci))return;
+  if(i>=data.moves.length||revealedPly.has(i)||guesses.has(i))return;
+  if(!withSans(data.positions[i]).some(m=>m.uci===uci))return;
   guesses.set(i,uci);selectedArrow=uci;render();
 }
-function revealMove(){if(!isArchive()||!archiveReplay?.moves[currentIndex()])return;revealedPly.add(currentIndex());selectedArrow=null;originSquare=null;render();}
+function revealMove(){if(!isArchive()||!game()?.moves[currentIndex()])return;revealedPly.add(currentIndex());selectedArrow=null;originSquare=null;render();}
 
 /** Fetch fresh PGN directly from Lichess; this is not a model inference endpoint. */
 async function refreshBroadcast(){
@@ -272,7 +278,7 @@ async function refreshPublishedIndex(){
   finally{indexRequestRunning=false;}
 }
 for(let g=1;g<=14;g++){const o=document.createElement('option');o.value=String(g);o.textContent=String(g).padStart(2,'0');$('game-select').append(o);}
-$('game-select').addEventListener('change',e=>{selectedGame=Number(e.target.value);selectedPly=selectedGame===1?(liveGame?.moves.length||0):0;syncUrl();render();});
+$('game-select').addEventListener('change',e=>{selectedGame=Number(e.target.value);selectedPly=isArchive()?0:selectedGame===1?(liveGame?.moves.length||0):0;guesses.clear();revealedPly.clear();originSquare=null;selectedArrow=null;syncUrl();render();});
 $('tab-live').addEventListener('click',()=>switchMode('live'));
 $('tab-archive').addEventListener('click',()=>switchMode('archive'));
 $('flip-button').addEventListener('click',()=>{flipped=!flipped;render();});
@@ -296,8 +302,9 @@ window.addEventListener('keydown',e=>{
 });
 async function initialize(){
   try{
-    const [historical,ledger,cached,roster,collection]=await Promise.all([
+    const [historical,history,ledger,cached,roster,collection]=await Promise.all([
       fetch('./data/archive-2024.json').then(r=>{if(!r.ok)throw Error(`archive HTTP ${r.status}`);return r.json();}),
+      fetch('./data/championship-2024.json').then(r=>{if(!r.ok)throw Error(`historical match HTTP ${r.status}`);return r.json();}),
       fetch('./data/match.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`ledger HTTP ${r.status}`);return r.json();}),
       fetch('./data/live-game1.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(`snapshot HTTP ${r.status}`);return r.json();}).catch(error=>{console.warn('Optional broadcast cache unavailable:',error);return null;}),
       fetch('./data/models.json').then(r=>{if(!r.ok)throw Error(`roster HTTP ${r.status}`);return r.json();}),
@@ -306,6 +313,8 @@ async function initialize(){
     if(historical.schema!=='historical-game-v1'||ledger.schema!=='match-v1'||roster.schema!=='model-roster-v1'||collection.schema!=='collection-index-v1')throw new Error('Unexpected data schema');
     const replay=replaySanMoves(historical.moves.trim().split(/\s+/));
     if(replay.moves.length!==116||replay.moves[108].san!=='Rf2')throw new Error('Unexpected archive moves');
+    historicalGames=restoreHistoricalMatch(history);
+    if(historicalGames[13].moves.some((move,index)=>move.uci!==replay.moves[index]?.uci))throw Error('Game 14 differs from original challenge');
     archive=historical;archiveReplay=replay;matchData=ledger;modelRoster=roster;collectionIndex=collection;
     if ($('challenge-board')) mountChallenge(historical,replay);
     if(cached){
@@ -313,7 +322,7 @@ async function initialize(){
       catch(error){console.warn('Broadcast cache rejected:',error);}
     }
     const deepPly=Number(query.get('ply'));
-    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?historical.highlightPly-1:(liveGame?.moves.length||0);
+    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?(selectedGame===14?historical.highlightPly-1:0):(liveGame?.moves.length||0);
     if(!userChangedMode&&liveGame?.moves.length&&mode==='archive')switchMode('live',false);
   }catch(error){
     console.error('Cannot load recorded data:',error);

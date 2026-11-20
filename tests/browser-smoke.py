@@ -39,7 +39,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
     if kind == 'lab':
-        module_names += ['src/broadcast.mjs']
+        module_names += ['src/broadcast.mjs', 'src/history.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
@@ -49,6 +49,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
         source.append(module)
     responses = {
         './data/archive-2024.json': json.loads((ROOT / 'data/archive-2024.json').read_text()),
+        './data/championship-2024.json': json.loads((ROOT / 'data/championship-2024.json').read_text()),
         './data/match.json': json.loads((ROOT / 'data/match.json').read_text()),
         './data/live-game1.json': json.loads((ROOT / 'data/live-game1.json').read_text()),
         './data/models.json': json.loads((ROOT / 'data/models.json').read_text()),
@@ -317,6 +318,24 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert 'LOCKED' in page.locator('#decision-list').inner_text()
     page.locator('#reveal-button').click()
     assert 'MATCH' in page.locator('#decision-list').inner_text()
+    # Historical selector must expose every game with correct identity and move history.
+    assert page.locator('#game-select option').count() == 14
+    expected_games = source[2]['./data/championship-2024.json']['games']
+    for record in expected_games:
+        page.locator('#game-select').select_option(str(record['game']))
+        assert f'0 / {record["plyCount"]} PLIES' in page.locator('#nav-position').inner_text()
+        assert page.locator('#source-url').get_attribute('href') == record['source']
+        assert page.locator('#board button.square').count() == 64
+    page.locator('#game-select').select_option('1')
+    assert 'Game 1/14' in page.locator('#source-status').inner_text()
+    assert '0 / 84 PLIES' in page.locator('#nav-position').inner_text()
+    assert page.locator('#source-url').get_attribute('href').endswith('/G2R2lPcA/TAq3z9DR')
+    page.locator('#nav-end').click()
+    assert '84 / 84 PLIES' in page.locator('#nav-position').inner_text()
+    page.locator('#game-select').select_option('13')
+    assert '0 / 136 PLIES' in page.locator('#nav-position').inner_text()
+    page.locator('#game-select').select_option('14')
+    assert '0 / 116 PLIES' in page.locator('#nav-position').inner_text()
     page.locator('#tab-live').click()
     assert 'Broadcast move · 3…a6' in page.locator('#result-title').inner_text()
     if screenshot_dir:
