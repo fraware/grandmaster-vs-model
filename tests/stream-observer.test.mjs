@@ -148,5 +148,5 @@ test('shadow refresh diagnostics preserve source reception context without model
   assert.equal(refreshes[0].newAttempts,0);
   assert.equal(refreshes[0].reason,'connected');
   assert.equal(refreshes[1].reason,'stream-update');
-  assert.match(refreshes[0].completedAt,/^\\d{4}-\\d\\d-/);
+  assert.equal(Number.isFinite(Date.parse(refreshes[0].completedAt)),true);
 });
