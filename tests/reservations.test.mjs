@@ -170,3 +170,38 @@ test('production reservation phases reject a missing GitHub run identity',async(
   await assert.rejects(()=>cycle(options),/requires a GitHub Actions run/);
   assert.equal(calls,0);
 }));
+
+test('forged provider attribution is rejected even with a recomputed checksum',async()=>workspace(async root=>{
+  await cycle(params(root,{mode:'reserve'}));
+  await cycle(params(root,{mode:'execute',providerRequest:async()=>({
+    output:'e7e5',responseId:'offline',model:model.version,elapsedMs:1,usage:null
+  })}));
+  const file=join(root,'data/attempts',claimFile);
+  const doc=JSON.parse(await readFile(file,'utf8'));
+  doc.model.provider='anthropic';
+  const {digest:unused,...raw}=doc;
+  doc.digest=digest(raw);
+  await writeFile(file,JSON.stringify(doc));
+  await assert.rejects(()=>collect({root}),/Unregistered model attempt|reservation differ/);
+}));
+
+test('attempt timestamps preceding reservation are rejected',async()=>workspace(async root=>{
+  await cycle(params(root,{mode:'reserve'}));
+  await cycle(params(root,{mode:'execute',providerRequest:async()=>({
+    output:'e7e5',responseId:'offline',model:model.version,elapsedMs:1,usage:null
+  })}));
+  const file=join(root,'data/attempts',claimFile);
+  const doc=JSON.parse(await readFile(file,'utf8'));
+  doc.startedAt='2026-11-24T14:04:00.000Z';
+  doc.completedAt='2026-11-24T14:04:01.000Z';
+  const {digest:unused,...raw}=doc;
+  doc.digest=digest(raw);
+  await writeFile(file,JSON.stringify(doc));
+  await assert.rejects(()=>collect({root}),/reservation differ/);
+}));
+
+test('unexpected JSON names under claims are rejected by evidence validation',async()=>workspace(async root=>{
+  await cycle(params(root,{mode:'reserve'}));
+  await writeFile(join(root,'data/claims','FAKE.json'),'{}');
+  await assert.rejects(()=>collect({root}),/Invalid reservation filename/);
+}));
