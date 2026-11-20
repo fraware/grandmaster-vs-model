@@ -166,3 +166,7 @@ Every official game day has a scheduled 13:25 UTC production preflight. The test
 Spectator predictions now use origin-scoped browser `localStorage`, with best-effort migration of older tab-only entries from `sessionStorage`. Existing saved positions are protected from silent replacement; damaged records are preserved and storage failures produce an explicit fallback warning. Local storage is mutable and can be erased by the visitor, private browsing cleanup or browser retention policy. Two tabs are not guaranteed to serialize simultaneous writes. Consequently, no such record is independent evidence of pre-move priority, shared participant identity or event latency.
 
 A normal revisit to the game's live URL preferentially shows a stored choice for a move that the validated public PGN has since revealed. Explicit `ply` URLs and manually selected positions take precedence. Spectator comparison remains recreational and excluded from all provider model-evaluation evidence.
+
+## Private schedule reminder (v1.12)
+
+The pregame spectator experience includes an optional user-initiated `text/calendar` download. The iCalendar record specifies a 30-minute window beginning at the official published UTC round start, its stable event identifier, a direct game-board URL, and a requested 15-minute advance alert. It exports no move, FEN, personal identifier or local prediction timestamp. Import and alarm behavior depend on the recipient calendar client. The schedule is organizer-provided metadata, not independent evidence of physical play or prediction priority.

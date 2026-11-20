@@ -69,7 +69,8 @@ def local_choices(page):
 
 def test_close_reopen_and_reveal(browser):
     """Locked opening survives tab closure, then reveals and continues."""
-    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900},
+                              accept_downloads=True)
     source = page_sources("lab")
     try:
         first = open_fixture_page(ctx, source)
@@ -82,6 +83,19 @@ def test_close_reopen_and_reveal(browser):
         first.get_by_text("Prediction locked.", exact=False).first.wait_for()
         saved = local_choices(first)
         assert len(saved) == 1 and saved[0]["uci"] == "e2e4"
+        assert first.locator("#spectator-calendar").is_visible()
+        with first.expect_download() as event:
+            first.locator("#spectator-calendar").click()
+        download = event.value
+        assert download.suggested_filename == "grandmaster-vs-model-game-1.ics"
+        calendar = Path(download.path()).read_bytes().decode("utf-8")
+        assert "DTSTART:20261124T140000Z\r\n" in calendar
+        assert "TRIGGER:-PT15M\r\n" in calendar
+        assert "game=1#experiment\r\n" in calendar.replace("\r\n ", "")
+        assert "e2e4" not in calendar
+        assert "Calendar file prepared." in first.locator(
+            "#spectator-calendar-status"
+        ).inner_text()
         first.close()
 
         # Fresh tab and fresh JS session, unchanged browser profile and origin.
@@ -93,6 +107,7 @@ def test_close_reopen_and_reveal(browser):
         assert "1 matched / 1 resolved" in second.locator("#spectator-stats").inner_text()
         assert second.locator("#spectator-next").is_visible()
         assert second.locator("#guess-area").is_hidden()
+        assert second.locator("#spectator-calendar").is_hidden()
         assert local_choices(second) == saved
         second.locator("#spectator-next").click()
         assert "6 / 6 PLIES" in second.locator("#nav-position").inner_text()

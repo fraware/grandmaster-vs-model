@@ -6,6 +6,7 @@ import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/p
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
 import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
+import {championshipCalendarIcs,championshipCalendarFilename} from './src/calendar.mjs';
 import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
@@ -336,6 +337,7 @@ function renderLive(){
   const pending=all.filter(c=>liveOutcome(c).kind==='pending').length;
   setText('spectator-stats',`${matched} matched / ${complete.length} resolved · ${pending} waiting · saved on this device`);
   $('spectator-share').hidden=!choice;
+  $('spectator-calendar').hidden=!(choice&&Date.now()<Date.parse(roundInfo(selectedGame).startsAt));
   $('spectator-next').hidden=!(choice&&outcome&&['match','different'].includes(outcome.kind)&&
     i<(data?.moves.length||0));
   if(choice){
@@ -528,6 +530,29 @@ $('guess-select').addEventListener('change',e=>{selectedArrow=e.target.value||nu
 $('guess-button').addEventListener('click',recordGuess);
 $('reveal-button').addEventListener('click',revealMove);
 $('spectator-next').addEventListener('click',()=>selectIndex(game()?.moves.length||0));
+$('spectator-calendar').addEventListener('click',()=>{
+  const choice=liveChoice();
+  if(!choice||Date.now()>=Date.parse(roundInfo(choice.game).startsAt))return;
+  let objectUrl=null;
+  try{
+    const content=championshipCalendarIcs(choice.game);
+    objectUrl=URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));
+    const link=document.createElement('a');
+    link.href=objectUrl;
+    link.download=championshipCalendarFilename(choice.game);
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(objectUrl),2000);
+    setText('spectator-calendar-status',
+      'Calendar file prepared. Import it into your calendar; reminders depend on its settings.');
+  }catch(error){
+    if(objectUrl)URL.revokeObjectURL(objectUrl);
+    console.warn('Local calendar reminder unavailable:',error);
+    setText('spectator-calendar-status',
+      'Calendar file unavailable. Use the scheduled start time shown above.');
+  }
+});
 $('spectator-share').addEventListener('click',async()=>{
   const choice=liveChoice();if(!choice)return;
   $('spectator-share-text').hidden=true;
