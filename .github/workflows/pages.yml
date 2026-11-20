@@ -22,7 +22,7 @@ jobs:
       - name: Stage static site
         run: |
           mkdir -p _site
-          cp index.html lab.html app.mjs style.css landing.css favicon.svg _site/
+          cp index.html lab.html app.mjs style.css landing.css theme.css favicon.svg _site/
           cp -R src data assets _site/
           node scripts/cache-broadcast.mjs --out _site/data/live-game1.json
           touch _site/.nojekyll

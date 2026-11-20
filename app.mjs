@@ -156,6 +156,18 @@ function lockLiveChoice(uci){
     spectatorSession.lock({game:selectedGame,ply:chance.ply,fen:chance.fen,uci});
     originSquare=null;selectedArrow=null;
     render();
+    // On phones the live answer panel sits below the board. Reveal the result
+    // of a completed tap/drag without making the visitor hunt for it.
+    if(window.matchMedia('(max-width:760px)').matches){
+      window.requestAnimationFrame(()=>{
+        const target=$('spectator-panel');
+        if(!target.hidden)target.scrollIntoView({
+          block:'start',
+          behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?
+            'instant':'smooth'
+        });
+      });
+    }
   }catch(error){
     console.warn('Local prediction could not be locked:',error);
     setText('spectator-message','The prediction was not saved. Try the move list.');

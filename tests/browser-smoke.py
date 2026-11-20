@@ -35,6 +35,8 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = (ROOT / html_file).read_text(encoding='utf-8')
     css = (ROOT / css_file).read_text(encoding='utf-8')
     html = html.replace(f'<link rel="stylesheet" href="{css_file}" />', f'<style>{css}</style>')
+    theme = (ROOT / 'theme.css').read_text(encoding='utf-8')
+    html = html.replace('<link rel="stylesheet" href="theme.css" />', f'<style>{theme}</style>')
     html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
@@ -102,6 +104,16 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         populate(page, source)
         assert page.locator('#board').count() == 0, 'Main page must not duplicate the board'
         assert page.locator('#challenge-board button.challenge-square').count() == 64
+        visual = page.evaluate("""() => ({
+          background: getComputedStyle(document.body).backgroundColor,
+          headingFont: getComputedStyle(document.querySelector('#hero-title')).fontFamily,
+          light: getComputedStyle(document.querySelector('.challenge-square.light')).backgroundColor,
+          dark: getComputedStyle(document.querySelector('.challenge-square.dark')).backgroundColor
+        })""")
+        assert visual['background'] == 'rgb(16, 27, 29)', visual
+        assert 'Bahnschrift' in visual['headingFont'], visual
+        assert visual['light'] == 'rgb(219, 230, 214)', visual
+        assert visual['dark'] == 'rgb(101, 140, 123)', visual
         invitation = page.locator('#live-hero-link')
         assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')
@@ -376,7 +388,7 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert '0 / 116 PLIES' in page.locator('#nav-position').inner_text()
     page.locator('#tab-live').click()
     page.wait_for_function("document.getElementById('result-title').textContent.includes('Broadcast move')", timeout=5000)
-    assert 'Broadcast move · 3…a6' in page.locator('#result-title').inner_text()
+    assert 'Broadcast move · 3…a6' in page.locator('#result-title').text_content()
     # Every prospective round uses a confirmed, distinct source URL.
     registry = source[2]['./data/broadcast-2026.json']['rounds']
     for record in registry:

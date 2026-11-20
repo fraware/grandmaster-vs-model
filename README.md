@@ -278,3 +278,11 @@ No user-specific move, FEN, prediction timestamp or personal identifier enters t
 ## Pages deployment recovery (v1.12)
 
 The Pages workflow now separates its static-site **build/upload** and **deployment** into dependent jobs. GitHub previously accepted a `github-pages` upload and immediately failed to find its metadata in the same job. Retrying that entire job created duplicate artifacts under one workflow run. Separating the jobs gives the artifact service time to index the upload and permits a failed *deploy job* to be retried without creating another upload. GitHub hosting failures remain possible, so the final production browser check and Pages run status remain the source of truth for release readiness.
+
+## Tournament workspace redesign (v1.13)
+
+The original cream-and-burgundy editorial styling has been replaced by a board-led tournament workspace. The shared [`theme.css`](theme.css) governs the homepage and championship board: graphite backgrounds, signal-yellow actions, cool green chess squares, monospaced game metadata and condensed display typography. The homepage question is reduced to a single direct chess action; the playable board stays in the first desktop viewport.
+
+Typography uses three **local system font** stacks: Bahnschrift / DIN Alternate / DejaVu Sans Condensed for sporting headlines, Trebuchet MS / Lucida Sans / DejaVu Sans for control and body copy, and Cascadia Mono / Consolas / DejaVu Sans Mono for move counters, labels and evidence metadata. These are fallback stacks; exact glyphs depend on installed fonts. No remote font hosts or external typography trackers are introduced. The sharing graphic is generated locally from standard system fonts and an abstract empty chessboard.
+
+The design follows the board-first control density of familiar chess analysis and live-event interfaces. Source limitations, legality checks, browser-local prediction persistence and game-day safeguards remain unchanged. Chromium visual containment tests cover desktop, phone and 320 px widths.

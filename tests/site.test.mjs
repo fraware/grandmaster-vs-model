@@ -38,21 +38,25 @@ test('production Pages workflow includes every client-side module and image asse
   assert.match(yaml,/verify:retrospective/);
 });
 
-test('editorial visual identity is consistent across game, lab, favicon and share image', async () => {
-  const game = await text('landing.css');
-  const lab = await text('style.css');
+test('tournament visual identity is consistent across both boards, favicon and share card', async () => {
+  const home = await text('index.html');
+  const lab = await text('lab.html');
+  const theme = await text('theme.css');
   const icon = await text('favicon.svg');
   const exportScript = await text('src/challenge-ui.mjs');
   const previewBuilder = await text('scripts/build-social-card.py');
-  assert.match(game, /--paper:#f6f1e8/);
-  assert.match(game, /--accent:#6b2f2a/);
-  assert.match(game, /--board-dark:#8a664a/);
-  assert.match(lab, /--board-dark:#8a664a/);
-  assert.match(icon, /#6b2f2a/);
-  assert.match(exportScript, /#F6F1E8/);
-  assert.match(previewBuilder, /#F6F1E8/);
-  for (const source of [game, exportScript, previewBuilder]) {
-    assert.doesNotMatch(source, /#def47c|#121e19/i);
+  assert.match(home, /href="theme\.css"/);
+  assert.match(lab, /href="theme\.css"/);
+  assert.match(theme, /--paper:\s*#101b1d/);
+  assert.match(theme, /--accent:\s*#d7ed75/);
+  assert.match(theme, /--board-dark:\s*#658c7b/);
+  assert.match(icon, /#d7ed75/);
+  assert.match(exportScript, /#101B1D/);
+  assert.match(exportScript, /#D7ED75/);
+  assert.match(previewBuilder, /#101b1d/);
+  assert.match(previewBuilder, /#d7ed75/);
+  for (const source of [theme, exportScript, previewBuilder]) {
+    assert.doesNotMatch(source, /https?:\/\/fonts\.|@import/);
   }
 });
 
@@ -175,4 +179,45 @@ test('Pages upload completes in a separate job before deployment and supports re
   assert.ok(yaml.indexOf('actions/upload-pages-artifact@v3')<deploy);
   assert.ok(yaml.indexOf('actions/deploy-pages@v4')>deploy);
   assert.match(yaml,/cp -R src data assets _site\//);
+});
+
+test('both pages ship the same chess-first typography, board and contrast',async()=>{
+  const home=await text('index.html');
+  const live=await text('lab.html');
+  const theme=await text('theme.css');
+  const workflow=await text('.github/workflows/pages.yml');
+  assert.match(home,/href="theme\.css"/);
+  assert.match(live,/href="theme\.css"/);
+  assert.match(workflow,/style\.css landing\.css theme\.css favicon\.svg/);
+  assert.match(theme,/--font-display:/);
+  assert.match(theme,/--font-score:/);
+  assert.match(theme,/--board-dark:\s*#658c7b/);
+  assert.match(theme,/--board-light:\s*#dbe6d6/);
+  assert.match(theme,/--accent:\s*#d7ed75/);
+  assert.doesNotMatch(theme,/@import|@font-face|https?:\/\/fonts\./);
+  assert.doesNotMatch(theme,/backdrop-filter|linear-gradient|radial-gradient/);
+});
+
+test('the share graphic and favicon match the tournament identity without remote assets',async()=>{
+  const index=await text('index.html');
+  const icon=await text('favicon.svg');
+  const screenshot=await text('.github/workflows/preview.yml');
+  const generator=await text('scripts/build-social-card.py');
+  assert.match(index,/assets\/share-cover\.png\?v=5/);
+  assert.match(icon,/#d7ed75/);
+  assert.match(generator,/FONT_ROOT.*dejavu/);
+  assert.match(generator,/WHAT WOULD/);
+  assert.match(generator,/YOU PLAY/);
+  assert.match(screenshot,/python scripts\/build-social-card\.py/);
+  assert.match(screenshot,/assets\/preview\.webp assets\/share-cover\.png/);
+});
+
+test('on mobile a locked live move reveals the result in the viewport',async()=>{
+  const live=await text('app.mjs');
+  const html=await text('lab.html');
+  const theme=await text('theme.css');
+  assert.match(live,/target\.scrollIntoView/);
+  assert.match(live,/prefers-reduced-motion:reduce/);
+  assert.match(html,/id="spectator-message" aria-live="polite"/);
+  assert.match(theme,/#spectator-panel \{ scroll-margin-top:/);
 });
