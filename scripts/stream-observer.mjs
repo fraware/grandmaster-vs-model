@@ -126,13 +126,17 @@ export async function observeReadOnly({
   game,root=fileURLToPath(new URL('../',import.meta.url)),
   snapshotCycle=cycle,...options
 }={}){
-  return observeBroadcast({game,...options,onSnapshot:async()=> {
+  return observeBroadcast({game,...options,onSnapshot:async({reason,observedAt})=> {
     try{
       // Model provider keys must never be forwarded from process.env here.
-      return await snapshotCycle({
+      const result=await snapshotCycle({
         root,gameNumber:game,activeOnly:true,
         keys:{},captureProviders:['openai'],
       });
+      options.onStatus?.({kind:'source-refresh',game,reason,notifiedAt:observedAt,
+        completedAt:new Date().toISOString(),status:result.status,
+        newObservations:result.newObservations??0,newAttempts:0});
+      return result;
     }catch{throw new Error('Broadcast snapshot validation failed');}
   }});
 }
@@ -157,7 +161,9 @@ if(process.argv[1]&&resolve(process.argv[1])===currentFile){
   const mode=process.argv[2];
   if(!['--probe','--observe'].includes(mode)||process.argv.length!==3)
     throw new Error('Usage: node scripts/stream-observer.mjs --probe|--observe');
-  const game=Number(process.env.STREAM_GAME||1);
+  const scheduled=activeRound(new Date().toISOString());
+  const game=process.env.STREAM_GAME?Number(process.env.STREAM_GAME):
+    (mode==='--observe'?scheduled?.game??1:1);
   const duration=Number(process.env.STREAM_DURATION_MS||90_000);
   const log=record=>console.log(JSON.stringify(record));
   (async()=>{
@@ -166,7 +172,6 @@ if(process.argv[1]&&resolve(process.argv[1])===currentFile){
       log({...result,kind:'public-stream-probe'});
       if(!result.ok)process.exitCode=1;
     }else{
-      const scheduled=activeRound(new Date().toISOString());
       if(scheduled?.game!==game){
         log({status:'outside-scheduled-session',game});
         return;

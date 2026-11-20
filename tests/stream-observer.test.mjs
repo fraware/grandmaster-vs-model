@@ -131,3 +131,22 @@ test('observer rejects invalid execution budgets without opening any connection'
   }),/duration/);
   assert.equal(connections,0);
 });
+
+test('shadow refresh diagnostics preserve source reception context without model usage',async()=>{
+  const clock=controlled(),records=[];
+  const result=await observeReadOnly({
+    game:1,maxConnections:1,maxDurationMs:30000,minRefreshMs:0,
+    now:clock.now,wait:clock.wait,
+    streamFetcher:async()=>response(new Uint8Array([2])),
+    snapshotCycle:async()=>({status:'no-provider-credentials',newObservations:2,newAttempts:0}),
+    onStatus:record=>records.push(record)
+  });
+  const refreshes=records.filter(r=>r.kind==='source-refresh');
+  assert.equal(result.notifications,2);
+  assert.equal(refreshes.length,2);
+  assert.equal(refreshes[0].newObservations,2);
+  assert.equal(refreshes[0].newAttempts,0);
+  assert.equal(refreshes[0].reason,'connected');
+  assert.equal(refreshes[1].reason,'stream-update');
+  assert.match(refreshes[0].completedAt,/^\\d{4}-\\d\\d-/);
+});
