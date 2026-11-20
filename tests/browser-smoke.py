@@ -247,6 +247,18 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert not errors, errors
         page.close()
 
+    # A compact laptop also displays the entire chessboard before scrolling.
+    laptop = browser.new_page(viewport={'width': 1280, 'height': 800})
+    try:
+        populate(laptop, source)
+        board = laptop.locator('#challenge-board').bounding_box()
+        assert board is not None
+        assert board['y'] + board['height'] <= 784, (
+            f"Board exceeds 1280x800 laptop viewport: {board}"
+        )
+        assert laptop.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    finally:
+        laptop.close()
 
 
 def test_full_session_and_fast_input(browser) -> None:
