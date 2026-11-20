@@ -163,6 +163,9 @@ body[data-mode="live"] .board-column{padding:15px 22px}
 body[data-mode="live"] .board-heading{margin-bottom:8px}
 body[data-mode="live"] .board-heading h2{font-size:20px;margin-top:5px}
 body[data-mode="live"] .board-wrap{max-width:400px}
+.live-board-instruction{display:none}
+body[data-mode="live"] .live-board-instruction{display:block;margin:0 0 8px;
+  font-size:11px;line-height:1.35;color:var(--accent);font-weight:650}
 body[data-mode="live"] .board-player{height:23px}
 body[data-mode="live"] .board-player.top{margin-bottom:4px}
 body[data-mode="live"] .board-player.bottom{margin-top:4px}
