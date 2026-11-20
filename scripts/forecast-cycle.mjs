@@ -136,7 +136,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
   await mkdir(claimDir,{recursive:true});
   // Validate the full stored history before allocating an expense slot.
   await collect({root:dir});
-  const filePattern=/^g\\d{2}-p\\d{3}-[a-z0-9-]+\\.json$/;
+  const filePattern=/^g\d{2}-p\d{3}-[a-z0-9-]+\.json$/;
   const recorded=(await readdir(outdir)).filter(name=>filePattern.test(name));
   const reserved=(await readdir(claimDir)).filter(name=>filePattern.test(name));
   const occupied=new Set([...recorded,...reserved]);
@@ -163,7 +163,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
         promptSha256:hash(prompt),reservedAt,captureRun};
       const claim={...raw,digest:hash(raw)};
       validateReservation(claim);
-      await writeFile(join(claimDir,filename(model)),JSON.stringify(claim,null,2)+'\\n',{flag:'wx'});
+      await writeFile(join(claimDir,filename(model)),JSON.stringify(claim,null,2)+'\n',{flag:'wx'});
     }
     await collect({root:dir,write:true});
     return {status:'reserved-awaiting-publication',game:round.game,ply,
