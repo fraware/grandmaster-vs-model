@@ -153,3 +153,15 @@ test('homepage has a prominent, scheduled 2026 action on mobile and desktop',asy
   assert.match(controller,/homepageInvite/);
   assert.match(styles,/\.live-invite-action/);
 });
+
+test('pregame reminder is an offline private calendar, not a model call',async()=>{
+  const lab=await text('lab.html');
+  const app=await text('app.mjs');
+  const calendar=await text('src/calendar.mjs');
+  assert.match(lab,/id="spectator-calendar"/);
+  assert.match(lab,/id="spectator-calendar-status"/);
+  assert.match(app,/championshipCalendarIcs/);
+  assert.match(calendar,/BEGIN:VCALENDAR/);
+  assert.match(calendar,/roundInfo\(game\)/);
+  assert.doesNotMatch(calendar,/fetch\(|analytics|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY/);
+});

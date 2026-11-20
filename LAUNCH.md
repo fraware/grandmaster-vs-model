@@ -69,3 +69,7 @@ At 13:25 UTC on each scheduled classical game date, the GitHub Actions preflight
 ## Returning participants (v1.11)
 
 The pregame interaction now retains a local opening prediction across normal tab closure using browser site storage and migrates older in-tab predictions. A returning visitor is directed to the saved reveal from sourced PGN, then can continue to the latest position. Test cross-tab changes, storage access failures, loss of site data, external/other-device visits and browser back/forward behavior. No account or telemetry is introduced; do not describe these records as independently authenticated prediction timestamps.
+
+## Private championship reminder (v1.12)
+
+Once a pregame spectator prediction is saved, the interface allows a local `.ics` download for that round's official scheduled start. The user must import this file into their calendar; no reminder is promised without client support. The filename, dates, timezone, source URL and privacy boundaries are tested across all 14 rounds. Browser tests check the actual download and confirm the action is hidden following the published start. Calendar events never include private predicted moves.

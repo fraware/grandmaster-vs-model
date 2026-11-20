@@ -51,6 +51,7 @@ jobs:
           node --check scripts/reconcile-shadow.mjs
           node --check src/reservations.mjs
           node --check src/spectator.mjs
+          node --check src/calendar.mjs
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/live-spectator-smoke.py').read_text())"
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/returning-spectator-smoke.py').read_text())"
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/production-preflight.py').read_text())"
