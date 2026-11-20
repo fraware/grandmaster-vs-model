@@ -520,11 +520,16 @@ $('board').addEventListener('keydown',event=>{
 $('board').addEventListener('pointerdown',event=>{
   const cell=event.target.closest('button.square');
   if(!cell||cell.disabled){dragStart=null;return;}
-  dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY};
+  dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY,
+    pointerId:event.pointerId};
+  // Mouse/pen/touch release must reach the board even if the pointer travels
+  // off the source square during a drag. Only a legal destination is accepted.
+  try{$('board').setPointerCapture(event.pointerId);}catch{/* Unsupported capture. */}
 });
-$('board').addEventListener('pointerup',event=>{
+window.addEventListener('pointerup',event=>{
   const start=dragStart;dragStart=null;
-  if(!start||Math.hypot(event.clientX-start.x,event.clientY-start.y)<9)return;
+  if(!start||start.pointerId!==event.pointerId||
+    Math.hypot(event.clientX-start.x,event.clientY-start.y)<9)return;
   const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('#board button.square');
   if(!target||target.disabled)return;
   const fen=game()?.positions?.[currentIndex()]||START_FEN;
@@ -539,6 +544,7 @@ $('board').addEventListener('pointerup',event=>{
   }else lockLiveChoice(chosen.uci);
   window.setTimeout(()=>{suppressBoardClick=false;},0);
 });
+window.addEventListener('pointercancel',()=>{dragStart=null;});
 $('refresh-button').addEventListener('click',refreshBroadcast);
 $('share-button').addEventListener('click',async()=>{
   syncUrl();try{await navigator.clipboard.writeText(location.href);setText('share-button','Link copied ✓');}
