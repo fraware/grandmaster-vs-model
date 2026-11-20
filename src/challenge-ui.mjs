@@ -24,51 +24,56 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
   canvas.height = 630;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unavailable');
-  const paper = '#F6F1E8', ink = '#191715', oxblood = '#6B2F2A', muted = '#6F675D', rule = '#D5CAB9';
+  // Keep the share result visually continuous with the public chess board.
+  // No external fonts or rendered chess position are involved.
+  const paper = '#101B1D', ink = '#F0F5EC', signal = '#D7ED75',
+    muted = '#AEC4BB', rule = '#35514E';
+  const display = '"Bahnschrift","DIN Alternate","DejaVu Sans Condensed","Arial Narrow",sans-serif';
+  const mono = '"Cascadia Mono","Consolas","DejaVu Sans Mono",monospace';
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = oxblood;
-  ctx.fillRect(0, 0, 10, 630);
-  ctx.font = 'bold 24px Georgia, serif';
+  ctx.fillStyle = signal;
+  ctx.fillRect(0, 0, 1200, 9);
+  ctx.font = `800 25px ${display}`;
   ctx.fillStyle = ink;
-  ctx.fillText('GRANDMASTER  /  MODEL', 70, 83);
+  ctx.fillText('GRANDMASTER  /  MODEL', 65, 77);
   ctx.fillStyle = rule;
-  ctx.fillRect(70, 106, 1060, 2);
-  ctx.font = '24px Georgia, serif';
+  ctx.fillRect(65, 110, 1070, 2);
+  ctx.font = `18px ${mono}`;
   ctx.fillStyle = muted;
-  ctx.fillText('Three moves from a World Championship final.', 73, 162);
-  ctx.fillStyle = oxblood;
-  ctx.font = '178px Georgia, serif';
-  ctx.fillText(`${score.correct}/3`, 62, 355);
+  ctx.fillText('WORLD CHAMPIONSHIP  /  2024 CHALLENGE', 67, 158);
+  ctx.fillStyle = signal;
+  ctx.font = `800 178px ${display}`;
+  ctx.fillText(`${score.correct}/3`, 58, 349);
   if (matches) {
     matches.forEach((hit, i) => {
-      const x = 73 + i * 76;
-      ctx.fillStyle = hit ? '#315844' : '#8F483A';
-      ctx.fillRect(x, 388, 56, 56);
-      ctx.fillStyle = '#FBF8F2';
-      ctx.font = 'bold 30px Georgia, serif';
-      ctx.fillText(hit ? '✓' : '×', x + 14, 427);
+      const x = 68 + i * 76;
+      ctx.fillStyle = hit ? '#476E55' : '#654444';
+      ctx.fillRect(x, 393, 55, 55);
+      ctx.fillStyle = hit ? '#E6F6B6' : '#FFE0D5';
+      ctx.font = `800 29px ${display}`;
+      ctx.fillText(hit ? '✓' : '×', x + 14, 431);
     });
   }
   ctx.fillStyle = rule;
-  ctx.fillRect(70, 491, 1060, 2);
+  ctx.fillRect(65, 491, 1070, 2);
   ctx.fillStyle = ink;
-  ctx.font = '36px Georgia, serif';
+  ctx.font = `800 35px ${display}`;
   const comparison = rivalScore === null
-    ? 'Can you predict the next move?'
-    : `My score: ${score.correct}/3. GPT: ${rivalScore}/3.`;
-  ctx.fillText(comparison, 73, 548);
+    ? 'WHAT WOULD YOU PLAY?'
+    : `MY SCORE  ${score.correct}/3   /   GPT  ${rivalScore}/3`;
+  ctx.fillText(comparison, 68, 543);
   ctx.fillStyle = muted;
-  ctx.font = '19px Arial, sans-serif';
-  ctx.fillText('fraware.github.io/grandmaster-vs-model', 73, 591);
+  ctx.font = `17px ${mono}`;
+  ctx.fillText('fraware.github.io/grandmaster-vs-model', 67, 587);
   if (rivalScore !== null) {
-    ctx.font = '14px Arial, sans-serif';
-    ctx.fillText('Retrospective game, tested in 2026', 720, 591);
+    ctx.font = `13px ${mono}`;
+    ctx.fillText('2026 RETROSPECTIVE ONLY', 865, 588);
   }
-  // Symbolic knight artwork: the card does not depict a historical position.
-  ctx.fillStyle = oxblood;
-  ctx.font = '270px Georgia, serif';
-  ctx.fillText('♞', 855, 380);
+  // This is a decorative chess symbol, never an illustrated game position.
+  ctx.fillStyle = signal;
+  ctx.font = '270px "DejaVu Sans",Georgia,serif';
+  ctx.fillText('♞', 861, 379);
   return canvas;
 }
 
