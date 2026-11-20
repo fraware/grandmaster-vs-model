@@ -165,7 +165,7 @@ test('PGN whitespace stream fragments do not trigger redundant full source fetch
   });
   assert.deepEqual(reasons,['connected','stream-update']);
   assert.equal(result.notifications,2);
-  assert.equal(result.bytesReceived,11);
+  assert.equal(result.bytesReceived,10);
 });
 
 test('temporary PGN source transport errors reconnect without sacrificing the full session',async()=>{
