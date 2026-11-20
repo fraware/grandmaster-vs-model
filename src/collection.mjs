@@ -101,13 +101,19 @@ export function buildIndex({observations,attempts,models,reservations=[]}){
   const keys=new Set();
   for(const a of attempts){
     validateAttempt(a);
-    if(!registered.has(a.model.id)||registered.get(a.model.id).version!==a.model.version)throw new Error('Unregistered model attempt');
+    const registeredModel=registered.get(a.model.id);
+    if(!registeredModel||registeredModel.version!==a.model.version||
+       registeredModel.provider!==a.model.provider)
+      throw new Error('Unregistered model attempt');
     const key=attemptKey(a);
     if(keys.has(key))throw new Error('Duplicate attempt '+key);
     const reservation=reservationMap.get(key);
     if(reservation){
       if(a.reservationDigest!==reservation.digest||a.promptSha256!==reservation.promptSha256||
          a.fen!==reservation.fen||a.source!==reservation.source||
+         a.model.provider!==reservation.model.provider||
+         a.model.version!==reservation.model.version||
+         Date.parse(a.startedAt)<Date.parse(reservation.reservedAt)||
          canonical(a.captureRun??null)!==canonical(reservation.captureRun))
         throw new Error('Attempt and durable reservation differ');
     }else if(a.reservationDigest){
