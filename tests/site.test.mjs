@@ -102,3 +102,18 @@ test('attested forecast manifest uses NUL-separated filenames and limits signing
   assert.match(yaml,/steps\.evidence\.outputs\.changed == 'true'/);
   assert.match(yaml,/retention-days: 30/);
 });
+
+test('production capture must publish reservations before spending on API calls',async()=>{
+  const yaml=await text('.github/workflows/capture.yml');
+  const pre=yaml.indexOf('name: Prepare immutable reservations');
+  const push=yaml.indexOf('name: Publish reservations to GitHub before spending');
+  const paid=yaml.indexOf('name: Execute only remotely committed reservations');
+  assert.ok(pre>=0&&pre<push&&push<paid);
+  assert.match(yaml,/git push origin HEAD:main/);
+  assert.match(yaml,/git merge-base --is-ancestor HEAD refs\/remotes\/origin\/main/);
+  assert.match(yaml,/if: steps\.reservation\.outputs\.execute == 'true'/);
+  const pkg=JSON.parse(await text('package.json'));
+  assert.ok(!Object.hasOwn(pkg.scripts,'capture:once'));
+  assert.match(pkg.scripts['capture:reserve'],/--reserve$/);
+  assert.match(pkg.scripts['capture:execute'],/--execute$/);
+});
