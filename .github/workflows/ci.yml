@@ -50,6 +50,7 @@ jobs:
           node --check src/reservations.mjs
           node --check src/spectator.mjs
           python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/live-spectator-smoke.py').read_text())"
+          python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/production-preflight.py').read_text())"
   browser:
     # Playwright 1.57 does not support GitHub's Ubuntu 26.04 image.
     runs-on: ubuntu-24.04
