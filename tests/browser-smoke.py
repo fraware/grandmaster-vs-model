@@ -108,6 +108,12 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert invitation.bounding_box()['y'] < viewport['height'], 'Live entry must be above the fold'
         assert page.locator('#live-invite-link').count() == 1
         assert page.locator('#live-invite-title').inner_text()
+        if label == 'desktop':
+            historic_board = page.locator('#challenge-board').bounding_box()
+            assert historic_board is not None
+            assert historic_board['y'] + historic_board['height'] <= viewport['height'] - 16, (
+                'Historic chessboard moved below the first desktop viewport'
+            )
         assert page.locator('#challenge-board button[tabindex="0"]').count() == 1
         first_cell = page.locator('#challenge-board button.challenge-square').first
         first_cell.focus()
