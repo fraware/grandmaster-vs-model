@@ -92,22 +92,15 @@ def run_spectator_test(browser) -> None:
             page.locator("#guess-button").click()
         else:
             # A genuine pointer drag on the board selects one legal move.
-            page.evaluate("""() => {
-              window.__dragTrace = [];
-              for (const kind of ['pointerdown','pointerup','click']) {
-                window.addEventListener(kind, e => {
-                  const at = document.elementFromPoint(e.clientX,e.clientY);
-                  window.__dragTrace.push({
-                    kind, target:e.target?.dataset?.square??null,
-                    at:at?.closest?.('#board button.square')?.dataset?.square??null,
-                    x:e.clientX,y:e.clientY,pointerId:e.pointerId??null
-                  });
-                }, true);
-              }
-            }""")
+            # The action panel is below the board on mobile. After clicking
+            # "Continue", the board may be above the viewport; Playwright mouse
+            # coordinates do not scroll the target into view automatically.
+            page.locator("#board").scroll_into_view_if_needed()
             start = page.locator('#board button.square[data-square="b5"]').bounding_box()
             finish = page.locator('#board button.square[data-square="a4"]').bounding_box()
             assert start is not None and finish is not None
+            assert 0 <= start["y"] < viewport["height"], start
+            assert 0 <= finish["y"] < viewport["height"], finish
             page.mouse.move(start["x"] + start["width"]/2,
                             start["y"] + start["height"]/2)
             page.mouse.down()
@@ -118,8 +111,7 @@ def run_spectator_test(browser) -> None:
         assert "Prediction locked." in detail, (
             f"{label}: second move was not locked; spectator={detail}; "
             f"selector={page.locator('#guess-select').input_value()}; "
-            f"phase={page.locator('#spectator-phase').inner_text()}; "
-            f"trace={page.evaluate('window.__dragTrace || []')}"
+            f"phase={page.locator('#spectator-phase').inner_text()}"
         )
         assert "1 waiting" in page.locator("#spectator-stats").inner_text()
 
