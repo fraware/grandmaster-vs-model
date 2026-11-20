@@ -28,6 +28,7 @@ const spectatorSession=createSpectatorSession({
 });
 let keyboardSquare=0,dragStart=null,suppressBoardClick=false;
 let returningRevealPending=mode==='live'&&!query.has('ply');
+let respectInitialDeepLink=query.has('ply');
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const setText=(id,text)=>{$(id).textContent=String(text)};
 const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
@@ -56,7 +57,7 @@ function restoredSpectatorPly(gameNumber,gameData){
 }
 function liveOutcome(choice){return spectatorOutcome(choice,liveGames.get(choice.game));}
 function focusNewSourceMove(gameNumber,previousCount,latestCount){
-  if(mode!=='live'||selectedGame!==gameNumber||
+  if(respectInitialDeepLink||mode!=='live'||selectedGame!==gameNumber||
       (selectedPly!==null&&selectedPly<previousCount))return;
   const resolved=spectatorSession.list().filter(x=>
     x.game===gameNumber&&x.ply>previousCount&&x.ply<=latestCount);
@@ -64,6 +65,7 @@ function focusNewSourceMove(gameNumber,previousCount,latestCount){
   selectedPly=resolved.length?resolved.at(-1).ply-1:latestCount;
 }
 function selectIndex(n){
+  respectInitialDeepLink=false;
   returningRevealPending=false;
   selectedPly=Math.max(0,Math.min(n,game()?.moves?.length||0));
   originSquare=null;selectedArrow=null;syncUrl();render();
@@ -76,7 +78,7 @@ function syncUrl(){
   history.replaceState(null,'',url);
 }
 function switchMode(next,manual=true){
-  if(manual)returningRevealPending=false;
+  if(manual){returningRevealPending=false;respectInitialDeepLink=false;}
   mode=next;
   if(manual)userChangedMode=true;
   selectedGame=isArchive()?14:1;
@@ -509,7 +511,7 @@ async function refreshPublishedIndex(){
   finally{indexRequestRunning=false;}
 }
 for(let g=1;g<=14;g++){const o=document.createElement('option');o.value=String(g);o.textContent=String(g).padStart(2,'0');$('game-select').append(o);}
-$('game-select').addEventListener('change',e=>{returningRevealPending=false;selectedGame=Number(e.target.value);selectedPly=isArchive()?0:(liveGames.get(selectedGame)?.moves.length||0);guesses.clear();revealedPly.clear();originSquare=null;selectedArrow=null;syncUrl();render();if(!isArchive())void refreshBroadcast();});
+$('game-select').addEventListener('change',e=>{returningRevealPending=false;respectInitialDeepLink=false;selectedGame=Number(e.target.value);selectedPly=isArchive()?0:(liveGames.get(selectedGame)?.moves.length||0);guesses.clear();revealedPly.clear();originSquare=null;selectedArrow=null;syncUrl();render();if(!isArchive())void refreshBroadcast();});
 $('tab-live').addEventListener('click',()=>switchMode('live'));
 window.addEventListener('storage',event=>{
   // Browser storage events are hints, not atomic cross-tab reservation locks.
