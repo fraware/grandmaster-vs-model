@@ -190,6 +190,7 @@ function renderArchive(){
   const revealed=revealedPly.has(i),guess=guesses.get(i)||null;
   $('guess-area').hidden=!next||revealed;
   $('reveal-button').hidden=false;
+  $('decision-list').hidden=false;
   $('spectator-panel').hidden=true;
   setText('position-kicker','SINGAPORE · WORLD CHAMPIONSHIP 2024');
   setText('position-name',selectedGame===14&&i===108?'The move that changed history':`Game ${selectedGame} · ${humanMoveLabel(i)}`);
@@ -250,6 +251,9 @@ function renderLive(){
   const relevant=matchData?.games?.find(x=>x.game===selectedGame);
   const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
   const modelAttempts=(collectionIndex?.attempts||[]).filter(a=>a.game===selectedGame&&a.ply===i+1&&a.fen===before);
+  const chance=liveOpportunity(),choice=liveChoice();
+  const outcome=choice?liveOutcome(choice):null;
+  const playable=chance.enabled&&!choice;
   const unresolved=(collectionIndex?.reservations||[]).filter(r=>r.game===selectedGame&&
     r.ply===i+1&&r.fen===before&&r.status==='unresolved');
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
@@ -266,7 +270,15 @@ function renderLive(){
     const move=a.status==='valid'?withSans(before).find(x=>x.uci===a.predictedUci):null;
     rows.push(decisionRow({label:a.model.name||a.model.id,subtitle:`${a.model.version} · operator-recorded response · physical pre-move timing unverified`,san:move?.san||'—',move:a.predictedUci||null,id:a.model.id,status:a.status==='valid'?(a.comparison?(a.comparison.exact?'MATCH*':'OTHER*'):'RECORDED'):a.status==='invalid'?'INVALID':'FAILED'}));
   }
+  if(choice){
+    const yours=withSans(choice.fen).find(x=>x.uci===choice.uci);
+    rows.unshift(decisionRow({label:'Your local move',subtitle:'Recreational, unverified local timestamp',
+      san:yours?.san||choice.uci,move:choice.uci,id:'spectator',matched:outcome.kind==='match',
+      status:outcome.kind==='match'?'MATCH':outcome.kind==='different'?'OTHER':
+        outcome.kind==='source-conflict'?'CONFLICT':'LOCKED'}));
+  }
   if(shownMove)rows.push(decisionRow({label:shownMove.ply%2===1?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:latest?'Latest available move · Lichess broadcast':'Observed move · Lichess broadcast',san:shownMove.san,move:shownMove.uci,actual:true,status:latest?'LATEST':'PLAYED'}));
+  $('decision-list').hidden=!rows.length&&chance.enabled;
   $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>Results have to be earned.</strong><p>Model comparisons appear only after real responses have been recorded and matched to a sourced chess position.</p></div>';
   $('guess-area').hidden=true;$('score-line').hidden=true;
   if(shownMove)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
@@ -277,9 +289,6 @@ function renderLive(){
   setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
 
   // Spectator guesses are local, unsigned, and excluded from the provider ledger.
-  const chance=liveOpportunity(),choice=liveChoice();
-  const outcome=choice?liveOutcome(choice):null;
-  const playable=chance.enabled&&!choice;
   $('reveal-button').hidden=true;
   $('guess-area').hidden=!playable;
   $('spectator-panel').hidden=false;
@@ -462,6 +471,8 @@ $('reveal-button').addEventListener('click',revealMove);
 $('spectator-next').addEventListener('click',()=>selectIndex(game()?.moves.length||0));
 $('spectator-share').addEventListener('click',async()=>{
   const choice=liveChoice();if(!choice)return;
+  $('spectator-share-text').hidden=true;
+  setText('spectator-share-status','');
   const text=spectatorShareText(choice,liveOutcome(choice));
   try{
     if(navigator.share)await navigator.share({text});
