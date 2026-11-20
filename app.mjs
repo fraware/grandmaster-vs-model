@@ -259,8 +259,22 @@ function renderLive(){
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
   setText('result-heading','CHAMPIONSHIP DECISIONS');
   setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
-  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:(forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.');
-  setText('result-description',latest?'The board displays the newest move available from the broadcast. Navigate back to inspect earlier decisions. Source-observation time differs from physical move time.':data?.moves.length?'The board is reconstructed from Lichess PGN. Model forecasts remain timing-unverified until separately corroborated.':`Game ${selectedGame} starts ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}. No moves have been observed for this round.`);
+  const researchTitle=shownMove?`Broadcast move · ${shownMoveLabel}`:
+    (forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':
+    unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.';
+  setText('result-title',choice?
+    (outcome.kind==='match'?'You matched the move.':
+     outcome.kind==='different'?'The grandmaster chose differently.':
+     outcome.kind==='source-conflict'?'The position changed.':'Your move is locked.'):
+    chance.kind==='opening'?'Your opening move.':
+    chance.kind==='live'?'You’re on the move.':researchTitle);
+  setText('result-description',chance.kind==='opening'?
+    `Game ${selectedGame} is scheduled for ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit'})}. Your opening guess is recreational and local to your browser.`:
+    chance.kind==='live'?'The latest legally reconstructed position is ready. Tap or drag a legal move, then watch the source feed for the answer.':
+    choice?'Your locally saved answer is compared only with the official broadcast move. Local timing is not independently verified.':
+    latest?'The board displays the newest move available from the broadcast. Navigate back to inspect earlier decisions. Source-observation time differs from physical move time.':
+    data?.moves.length?'The board is reconstructed from Lichess PGN. Model forecasts remain timing-unverified until separately corroborated.':
+    `Game ${selectedGame} starts ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit'})}. No moves have been observed for this round.`);
   const rows=forecastList.map(f=>{
     const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
     return decisionRow({label:f.model.id,subtitle:`${f.model.version} · operator-submitted / timing unverified`,san,move:f.prediction.uci,id:f.model.id,status:observation?(observation.uci===f.prediction.uci?'MATCH':'OTHER'):'FORECAST',matched:Boolean(observation&&observation.uci===f.prediction.uci)});
@@ -317,7 +331,9 @@ function renderLive(){
       'Waiting for the next official Lichess move. Your move is locked in this tab.':
       outcome.kind==='source-conflict'?
       'The broadcast position disagrees with the recorded FEN. No result is scored.':
-      'Compared against the sourced broadcast move. This local prediction has no independent timing proof.';
+      `Compared against the sourced broadcast move. ${liveStatus.get(choice.game)?.checkedAt?
+      'Public feed checked at '+liveStatus.get(choice.game).checkedAt.toLocaleTimeString()+' (not the physical move time). ':
+      ''}Your local prediction has no independent timing proof.`;
     setText('spectator-phase',outcome.kind==='pending'?'AWAITING THE BROADCAST':'REVEALED BY THE FEED');
     setText('spectator-message',`${san} · ${resultLabel}`);
     setText('spectator-detail',resultDetail);
