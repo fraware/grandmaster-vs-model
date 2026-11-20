@@ -32,6 +32,14 @@ export function validateAttempt(a){
   if(a.error!==null&&typeof a.error!=='string')throw new Error('Invalid error description');
   if(a.providerResponseId!==null&&typeof a.providerResponseId!=='string')throw new Error('Invalid provider response identifier');
   if(a.postflightConfirmed!==undefined&&typeof a.postflightConfirmed!=='boolean')throw new Error('Invalid postflight flag');
+  if(a.captureRun!==undefined&&a.captureRun!==null){
+    const c=a.captureRun;
+    if(typeof c.repository!=='string'||!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(c.repository)||
+       typeof c.runId!=='string'||!/^[1-9][0-9]{0,19}$/.test(c.runId)||
+       typeof c.runAttempt!=='string'||!/^[1-9][0-9]{0,5}$/.test(c.runAttempt)){
+      throw new Error('Invalid GitHub workflow provenance reference');
+    }
+  }
   return true;
 }
 
@@ -100,6 +108,7 @@ export function buildIndex({observations,attempts,models}){
     return {game:a.game,ply:a.ply,fen:a.fen,model:a.model,attemptKey:attemptKey(a),status:a.status,
       startedAt:a.startedAt,completedAt:a.completedAt,predictedUci:a.predictedUci,
       providerResponseId:a.providerResponseId,providerReportedModel:a.providerReportedModel,source:a.source,
+      captureRun:a.captureRun??null,
       publication:'operator-supplied',timing:'unverified',comparison};
   });
   return {schema:INDEX_SCHEMA,event:EVENT_ID,rosterVerifiedOn:models.verifiedOn,source:publicSource,
