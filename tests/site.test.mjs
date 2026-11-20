@@ -142,3 +142,14 @@ test('live spectator entry is independent of public model-evaluation records',as
   assert.match(ci,/live-spectator-smoke\.py/);
   assert.doesNotMatch(spectator,/fetch\(|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY/);
 });
+
+test('homepage has a prominent, scheduled 2026 action on mobile and desktop',async()=>{
+  const home=await text('index.html');
+  const controller=await text('src/home.mjs');
+  const styles=await text('landing.css');
+  assert.match(home,/id="live-invite"/);
+  assert.match(home,/id="live-invite-link"/);
+  assert.match(home,/game=1#experiment/);
+  assert.match(controller,/homepageInvite/);
+  assert.match(styles,/\.live-invite-action/);
+});

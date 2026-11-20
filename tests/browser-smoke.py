@@ -38,6 +38,8 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
+    if kind == 'home':
+        module_names += ['src/match-2026.mjs', 'src/home-entry.mjs']
     if kind == 'lab':
         module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
@@ -100,6 +102,11 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         populate(page, source)
         assert page.locator('#board').count() == 0, 'Main page must not duplicate the board'
         assert page.locator('#challenge-board button.challenge-square').count() == 64
+        invitation = page.locator('#live-invite-link')
+        assert invitation.is_visible(), 'Live championship link must be visible on mobile'
+        assert 'mode=live&game=' in invitation.get_attribute('href')
+        assert page.locator('#live-invite-title').inner_text()
+        assert invitation.bounding_box()['y'] < viewport['height'], 'Live entry must be above the fold'
         assert page.locator('#challenge-board button[tabindex="0"]').count() == 1
         first_cell = page.locator('#challenge-board button.challenge-square').first
         first_cell.focus()

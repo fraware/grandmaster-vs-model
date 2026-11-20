@@ -339,3 +339,35 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid rgba
   .challenge-board{max-width:390px}
   .challenge-right{padding:18px 22px}
 }
+
+/* Editorial, event-aware entry to the 2026 championship.
+   The mobile action stays before the retrospective 2024 board. */
+.live-invite{padding-top:16px;padding-bottom:8px}
+.live-invite-body{padding:15px 23px 16px;border:1px solid var(--line);
+  background:var(--paper-strong);border-top:3px solid var(--accent)}
+.live-invite-meta{display:flex;justify-content:space-between;align-items:baseline;
+  gap:12px;flex-wrap:wrap;color:var(--accent);font-size:10px;
+  font-weight:730;letter-spacing:.11em}
+.live-invite-meta span:last-child{color:var(--muted);letter-spacing:.035em}
+.live-invite-row{display:flex;align-items:center;justify-content:space-between;gap:26px;margin-top:9px}
+.live-invite-copy{min-width:0}
+.live-invite-title{font:400 clamp(23px,2.45vw,31px)/1.15 var(--serif);
+  letter-spacing:-.035em;margin:0}
+.live-invite-description{font-size:12px;line-height:1.45;color:var(--muted);margin:6px 0 0}
+.live-invite-action{background:var(--accent);border:1px solid var(--accent);
+  color:var(--paper-strong);text-decoration:none;display:flex;align-items:center;
+  justify-content:space-between;gap:24px;white-space:nowrap;padding:15px 17px;
+  font-size:12px;font-weight:700;min-width:218px;min-height:49px}
+.live-invite-action:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.live-invite-action:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.live-invite-action span:last-child{font-size:18px;line-height:1}
+@media(max-width:720px){
+  .live-invite{padding-top:11px;padding-bottom:3px}
+  .live-invite-body{padding:13px 15px 14px}
+  .live-invite-meta{gap:5px;font-size:9px;line-height:1.5}
+  .live-invite-row{display:block;margin-top:7px}
+  .live-invite-title{font-size:24px;line-height:1.1}
+  .live-invite-description{font-size:11px;margin-top:6px}
+  .live-invite-action{margin-top:13px;width:100%;min-width:0;min-height:46px;
+    padding:11px 15px;font-size:12px}
+}

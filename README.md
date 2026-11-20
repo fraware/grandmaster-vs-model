@@ -28,6 +28,10 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 
 *Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
+## The championship is one action from the homepage
+
+A compact, event-aware 2026 World Championship invitation now appears **above the 2024 challenge** on desktop and mobile. It links directly to the next relevant game using the pinned 14-round UTC registry. Ahead of the announced start it invites a local opening prediction, during the scheduled session it opens the latest sourced position, and beyond the listed rounds it provides a replay entry. The schedule does not establish that physical play has started. Route selection is deterministic and tested in [`src/home-entry.mjs`](src/home-entry.mjs) and [`tests/home-entry.test.mjs`](tests/home-entry.test.mjs).
+
 ## Complete 2024 championship game records
 
 The historical reader now includes **all 14 games and all 1,270 recorded half-moves**, including SAN, UCI, and the legal board position before and after each move. Each game is source-linked to its Lichess broadcast and cross-checked against the separately published PGN Mentor match record. The full source-by-source verification, move counts, checksums, licensing, and limitations are in [DATA_AUDIT.md](DATA_AUDIT.md).
