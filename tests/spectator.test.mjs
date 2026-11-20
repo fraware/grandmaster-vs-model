@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {START_FEN,play} from '../src/chess.mjs';
 import {roundInfo} from '../src/match-2026.mjs';
 import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,
-  spectatorShareText,validateSpectatorChoice,SPECTATOR_STORAGE_KEY} from '../src/spectator.mjs';
+  spectatorShareText,validateSpectatorChoice,SPECTATOR_STORAGE_KEY,spectatorReturnPly} from '../src/spectator.mjs';
 
 const fixed=()=>new Date('2026-11-20T12:00:00.000Z');
 const memoryStorage=()=>{
@@ -117,4 +117,100 @@ test('share text states that local predictions are not authenticated priority',(
   assert.match(text,/Timing is not independently verified/);
   assert.match(text,/mode=live&game=1#experiment/);
   assert.doesNotMatch(text,/model accuracy|certified/);
+});
+
+test('opening guesses survive a new browser session through origin-local storage',()=>{
+  const browser=memoryStorage();
+  const firstVisit=createSpectatorSession({storage:browser,clock:fixed});
+  const saved=firstVisit.lock(first);
+  assert.equal(firstVisit.persistence,'browser');
+  const reopened=createSpectatorSession({storage:browser,clock:fixed});
+  assert.equal(reopened.persistence,'browser');
+  assert.deepEqual(reopened.find(1,1),saved);
+  assert.throws(()=>reopened.lock({...first,uci:'d2d4'}),/already locked/);
+});
+
+test('v1.6 tab guesses migrate without changing their move or timestamp',()=>{
+  const oldTab=memoryStorage(),browser=memoryStorage();
+  const original=createSpectatorSession({storage:oldTab,clock:fixed}).lock(first);
+  const reopened=createSpectatorSession({
+    storage:browser,legacyStorage:oldTab,clock:()=>new Date('2026-11-24T14:00:00Z')
+  });
+  assert.equal(reopened.persistence,'browser');
+  assert.deepEqual(reopened.find(1,1),original);
+  assert.deepEqual(JSON.parse(browser.getItem(SPECTATOR_STORAGE_KEY)),[original]);
+  assert.deepEqual(JSON.parse(oldTab.getItem(SPECTATOR_STORAGE_KEY)),[original]);
+  const later=createSpectatorSession({storage:browser});
+  assert.deepEqual(later.find(1,1),original);
+});
+
+test('migration preserves established browser choices and imports disjoint older positions',()=>{
+  const browser=memoryStorage(),oldTab=memoryStorage();
+  const previouslySaved=createSpectatorSession({storage:browser,clock:fixed});
+  previouslySaved.lock(first);
+  const other=play(START_FEN,'e2e4').fen;
+  const older=createSpectatorSession({storage:oldTab,clock:fixed});
+  older.lock({game:1,ply:2,fen:other,uci:'e7e5'});
+  const union=createSpectatorSession({storage:browser,legacyStorage:oldTab,clock:fixed});
+  assert.equal(union.list().length,2);
+  assert.equal(union.find(1,1).uci,'e2e4');
+  assert.equal(union.find(1,2).uci,'e7e5');
+});
+
+test('conflicting legacy choice never replaces an already saved browser prediction',()=>{
+  const browser=memoryStorage(),oldTab=memoryStorage();
+  createSpectatorSession({storage:browser,clock:fixed}).lock(first);
+  createSpectatorSession({storage:oldTab,clock:fixed}).lock({...first,uci:'d2d4'});
+  const combined=createSpectatorSession({storage:browser,legacyStorage:oldTab});
+  assert.equal(combined.find(1,1).uci,'e2e4');
+  assert.equal(JSON.parse(oldTab.getItem(SPECTATOR_STORAGE_KEY))[0].uci,'d2d4');
+  assert.match(combined.warning,/Conflicting older tab/);
+});
+
+test('damaged persistent data is never overwritten and can use sound legacy tab data',()=>{
+  const browser=memoryStorage(),oldTab=memoryStorage();
+  browser.setRaw('{"invalid":true}');
+  createSpectatorSession({storage:oldTab,clock:fixed}).lock(first);
+  const recovered=createSpectatorSession({storage:browser,legacyStorage:oldTab});
+  assert.equal(recovered.persistence,'tab');
+  assert.equal(recovered.find(1,1).uci,'e2e4');
+  assert.equal(browser.getItem(SPECTATOR_STORAGE_KEY),'{"invalid":true}');
+  assert.match(recovered.warning,/original data preserved/);
+});
+
+test('unavailable persistent storage falls back to tab-only or memory with honest status',()=>{
+  const blocked={getItem:()=>{throw new Error('private mode');},setItem:()=>{}};
+  const tab=memoryStorage();
+  const recovered=createSpectatorSession({storage:blocked,legacyStorage:tab,clock:fixed});
+  assert.equal(recovered.persistence,'tab');
+  recovered.lock(first);
+  assert.equal(recovered.persisted,true);
+  assert.deepEqual(JSON.parse(tab.getItem(SPECTATOR_STORAGE_KEY))[0].uci,'e2e4');
+  const lost=createSpectatorSession({storage:null,legacyStorage:null,clock:fixed});
+  assert.equal(lost.persistence,'memory');
+  assert.equal(lost.persisted,false);
+});
+
+test('an independent tab sees additions without overwriting the current browser record',()=>{
+  const browser=memoryStorage();
+  const one=createSpectatorSession({storage:browser,clock:fixed});
+  const two=createSpectatorSession({storage:browser,clock:fixed});
+  one.lock(first);
+  assert.equal(two.find(1,1).uci,'e2e4');
+  assert.throws(()=>two.lock({...first,uci:'d2d4'}),/already locked/);
+  two.lock({...first,game:2});
+  assert.equal(one.list().length,2);
+});
+
+test('return visits prioritize a revealed saved choice unless no move has yet appeared',()=>{
+  const choice=createSpectatorSession({clock:fixed}).lock(first);
+  assert.equal(spectatorReturnPly([choice],1,0),0);
+  assert.equal(spectatorReturnPly([choice],1,1),0);
+  assert.equal(spectatorReturnPly([choice],1,20),0);
+  assert.equal(spectatorReturnPly([choice],2,20),20);
+  assert.equal(spectatorReturnPly([],1,20),20);
+  const after=play(START_FEN,'e2e4').fen;
+  const later={...choice,ply:2,fen:after,uci:'e7e5'};
+  assert.equal(spectatorReturnPly([choice,later],1,8),1);
+  assert.throws(()=>spectatorReturnPly([choice],15,2),/Invalid returning/);
 });
