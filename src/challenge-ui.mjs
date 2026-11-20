@@ -4,7 +4,7 @@
  * API key, saved identity, model prediction, or global ranking is involved.
  */
 import {parseFen, play, toSquare} from './chess.mjs';
-import {createChallenge, scoreChallenge, challengeShareText} from './challenge.mjs';
+import {createChallenge, createPracticeDecks, scoreChallenge, challengeShareText} from './challenge.mjs';
 import {retrospectiveView} from './retro-view.mjs';
 
 const pieceGlyph = {K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟'};
@@ -74,10 +74,15 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
 
 /** Initialize the challenge once its locally bundled archival game has passed validation. */
 export function mountChallenge(archive, replay, retrospective = null) {
-  const questions = createChallenge(archive, replay);
+  const firstQuestions = createChallenge(archive, replay);
+  const bonusDecks = createPracticeDecks(archive, replay);
+  let questions = firstQuestions;
+  let deckIndex = 0;
   let model = null;
-  try { model = retrospectiveView(retrospective, questions); }
+  try { model = retrospectiveView(retrospective, firstQuestions); }
   catch { /* Bad optional evidence must not disable the verified historical game. */ }
+  let activeModel = model;
+  const completedResults = Array(1 + bonusDecks.length).fill(null);
   let index = 0;
   let selectedUci = null;
   let origin = null;
@@ -93,11 +98,12 @@ export function mountChallenge(archive, replay, retrospective = null) {
   const choice = get('challenge-choice');
   const shareStatus = get('challenge-share-status');
   const mobileRevealButton = get('challenge-mobile-reveal');
-  if (model?.complete) {
-    setText('hero-subtitle', model.score === 3
-      ? 'Three positions from the 2024 final. Make your prediction, see Ding’s move, and compare it with a recorded retrospective GPT response.'
-      : 'Three positions from the 2024 final. Predict each move, reveal the decision, and compare it with a recorded GPT response.');
-  }
+  const continueButton = get('challenge-continue');
+  let commitTimer = null;
+  const cancelCommit = () => {
+    if (commitTimer !== null) window.clearTimeout(commitTimer);
+    commitTimer = null;
+  };
 
   function setText(id, value) { get(id).textContent = value; }
   let keyboardSquare = 0;
@@ -308,8 +314,9 @@ export function mountChallenge(archive, replay, retrospective = null) {
 
   function updateMobileDock() {
     if (!mobileRevealButton) return;
-    mobileRevealButton.hidden = !selectedUci || revealed || complete;
-    mobileRevealButton.disabled = !selectedUci || revealed || complete;
+    mobileRevealButton.hidden = !revealed || complete;
+    mobileRevealButton.disabled = !revealed || complete;
+    mobileRevealButton.replaceChildren(document.createTextNode(index === questions.length - 1 ? 'See my score' : 'Next position'));
     document.body.classList.toggle('has-mobile-reveal', !mobileRevealButton.hidden);
   }
 
@@ -320,17 +327,31 @@ export function mountChallenge(archive, replay, retrospective = null) {
       : null;
     chooser.value = selectedUci || '';
     revealButton.disabled = !selectedUci || revealed;
+    revealButton.hidden = true;
     setText('challenge-hint', selectedUci
-      ? `Your choice: ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Change it on the board, or reveal the answer.`
-      : origin ? `Now choose the destination for ${origin}.` : 'Choose a move to reveal the answer.');
+      ? `You played ${q.legalMoves.find(m => m.uci === selectedUci)?.san || selectedUci}. Revealing the grandmaster’s move…`
+      : origin ? `Choose a highlighted square for ${origin}.` : 'One guess per position. Make your move above.');
     drawPosition(q);
     if (selectedUci && sourcePosition) animateBoardMove(sourcePosition, selectedUci.slice(2, 4), 240);
     updateMobileDock();
+    cancelCommit();
+    if (selectedUci && !revealed && !complete) {
+      // Show the chosen piece moving before the recorded answer; the extra
+      // confirmation click is intentionally eliminated.
+      const committed = selectedUci;
+      commitTimer = window.setTimeout(() => {
+        commitTimer = null;
+        if (selectedUci === committed && !revealed && !complete) reveal();
+      }, reducedMotion() ? 0 : 420);
+    }
   }
 
   function render() {
+    cancelCommit();
     const q = questions[index];
+    setText('challenge-series', `Round ${deckIndex + 1}`);
     setText('challenge-count',`${index+1} of ${questions.length}`);
+    setText('board-instruction', 'Tap or drag a piece to play your move');
     setText('challenge-phase',q.stage);
     setText('challenge-heading',q.title);
     setText('challenge-description',q.detail);
@@ -341,7 +362,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
     progress.replaceChildren();
     questions.forEach((_,i) => {
       const el = document.createElement('span');
-      el.className = `challenge-step${i===index?' current':''}${i<answers.length?' done':''}`;
+      el.className = `challenge-step${i===index?' current':''}${i<answers.length?(questions[i].answer.uci === answers[i]?' done':' missed'):''}`;
       el.setAttribute('aria-label',`Position ${i+1}${i<answers.length?', answered':''}${i===index?', current':''}`);
       progress.append(el);
     });
@@ -354,7 +375,8 @@ export function mountChallenge(archive, replay, retrospective = null) {
       const o = document.createElement('option');o.value = move.uci;o.textContent = move.san;chooser.append(o);
     });
     chooser.disabled = false;
-    revealButton.hidden = false;
+    get('challenge-move-details').open = false;
+    revealButton.hidden = true;
     revealButton.disabled = true;
     nextButton.hidden = true;
     feedback.hidden = true;
@@ -372,6 +394,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
   }
 
   function reveal() {
+    cancelCommit();
     if (!selectedUci || revealed || complete) return;
     const q = questions[index];
     if (!q.legalMoves.some(m => m.uci === selectedUci)) return;
@@ -383,6 +406,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
     revealButton.hidden = true;
     updateMobileDock();
     nextButton.hidden = false;
+    get('challenge-progress').children[index].classList.add(selectedUci === q.answer.uci ? 'done' : 'missed');
     const match = selectedUci === q.answer.uci;
     setText('challenge-answer-result', match?'Exact match.':'Different move.');
     setText('challenge-answer-move',`The grandmaster played ${q.answer.san}.`);
@@ -390,13 +414,14 @@ export function mountChallenge(archive, replay, retrospective = null) {
     feedback.classList.toggle('correct',match);
     feedback.hidden = false;
     const modelNote = get('challenge-model-feedback');
-    const modelMove = model?.attempts[index];
+    const modelMove = activeModel?.attempts[index];
     modelNote.hidden = !modelMove;
     if (modelMove) {
-      setText('challenge-model-pick', `${model.name} played ${modelMove.san}. ${modelMove.hit ? 'Exact match.' : 'Different move.'}`);
+      setText('challenge-model-pick', `${activeModel.name} played ${modelMove.san}. ${modelMove.hit ? 'Exact match.' : 'Different move.'}`);
     }
     setText('challenge-hint','The recorded move is now on the board.');
-    nextButton.textContent = index === questions.length - 1?'See your result →':'Next position →';
+    setText('board-instruction', match ? 'You found the grandmaster’s move' : `The grandmaster played ${q.answer.san}`);
+    nextButton.textContent = index === questions.length - 1 ? 'See my score →' : 'Next position →';
     drawPosition(q);
     animateBoardMove(sourcePosition, q.answer.uci.slice(2, 4));
     nextButton.focus({preventScroll:true});
@@ -406,8 +431,14 @@ export function mountChallenge(archive, replay, retrospective = null) {
   }
 
   function finish() {
+    cancelCommit();
     complete = true;
     const result = scoreChallenge(questions, answers);
+    completedResults[deckIndex] = result;
+    const finishedSets = completedResults.filter(Boolean);
+    const totalCorrect = finishedSets.reduce((sum, item) => sum + item.correct, 0);
+    const totalAttempted = finishedSets.reduce((sum, item) => sum + item.total, 0);
+    setText('challenge-run-progress', `${totalAttempted} of 15 positions explored · ${totalCorrect} exact matches so far`);
     setText('challenge-count','Challenge complete');
     setText('challenge-phase','Your result · 2024 final');
     setText('challenge-heading', 'The result is in.');
@@ -434,22 +465,47 @@ export function mountChallenge(archive, replay, retrospective = null) {
     }
     updateMobileDock();
     const versus = get('challenge-versus');
-    versus.hidden = !model?.complete;
-    get('challenge-result-evidence').hidden = !model?.complete;
-    if (model?.complete) {
+    versus.hidden = !activeModel?.complete;
+    get('challenge-result-evidence').hidden = !activeModel?.complete;
+    if (activeModel?.complete) {
       setText('challenge-versus-human', `YOU  ${result.correct}/3`);
-      setText('challenge-versus-model', `GPT  ${model.score}/3`);
+      setText('challenge-versus-model', `GPT  ${activeModel.score}/3`);
     }
-    setText('challenge-result-note', model?.complete
+    setText('challenge-result-note', activeModel?.complete
       ? 'Recorded 2024 moves versus a real, retrospective GPT API run. The game predates this model: this is not a prospective benchmark.'
-      : 'Exact grandmaster moves predicted. The historical AI comparison is not yet published.');
+      : 'Three recorded grandmaster moves from the 2024 final. Practice sets have no corresponding model responses.');
+    continueButton.hidden = false;
+    continueButton.replaceChildren(document.createTextNode(deckIndex >= bonusDecks.length ? 'Start a fresh run →' : 'Play another three →'));
+    get('challenge-restart').textContent = 'Replay this round ↻';
     get('challenge-download').disabled = false;
     get('challenge-share').disabled = false;
     shareStatus.textContent = '';
-    get('challenge-share').focus({preventScroll:true});
+    (continueButton.hidden ? get('challenge-share') : continueButton).focus({preventScroll:true});
     if (isSmallScreen()) final.scrollIntoView({behavior:reducedMotion() ? 'instant' : 'smooth', block:'start'});
   }
 
+  continueButton.addEventListener('click', () => {
+    if (!complete) return;
+    cancelCommit();
+    if (deckIndex >= bonusDecks.length) {
+      deckIndex = 0;
+      questions = firstQuestions;
+      activeModel = model;
+      completedResults.fill(null);
+      setText('hero-subtitle', 'Play a move on the board. See the grandmaster’s choice. Start with three positions against a recorded GPT retrospective, then keep playing through the championship final.');
+    } else {
+      questions = bonusDecks[deckIndex];
+      deckIndex += 1;
+      activeModel = null;
+      setText('hero-subtitle', 'Keep playing through sourced positions from the deciding game. Each move is revealed automatically; only the first round has a recorded GPT comparison.');
+    }
+    index = 0;
+    answers = [];
+    complete = false;
+    render();
+    scrollToNextBoard();
+    board.children[0]?.focus({preventScroll:true});
+  });
   chooser.addEventListener('change', () => {
     if (revealed || complete) return;
     const q = questions[index];
@@ -458,27 +514,28 @@ export function mountChallenge(archive, replay, retrospective = null) {
     updateChoice();
   });
   revealButton.addEventListener('click',reveal);
-  if (mobileRevealButton) mobileRevealButton.addEventListener('click', reveal);
-  nextButton.addEventListener('click',() => {
+  if (mobileRevealButton) mobileRevealButton.addEventListener('click', advance);
+  function advance() {
     if (!revealed || complete) return;
-    if (index === questions.length-1) finish();
-    else {index++;render();scrollToNextBoard();board.children[0]?.focus({preventScroll:true});}
-  });
+    if (index === questions.length - 1) finish();
+    else { index++; render(); scrollToNextBoard(); board.children[0]?.focus({preventScroll:true}); }
+  }
+  nextButton.addEventListener('click', advance);
   get('challenge-restart').addEventListener('click',()=>{
-    answers = [];index = 0;complete = false;render();scrollToNextBoard();board.children[0]?.focus({preventScroll:true});
+    cancelCommit();completedResults[deckIndex] = null;answers = [];index = 0;complete = false;render();scrollToNextBoard();board.children[0]?.focus({preventScroll:true});
   });
   get('challenge-share').addEventListener('click',async () => {
     if (!complete) return;
     const score = scoreChallenge(questions,answers);
     const url = new URL('.', document.baseURI);url.hash='challenge';
-    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? {name:model.name,score:model.score} : null);
+    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? {name:activeModel.name,score:activeModel.score} : null);
     try {
       if (navigator.share) {
         const title = 'Can you predict a grandmaster’s next move?';
         let shared = false;
         if (navigator.canShare && typeof File !== 'undefined') {
           try {
-            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? model.score : null);
+            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null);
             const imageBlob = await new Promise(resolve => card.toBlob(resolve, 'image/png'));
             if (imageBlob) {
               const file = new File([imageBlob], 'grandmaster-vs-model-score.png', {type:'image/png'});
@@ -514,7 +571,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
   get('challenge-download').addEventListener('click',async () => {
     if (!complete) return;
     try {
-      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]), model?.complete ? model.score : null);
+      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null);
       const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
       if (!blob) throw new Error('Image encoding unavailable');
       const url = URL.createObjectURL(blob);

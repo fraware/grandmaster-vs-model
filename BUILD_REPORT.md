@@ -49,3 +49,12 @@ Verification: full Node test suite, chess ledger, prospective collection index, 
 Improved the existing editorial challenge without changing the historical source game or retrospective GPT records. The 64 square buttons remain mounted while selecting a move, preserving focus and preventing DOM-based flashes. The board supports mouse/pen/touch dragging and tap-to-move; selected pieces preview their legal destination before the recorded move is revealed. The recorded move then animates to its destination, and the browser honors reduced-motion preferences. The full move list is now an optional, accessible disclosure instead of competing with the chessboard for attention. Arrow keys provide roving focus across squares, with native Enter/Space activation. Mobile progression places the new chessboard immediately to avoid touch targets shifting during an animated scroll.
 
 Verification consists of Node unit tests, syntax checks, deterministic data verification, and Chromium end-to-end exercises on desktop, touch-enabled mobile, and 320px touch-enabled layouts. Browser regression coverage explicitly checks stable square identity, move preview, drag-to-move, tap-to-move, keyboard focus, reveal/advance, score, export, and research-page fallback. No new paid provider requests are needed.
+
+
+## v1.0 interaction revision (19 November 2026)
+
+- A legal board move is now a prediction, with a short visual preview and automatic reveal. The redundant second confirmation click is hidden.
+- The post-reveal mobile dock advances to the next position or the final score.
+- Four additional sets of three historical moves provide a continuation loop. Every move is reconstructed from the same Lichess-sourced game; no further GPT result is implied.
+- Three-position scoring, public model evidence and strict separation from prospective forecasting remain unchanged.
+- Regression coverage includes unique archival positions, legal answer validation, touch interactions, a complete extra set, sharing, and browser keyboard interaction.

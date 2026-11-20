@@ -63,7 +63,7 @@ test('direct-manipulation challenge keeps a single board and an accessible move-
   const css = await text('landing.css');
   assert.match(html, /<details class="move-alternative"/);
   assert.match(html, /Prefer a move list\?/);
-  assert.match(html, /Tap a piece, then its destination\. Or drag to move\./);
+  assert.match(html, /Your move becomes your prediction\. No extra button\./);
   assert.match(client, /board\.children\.length !== 64/);
   assert.match(client, /document\.elementFromPoint\(event\.clientX, event\.clientY\)/);
   assert.match(client, /ArrowLeft/);
@@ -71,4 +71,20 @@ test('direct-manipulation challenge keeps a single board and an accessible move-
   assert.match(client, /prefers-reduced-motion/);
   assert.match(css, /\.challenge-square\{touch-action:none/);
   assert.match(css, /\.drag-piece\{position:fixed/);
+});
+
+
+test('first move commits automatically and all practice rounds remain historical', async () => {
+  const html = await text('index.html');
+  const client = await text('src/challenge-ui.mjs');
+  const challenge = await text('src/challenge.mjs');
+  assert.match(html, /id="challenge-continue"/);
+  assert.match(html, /id="challenge-run-progress"/);
+  assert.match(html, /id="challenge-mobile-reveal"/);
+  assert.match(html, /Your move becomes your prediction/);
+  assert.match(client, /commitTimer = window\.setTimeout/);
+  assert.match(client, /mobileRevealButton\.addEventListener\('click', advance\)/);
+  assert.match(client, /activeModel = null/);
+  assert.match(challenge, /createPracticeDecks/);
+  assert.match(challenge, /Practice position is duplicated or outside the recorded game/);
 });

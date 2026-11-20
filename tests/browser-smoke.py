@@ -111,23 +111,36 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         # The move list is an intentional accessibility fallback, not a large
         # permanent control competing with the chessboard.
         assert not page.locator('#challenge-move-select').is_visible()
-        page.locator('#challenge-move-details summary').click()
-        page.locator('#challenge-move-select').select_option('b5c3')
+        # A first-time visitor plays directly on the board. The source square
+        # highlights legal destinations, with no disclosure of the answer.
+        if label == 'desktop':
+            page.locator('#challenge-board button[data-square="b5"]').click()
+            assert 'target' in page.locator('#challenge-board button[data-square="c3"]').get_attribute('class')
+            page.locator('#challenge-board button[data-square="c3"]').click()
+        else:
+            for square in ('b5', 'c3'):
+                cell = page.locator(f'#challenge-board button[data-square="{square}"]')
+                cell.scroll_into_view_if_needed()
+                rect = cell.bounding_box()
+                assert rect is not None
+                page.touchscreen.tap(rect['x'] + rect['width'] / 2, rect['y'] + rect['height'] / 2)
         assert 'white knight' in page.locator('#challenge-board button[aria-label^="c3,"]').get_attribute('aria-label'), 'Selected move preview did not move the piece'
         assert page.evaluate('window.__firstSquare === document.querySelector("#challenge-board .challenge-square")'), 'Selecting a move rebuilt the board'
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-selected.png'), full_page=True)
         assert 'Nc3' in page.locator('#challenge-hint').inner_text()
-        if label == 'desktop':
-            page.locator('#challenge-reveal').click()
-        else:
+        # One action: placing a legal move locks the prediction and automatically
+        # reveals the recorded answer. No second "Reveal" click is needed.
+        page.locator('#challenge-answer-result').get_by_text('Exact match.').wait_for(timeout=3500)
+        assert page.locator('#challenge-reveal').is_hidden()
+        if label != 'desktop':
             assert page.locator('#challenge-mobile-reveal').is_visible()
-            page.locator('#challenge-mobile-reveal').click()
+            assert 'Next position' in page.locator('#challenge-mobile-reveal').inner_text()
         assert 'Exact match.' in page.locator('#challenge-answer-result').text_content()
         assert 'GPT-6.2 Astra played Nc3' in page.locator('#challenge-model-pick').inner_text()
         assert 'white knight' in page.locator('#challenge-board button[aria-label^="c3,"]').get_attribute('aria-label')
-        assert page.locator('#challenge-mobile-reveal').is_hidden()
-        page.locator('#challenge-next').click()
+        assert page.locator('#challenge-mobile-reveal').is_hidden() if label == 'desktop' else page.locator('#challenge-mobile-reveal').is_visible()
+        (page.locator('#challenge-next') if label == 'desktop' else page.locator('#challenge-mobile-reveal')).click()
         if label == 'desktop':
             # Drag-and-drop must behave like chess software, not an HTML form.
             page.locator('#challenge-board button[data-square="f8"]').drag_to(
@@ -139,15 +152,15 @@ def test_home(browser, screenshot_dir: str | None) -> None:
                 assert rect is not None
                 page.touchscreen.tap(rect['x'] + rect['width'] / 2, rect['y'] + rect['height'] / 2)
         assert page.locator('#challenge-move-select').input_value() == 'f8a8'
-        page.locator('#challenge-reveal').click()
-        page.locator('#challenge-next').click()
+        page.locator('#challenge-answer-result').get_by_text('Exact match.').wait_for(timeout=3500)
+        (page.locator('#challenge-next') if label == 'desktop' else page.locator('#challenge-mobile-reveal')).click()
         wrong = page.locator('#challenge-move-select option').evaluate_all('''options => options.map(o => o.value).find(v => v && v !== "f4f2")''')
         if not page.locator('#challenge-move-details').evaluate('(el) => el.open'):
             page.locator('#challenge-move-details summary').click()
         page.locator('#challenge-move-select').select_option(wrong)
-        page.locator('#challenge-reveal').click()
+        page.locator('#challenge-answer-result').get_by_text('Different move.').wait_for(timeout=3500)
         assert 'Different move.' in page.locator('#challenge-answer-result').text_content()
-        page.locator('#challenge-next').click()
+        (page.locator('#challenge-next') if label == 'desktop' else page.locator('#challenge-mobile-reveal')).click()
         assert '2 of 3.' in page.locator('#challenge-result-label').inner_text()
         assert page.locator('#challenge-prompt').is_hidden()
         assert page.locator('.challenge-result-tile').count() == 3
@@ -193,12 +206,97 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert tuple(int.from_bytes(Path(download.path()).read_bytes()[n:n+4], 'big') for n in (16, 20)) == (1200, 630)
         if screenshot_dir:
             page.screenshot(path=str(Path(screenshot_dir) / f'{label}-result.png'), full_page=True)
-        page.locator('#challenge-restart').click()
+        # Continue into sourced historical positions not used in the GPT run.
+        assert page.locator('#challenge-continue').is_visible()
+        assert '3 of 15 positions explored' in page.locator('#challenge-run-progress').inner_text()
+        page.locator('#challenge-continue').click()
+        assert 'Round 2' in page.locator('#challenge-series').inner_text()
         assert '1 of 3' in page.locator('#challenge-count').inner_text()
-        assert page.locator('#challenge-reveal').is_disabled()
+        assert not page.locator('#challenge-mobile-reveal').is_visible()
+        assert page.locator('#challenge-reveal').is_hidden()
+        assert page.locator('#challenge-model-feedback').is_hidden()
+        # Exercise an entire additional set. It must use archived moves and
+        # never show the old GPT comparison for an untested position.
+        for practice_round in range(3):
+            details = page.locator('#challenge-move-details')
+            if not details.evaluate('(el) => el.open'):
+                page.locator('#challenge-move-details summary').click()
+            first_legal = page.locator('#challenge-move-select option').evaluate_all('''options => options.map(o => o.value).find(v => v)''')
+            page.locator('#challenge-move-select').select_option(first_legal)
+            page.locator('#challenge-answer-result').get_by_text(re.compile(r'Exact match\.|Different move\.')).wait_for(timeout=3500)
+            assert page.locator('#challenge-model-feedback').is_hidden()
+            (page.locator('#challenge-next') if label == 'desktop' else page.locator('#challenge-mobile-reveal')).click()
+        assert page.locator('#challenge-finished').is_visible()
+        assert '6 of 15 positions explored' in page.locator('#challenge-run-progress').inner_text()
+        assert page.locator('#challenge-versus').is_hidden()
+        assert page.locator('#challenge-result-evidence').is_hidden()
+        assert page.locator('#challenge-continue').is_visible()
+        page.locator('#challenge-restart').click()
+        assert 'Round 2' in page.locator('#challenge-series').inner_text()
+        assert '1 of 3' in page.locator('#challenge-count').inner_text()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         assert not errors, errors
         page.close()
+
+
+
+def test_full_session_and_fast_input(browser) -> None:
+    """All fifteen distinct positions are playable with no premature model score."""
+    source = page_sources('home')
+    page = browser.new_page(viewport={'width': 1280, 'height': 820})
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    populate(page, source)
+
+    # A rapid replacement must cancel the original pending commitment. This
+    # tests a real timing hazard introduced by the one-action UX.
+    page.locator('#challenge-move-details summary').click()
+    alternative = page.locator('#challenge-move-select option').evaluate_all(
+        '''options => options.map(x => x.value).find(x => x && x !== 'b5c3')''')
+    page.evaluate('''({wrong, correct}) => {
+      const chooser = document.getElementById('challenge-move-select');
+      chooser.value = wrong;
+      chooser.dispatchEvent(new Event('change', {bubbles: true}));
+      chooser.value = correct;
+      chooser.dispatchEvent(new Event('change', {bubbles: true}));
+    }''', {'wrong': alternative, 'correct':'b5c3'})
+    page.locator('#challenge-answer-result').get_by_text('Exact match.').wait_for(timeout=3500)
+    assert page.locator('#challenge-count').inner_text() == '1 of 3'
+    assert 'Nc3' in page.locator('#challenge-answer-move').inner_text()
+    page.close()
+
+    # Full, deterministic walk through five separate three-move rounds.
+    page = browser.new_page(viewport={'width': 1280, 'height': 820})
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    populate(page, source)
+    page.set_default_timeout(5000)
+    for deck in range(5):
+        assert page.locator('#challenge-series').inner_text() == f'Round {deck + 1}'
+        for position in range(3):
+            # Execute the same DOM events without repeatedly scrolling the
+            # page. Human tap/drag interactions are covered in test_home.
+            page.evaluate('''() => {
+              const select = document.querySelector('#challenge-move-select');
+              select.value = [...select.options].find(o => o.value).value;
+              select.dispatchEvent(new Event('change', {bubbles:true}));
+            }''')
+            page.wait_for_function('document.querySelector("#challenge-feedback").hidden === false',timeout=3500)
+            assert page.locator('#challenge-reveal').is_hidden()
+            if deck:
+                assert page.locator('#challenge-model-feedback').is_hidden()
+            page.evaluate('document.querySelector("#challenge-next").click()')
+        assert page.locator('#challenge-finished').is_visible()
+        assert f'{(deck + 1) * 3} of 15 positions explored' in page.locator('#challenge-run-progress').inner_text()
+        if deck != 4:
+            page.locator('#challenge-continue').click()
+        else:
+            assert 'Start a fresh run' in page.locator('#challenge-continue').inner_text()
+            page.locator('#challenge-continue').click()
+            assert page.locator('#challenge-series').inner_text() == 'Round 1'
+            assert page.locator('#challenge-result-label').is_hidden()
+            assert page.locator('#challenge-board button.challenge-square').count() == 64
+    assert not errors, errors
+    page.close()
 
 
 def test_lab(browser, screenshot_dir: str | None) -> None:
@@ -243,6 +341,8 @@ def main() -> None:
         browser = playwright.chromium.launch(**launch)
         try:
             test_home(browser, screenshot_dir)
+            if os.environ.get("GVM_EXTENDED_BROWSER") == "1":
+                test_full_session_and_fast_input(browser)
             test_lab(browser, screenshot_dir)
         finally:
             browser.close()

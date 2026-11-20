@@ -51,20 +51,20 @@
     <section id="challenge" class="shell playground" aria-labelledby="hero-title">
       <div class="hero-topline">
         <span class="eyebrow"><span class="spark" aria-hidden="true"></span>World Championship Final · Singapore 2024</span>
-        <span class="hero-topline-note">Three positions <span aria-hidden="true">/</span> one score</span>
+        <span class="hero-topline-note">Fifteen positions <span aria-hidden="true">/</span> five rounds</span>
       </div>
       <div class="intro-row">
         <div>
           <h1 id="hero-title">Could you match <em>a world champion?</em></h1>
-          <p id="hero-subtitle">Three positions from the final game of the 2024 title match. Predict the move, then see what Ding played and what GPT later chose in a recorded retrospective API run.</p>
+          <p id="hero-subtitle">Play a real move on the board. See the grandmaster’s answer instantly. Start with three positions versus a recorded GPT retrospective run, then keep playing.</p>
         </div>
-        <div class="intro-side" aria-label="Challenge summary"><span class="intro-side-number">3</span><span>positions<br />from the deciding game</span></div>
+        <div class="intro-side" aria-label="Challenge summary"><span class="intro-side-number">3</span><span>positions<br />in the first round</span></div>
       </div>
       <div class="challenge-frame">
-        <div class="challenge-topbar"><div class="game-tag"><span class="badge-dot" aria-hidden="true"></span>Final game of the championship</div><div class="round-top-count" id="challenge-count">1 of 3</div></div>
+        <div class="challenge-topbar"><div class="game-tag"><span class="badge-dot" aria-hidden="true"></span>Final game of the championship</div><div class="round-top-count"><span id="challenge-series">Round 1</span><span class="round-divider"> · </span><span id="challenge-count">1 of 3</span></div></div>
         <div class="challenge-grid">
           <div class="challenge-left">
-            <div class="challenge-board-meta"><span id="challenge-player">Ding Liren</span><span id="challenge-color">White to move</span></div>
+            <div class="challenge-board-meta"><span id="challenge-player">Ding Liren</span><span id="challenge-color">White to move</span></div><p class="board-instruction" id="board-instruction">Tap or drag a piece to play your move</p>
             <div id="challenge-board" class="challenge-board" role="group" aria-label="Interactive chess position"></div>
             <div class="challenge-board-bottom"><span id="challenge-move-index">Move 15</span><a id="challenge-source" href="https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu" target="_blank" rel="noopener noreferrer">Verified game ↗</a></div>
           </div>
@@ -72,10 +72,10 @@
             <div id="challenge-progress" class="challenge-progress" aria-label="Challenge progress"></div>
             <div class="challenge-prompt" id="challenge-prompt"><div class="challenge-phase" id="challenge-phase">Position 1</div><h2 id="challenge-heading">Your move.</h2><p id="challenge-description">What did Ding play here?</p></div>
             <div id="challenge-choice" class="challenge-choice">
-              <p class="tap-instruction">Tap a piece, then its destination. Or drag to move.</p>
+              <p class="tap-instruction">Your move becomes your prediction. No extra button.</p>
               <details class="move-alternative" id="challenge-move-details"><summary>Prefer a move list?</summary><div class="move-input"><label for="challenge-move-select">Legal moves</label><select id="challenge-move-select" aria-label="Choose a legal chess move"><option value="">Loading moves…</option></select></div></details>
               <div class="selected-move"><span id="challenge-hint" class="challenge-hint" aria-live="polite">Tap or drag a piece to choose your move.</span></div>
-              <button type="button" id="challenge-reveal" class="challenge-primary" disabled>Reveal the move <span aria-hidden="true">→</span></button>
+              <button type="button" id="challenge-reveal" class="challenge-primary" disabled hidden>Reveal the move <span aria-hidden="true">→</span></button>
             </div>
             <div id="challenge-feedback" class="challenge-feedback" role="status" aria-live="polite" hidden><span id="challenge-answer-result" class="challenge-feedback-title"></span><strong id="challenge-answer-move"></strong><p id="challenge-answer-yours"></p></div>
             <div id="challenge-model-feedback" class="challenge-model-feedback" hidden><span class="model-tag">Recorded GPT response · retrospective</span><p id="challenge-model-pick"></p><a href="https://github.com/fraware/grandmaster-vs-model/blob/main/data/retrospective-2024.json" target="_blank" rel="noopener noreferrer">Inspect the source record ↗</a></div>
@@ -83,14 +83,14 @@
             <div id="challenge-finished" class="challenge-finished" hidden>
               <p class="challenge-final-kicker">Final score</p>
               <div class="challenge-score" id="challenge-result-label">0 / 3 exact matches</div>
-              <div id="challenge-result-tiles" class="challenge-result-tiles" aria-label="Result by position"></div>
+              <div id="challenge-result-tiles" class="challenge-result-tiles" aria-label="Result by position"></div><p id="challenge-run-progress" class="challenge-run-progress"></p>
               <div id="challenge-versus" class="challenge-versus" hidden><span id="challenge-versus-human"></span><span id="challenge-versus-model"></span></div>
               <p id="challenge-result-note">This challenge measures exact moves, not overall chess strength.</p><a class="result-evidence-link" id="challenge-result-evidence" href="https://github.com/fraware/grandmaster-vs-model/blob/main/data/retrospective-2024.json" target="_blank" rel="noopener noreferrer" hidden>Read the three source-linked model records ↗</a>
-              <button id="challenge-share" class="challenge-primary" type="button">Challenge a friend <span aria-hidden="true">↗</span></button>
+              <button id="challenge-continue" class="challenge-primary challenge-continue" type="button" hidden>Play another three <span aria-hidden="true">→</span></button><button id="challenge-share" class="challenge-primary challenge-share" type="button">Challenge a friend <span aria-hidden="true">↗</span></button>
               <div class="challenge-secondary-actions"><button type="button" id="challenge-download">Save scorecard ↧</button><button type="button" id="challenge-restart">Play again ↻</button></div>
               <textarea id="challenge-share-text" aria-label="Copyable share text" readonly hidden></textarea><p class="challenge-hint" id="challenge-share-status" role="status"></p>
             </div>
-            <div class="challenge-assurance">Historical positions from the 2024 final. GPT was tested retrospectively in 2026. This is not a prospective forecast claim.</div>
+            <div class="challenge-assurance">All positions are sourced from the 2024 final. Only round one includes retrospective GPT responses. No prospective result is implied.</div>
           </div>
         </div>
       </div>
@@ -103,6 +103,6 @@
     <section class="shell trust-line" aria-label="Open source and methodology"><div><span class="section-eyebrow">Built in the open</span><p>Real historical moves. Inspectable API responses. No invented model scores.</p></div><a href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer">Explore the GitHub repository ↗</a><a href="https://github.com/fraware/grandmaster-vs-model/blob/main/METHOD.md" target="_blank" rel="noopener noreferrer">How predictions are verified ↗</a></section>
   </main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-wordmark">G<span> / </span>M</span><span>Independent open-source project. Unaffiliated with FIDE or either player.</span><a href="https://lichess.org/broadcast/fide-world-championship-2024/game-14/LtsCRK9D/YaARFAYu" target="_blank" rel="noopener noreferrer">Historical data · Lichess ↗</a></div></footer>
-  <button id="challenge-mobile-reveal" type="button" class="mobile-reveal" hidden disabled>Reveal the move <span aria-hidden="true">→</span></button>
+  <button id="challenge-mobile-reveal" type="button" class="mobile-reveal" hidden disabled>Next position <span aria-hidden="true">→</span></button>
 </body>
 </html>

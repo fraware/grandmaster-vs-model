@@ -261,3 +261,43 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid rgba
 
 /* The board is the instruction; omit the decorative tutorial icon. */
 .tap-instruction{font-size:15px;font-weight:500;color:var(--muted);margin:0 0 20px}
+
+/* v1.0: a move is the answer. Progress and the next decision remain in reach. */
+.round-divider{padding:0 5px;color:var(--line-strong)}
+.challenge-step{transition:background-color .25s ease, transform .25s ease}
+.challenge-step.done{background:var(--correct)}
+.challenge-step.missed{background:var(--incorrect)}
+.challenge-choice{margin-top:15px}
+.tap-instruction{font-size:16px;color:var(--ink);font-weight:560;line-height:1.55}
+.challenge-hint{font-size:14px}
+.challenge-model-feedback{border-left:3px solid var(--slate)}
+.challenge-next:not([hidden]){margin-top:20px}
+.challenge-feedback:not([hidden]){animation:challenge-enter .28s ease-out both}
+.challenge-continue{background:var(--accent);border-color:var(--accent)}
+.challenge-continue:not(:disabled):hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.challenge-share{margin-top:13px;background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.challenge-share:not(:disabled):hover{background:var(--paper-muted);color:var(--ink);border-color:var(--line-strong)}
+@media(max-width:720px){
+  .intro-row h1{font-size:clamp(36px,8vw,50px)}
+  .intro-row p{font-size:13px;line-height:1.45}
+  .playground{padding-top:14px}
+  .intro-row{margin-bottom:14px}
+  #challenge-next:not([hidden]){display:none}
+  .challenge-feedback{margin:10px 0}
+}
+@media(prefers-reduced-motion:reduce){.challenge-step{transition:none}}
+
+.board-instruction{margin:-4px 0 14px;font-size:13px;line-height:1.5;color:var(--accent);font-weight:650}
+@media(max-width:720px){
+  .board-instruction{margin:-1px 0 10px;font-size:12px}
+  .tap-instruction{font-size:14px;font-weight:500;color:var(--muted)}
+  .challenge-prompt p{font-size:15px}
+  .challenge-assurance{font-size:10px;line-height:1.55}
+}
+
+.challenge-run-progress{font-family:var(--serif);font-size:16px!important;color:var(--accent)!important;margin:2px 0 18px!important}
+
+@media(max-width:720px){
+  .tap-instruction,.challenge-prompt p{display:none}
+  .challenge-choice{margin-top:3px}
+}

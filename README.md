@@ -1,10 +1,10 @@
 # Grandmaster vs Model
 
-**Could you match a world champion? Three real positions, three decisions, one score.**
+**Could you match a world champion? Fifteen sourced positions, five rounds, and a first-round comparison with recorded GPT responses.**
 
-Play a free three-move chess challenge built from the real 2024 World Championship final. Choose the move, reveal the grandmaster’s decision, and share your score. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
+Play a free chess challenge built from the real 2024 World Championship final. Make a legal move directly on the board to reveal the recorded grandmaster decision, compare your first three moves with a retrospective GPT API run, and continue through four further three-position practice sets. Share a score from any completed set. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Play the three-move challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the chess challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
@@ -12,13 +12,13 @@ Play a free three-move chess challenge built from the real 2024 World Championsh
 
 *Actual Chromium capture of the new editorial-style historical challenge. Its retrospective GPT comparison is distinct from the upcoming 2026 model experiment.*
 
-## Play in under a minute
+## Play without a tutorial
 
-1. Tap a piece and its destination, or drag the piece on touchscreens and desktop. The board previews your choice before you commit. A collapsible legal-move list provides a keyboard-friendly alternative.
-2. Reveal the actual move with a short board animation. Repeat for three positions from the 2024 final. Arrow keys navigate the chessboard, with Enter or Space selecting a square. Reduced-motion preferences are respected.
-3. Share the three-square result with a friend. On supported mobile browsers, the share sheet includes a generated score image; the text-copy and PNG-download fallbacks work without an account.
+1. Tap or drag a legal piece to its destination. The selected piece moves on the board; the choice locks automatically and the recorded grandmaster move is revealed. No separate Reveal confirmation is needed. The alternative move list remains accessible for keyboard and assistive-technology users.
+2. Continue to the next position using the prominent Next action, including a persistent mobile action after each reveal. The main challenge has three positions and is scored on exact moves, independently of chess strength.
+3. Compare your result with the three genuine, retrospectively collected GPT API responses; share a score and image, or continue into **four additional three-position sets** from the legally replayed 2024 final. The additional positions have **no GPT attempts**, and the interface does not invent corresponding model scores.
 
-The primary homepage contains one chessboard. The full historical and live research interface is available separately at `lab.html`. The question set is deterministic and legally replayed from the bundled historical PGN, using `src/challenge.mjs` and `src/challenge-ui.mjs`. The visitor score is held only in the current browser session. An optional recorded GPT comparison appears strictly after the visitor locks each move. Since the 2024 game was already public prior to the 2026 model release, any such response is a **retrospective demonstration**, not an unbiased forecasting benchmark, Elo rating, or global ranking. Sharing never triggers provider inference. No user scores are collected by this project.
+The challenge runs without an account, cookies, visitors' API keys, or visitor-specific inference. No scores are sent to a server. Browser tests exercise drag, tap, keyboard focus, automatic commitment, an additional full set, native sharing, and PNG fallback exports. Run `CHROMIUM_PATH=/usr/bin/chromium python tests/browser-smoke.py` to reproduce the default smoke checks, or set `GVM_EXTENDED_BROWSER=1` to exercise all fifteen positions and a fresh-run reset. Reduced-motion preferences are honored, and the site keeps one 64-square board rather than rebuilding it on each selection.
 
 ## Historical model demonstration
 

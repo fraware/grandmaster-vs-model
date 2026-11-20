@@ -43,6 +43,46 @@ export function createChallenge(archive, replay) {
   });
 }
 
+/**
+ * Four additional, fixed three-position sets from the same legally replayed
+ * championship final. These are historical practice positions, with no
+ * associated model API attempt. The fixed plies make results reproducible.
+ */
+export const PRACTICE_PLIES = Object.freeze([
+  Object.freeze([12, 41, 84]),
+  Object.freeze([20, 48, 92]),
+  Object.freeze([32, 67, 100]),
+  Object.freeze([36, 76, 104]),
+]);
+
+export function createPracticeDecks(archive, replay) {
+  // Reuse the strict archive and complete-game checks in createChallenge.
+  createChallenge(archive, replay);
+  const used = new Set(CHALLENGE_PLIES);
+  return Object.freeze(PRACTICE_PLIES.map((plies, deck) => Object.freeze(plies.map((ply, index) => {
+    if (used.has(ply) || !Number.isInteger(ply) || ply < 0 || ply >= replay.moves.length) {
+      throw new Error('Practice position is duplicated or outside the recorded game');
+    }
+    used.add(ply);
+    const actual = replay.moves[ply];
+    const fen = replay.positions[ply];
+    const legalMoves = withSans(fen).map(({uci, san}) => ({uci, san}));
+    if (!actual || legalMoves.length < 8 || !legalMoves.some(m => m.uci === actual.uci && m.san === actual.san)) {
+      throw new Error(`Invalid recorded practice position ${ply + 1}`);
+    }
+    const player = ply % 2 === 0 ? archive.white : archive.black;
+    const color = ply % 2 === 0 ? 'white' : 'black';
+    return Object.freeze({
+      schema:CHALLENGE_SCHEMA, index, ply, fen, player, color,
+      answer:Object.freeze({uci:actual.uci, san:actual.san}),
+      legalMoves:Object.freeze(legalMoves),
+      stage:`Practice set ${deck + 2} · position ${index + 1}`,
+      title:`What did ${player.split(' ')[0]} play?`,
+      detail:`${player} · ${color[0].toUpperCase() + color.slice(1)} to move · Move ${Math.floor(ply / 2) + 1}`,
+    });
+  }))));
+}
+
 /** Derive an exact-match score only for completed, legal, locally held answers. */
 export function scoreChallenge(questions, answers) {
   if (!Array.isArray(questions) || questions.length !== CHALLENGE_PLIES.length ||

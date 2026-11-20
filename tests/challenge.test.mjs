@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {replaySanMoves} from '../src/pgn.mjs';
-import {createChallenge, scoreChallenge, challengeShareText, CHALLENGE_PLIES} from '../src/challenge.mjs';
+import {createChallenge, createPracticeDecks, PRACTICE_PLIES, scoreChallenge, challengeShareText, CHALLENGE_PLIES} from '../src/challenge.mjs';
 const archive = JSON.parse(await readFile(new URL('../data/archive-2024.json', import.meta.url), 'utf8'));
 const replay = replaySanMoves(archive.moves.trim().split(/\s+/));
 const questions = createChallenge(archive, replay);
@@ -54,4 +54,30 @@ test('real historical model comparison is disclosed in share text before the can
   assert.match(text, /2024 game was already known/);
   assert.ok(text.endsWith('https://fraware.github.io/grandmaster-vs-model/#challenge'));
   assert.throws(() => challengeShareText(2, 'https://example.org/', [true,true,false], {name:'GPT-6.2 Astra',score:4}));
+});
+
+
+test('four additional three-position sets reproduce distinct, legal 2024 moves', () => {
+  const decks = createPracticeDecks(archive, replay);
+  assert.equal(decks.length, 4);
+  assert.deepEqual(decks.map(deck => deck.map(q => q.ply)), PRACTICE_PLIES.map(x => [...x]));
+  const positions = decks.flatMap(deck => deck.map(q => q.ply));
+  assert.equal(new Set([...positions, ...CHALLENGE_PLIES]).size, 15);
+  for (const [index, deck] of decks.entries()) {
+    assert.equal(deck.length, 3);
+    assert.deepEqual(scoreChallenge(deck, deck.map(q => q.answer.uci)), {correct:3,total:3});
+    assert.ok(deck.every(q => q.answer.uci === replay.moves[q.ply].uci));
+    assert.ok(deck.every(q => q.legalMoves.some(m => m.uci === q.answer.uci && m.san === q.answer.san)));
+    assert.ok(deck.every(q => q.stage.startsWith(`Practice set ${index + 2}`)));
+  }
+});
+
+test('extra practice sets reject manipulated archival games and remain independent of model records', () => {
+  assert.throws(() => createPracticeDecks({...archive, game:13}, replay));
+  assert.throws(() => createPracticeDecks(archive, {...replay, moves:replay.moves.slice(0, 100)}));
+  const practice = createPracticeDecks(archive, replay)[0];
+  const answers = practice.map(q => q.legalMoves.find(m => m.uci !== q.answer.uci).uci);
+  assert.deepEqual(scoreChallenge(practice, answers), {correct:0,total:3});
+  const share = challengeShareText(0, 'https://fraware.github.io/grandmaster-vs-model/', [false,false,false]);
+  assert.doesNotMatch(share, /GPT-6/);
 });
