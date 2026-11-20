@@ -14,7 +14,7 @@ permissions:
   contents: write
 concurrency:
   group: spectator-visual-preview
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   screenshots:
     runs-on: ubuntu-24.04
