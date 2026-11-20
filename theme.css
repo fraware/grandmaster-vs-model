@@ -586,3 +586,6 @@ footer, .site-footer { background: #0b1517; border-top: 1px solid var(--line); }
 @media (prefers-reduced-motion: reduce) {
   .challenge-square, .decision, button, a { transition: none; animation: none; }
 }
+
+/* A move on a touch board takes the player directly to its recorded outcome. */
+#spectator-panel { scroll-margin-top: 14px; }

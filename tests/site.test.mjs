@@ -211,3 +211,13 @@ test('the share graphic and favicon match the tournament identity without remote
   assert.match(screenshot,/python scripts\/build-social-card\.py/);
   assert.match(screenshot,/assets\/preview\.webp assets\/share-cover\.png/);
 });
+
+test('on mobile a locked live move reveals the result in the viewport',async()=>{
+  const live=await text('app.mjs');
+  const html=await text('lab.html');
+  const theme=await text('theme.css');
+  assert.match(live,/target\.scrollIntoView/);
+  assert.match(live,/prefers-reduced-motion:reduce/);
+  assert.match(html,/id="spectator-message" aria-live="polite"/);
+  assert.match(theme,/#spectator-panel \{ scroll-margin-top:/);
+});

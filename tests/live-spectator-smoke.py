@@ -57,6 +57,14 @@ def run_spectator_test(browser) -> None:
                 page.touchscreen.tap(bounds["x"] + bounds["width"] / 2,
                                      bounds["y"] + bounds["height"] / 2)
         assert "Prediction locked." in page.locator("#spectator-message").text_content()
+        if label == "mobile":
+            # A board tap must reveal the locked result without manual
+            # page searching. The viewport follows the move to its outcome.
+            page.wait_for_function("""() => {
+              const panel = document.getElementById('spectator-panel');
+              const rect = panel.getBoundingClientRect();
+              return rect.top >= 0 && rect.top < innerHeight - 90;
+            }""", timeout=4000)
         assert "LOCKED" in page.locator("#decision-list").inner_text()
         assert page.locator("#guess-area").is_hidden()
         assert page.locator("#spectator-next").is_hidden()
