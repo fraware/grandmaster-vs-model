@@ -3,8 +3,9 @@
  *
  * These records are a recreational local session, not independently timestamped
  * forecasts and never part of the model-provider evidence ledger. A prediction
- * is bound to the exact round, ply, FEN and legal UCI choice. Existing choices
- * are immutable even if a later broadcast changes.
+ * is bound to the exact round, ply, FEN and legal UCI choice. The interface
+ * refuses ordinary replacement; user-editable browser data are not immutable
+ * evidence, even if a later broadcast changes.
  */
 import {withSans,parseFen} from './chess.mjs';
 import {roundInfo} from './match-2026.mjs';
