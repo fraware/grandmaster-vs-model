@@ -208,7 +208,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert event_link.get_attribute('href') == page.locator('#live-hero-link').get_attribute('href')
         assert event_link.inner_text().strip()
         assert '2026' in page.locator('#challenge-live-next-status').inner_text()
-        assert 'Gukesh vs Sindarov' in page.locator('.challenge-live-next-copy p').inner_text()
+        assert 'Gukesh vs Sindarov' in page.locator('.challenge-live-next-copy p').text_content()
         assert page.locator('#challenge-live-next-time').inner_text()
         assert page.locator('#challenge-prompt').is_hidden()
         assert page.locator('.challenge-result-tile').count() == 3
