@@ -53,3 +53,7 @@ The live page has been checked from an independent Chromium browser running agai
 ## Homepage live entry (v1.7, 20 November 2026)
 
 The next relevant official 2026 round is prominently linked in the first-screen home heading, even at narrow mobile widths, with a fuller event introduction following the immediately playable retrospective board. The copy distinguishes pregame opening guesses, a scheduled broadcast window, and historical board exploration. It never asserts physical play from scheduling metadata alone. Node tests cover all fourteen game boundaries and Chromium tests verify that the entry is visible without scrolling on desktop and mobile. Neither conversion analytics nor visitor tracking is introduced.
+
+## Championship stream readiness (v1.8)
+
+Before Game 1, verify the hourly read-only source workflow is enabled, that every run receives a unique artifact, and that a representative source snapshot succeeds. The expected observational start sequence for November 24 is 14:03, 15:03, …, 23:03 UTC. The ten sessions are distinct because GitHub Actions scheduling is best effort and one interrupted job must not erase the entire day's collection. Source update observations must later be reconciled across runs; never report source timestamps as independently established physical move times. The scheduled paid model collector stays separate from this observer.
