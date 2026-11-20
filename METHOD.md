@@ -170,3 +170,7 @@ A normal revisit to the game's live URL preferentially shows a stored choice for
 ## Private schedule reminder (v1.12)
 
 The pregame spectator experience includes an optional user-initiated `text/calendar` download. The iCalendar record specifies a 30-minute window beginning at the official published UTC round start, its stable event identifier, a direct game-board URL, and a requested 15-minute advance alert. It exports no move, FEN, personal identifier or local prediction timestamp. Import and alarm behavior depend on the recipient calendar client. The schedule is organizer-provided metadata, not independent evidence of physical play or prediction priority.
+
+## Tournament interface typography and contrast (v1.13)
+
+The interface separates game actions and headlines (condensed scorecard typography), instructions (locally installed humanist sans) and schedule/ply/source records (monospaced text). Shared near-black background and cool green board tokens cover the 2024 retrospective and 2026 live challenge. All fonts resolve locally; no remote font requests are made. Actual typeface selection depends on the user system. The browser acceptance suite covers critical layout, board usability, and viewport overflow across desktop and mobile sizes.

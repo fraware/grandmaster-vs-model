@@ -176,3 +176,20 @@ test('Pages upload completes in a separate job before deployment and supports re
   assert.ok(yaml.indexOf('actions/deploy-pages@v4')>deploy);
   assert.match(yaml,/cp -R src data assets _site\//);
 });
+
+test('both pages ship the same chess-first typography, board and contrast',async()=>{
+  const home=await text('index.html');
+  const live=await text('lab.html');
+  const theme=await text('theme.css');
+  const workflow=await text('.github/workflows/pages.yml');
+  assert.match(home,/href="theme\.css"/);
+  assert.match(live,/href="theme\.css"/);
+  assert.match(workflow,/style\.css landing\.css theme\.css favicon\.svg/);
+  assert.match(theme,/--font-display:/);
+  assert.match(theme,/--font-score:/);
+  assert.match(theme,/--board-dark:\s*#658c7b/);
+  assert.match(theme,/--board-light:\s*#dbe6d6/);
+  assert.match(theme,/--accent:\s*#d7ed75/);
+  assert.doesNotMatch(theme,/@import|@font-face|https?:\/\/fonts\./);
+  assert.doesNotMatch(theme,/backdrop-filter|linear-gradient|radial-gradient/);
+});

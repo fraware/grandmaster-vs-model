@@ -35,6 +35,8 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = (ROOT / html_file).read_text(encoding='utf-8')
     css = (ROOT / css_file).read_text(encoding='utf-8')
     html = html.replace(f'<link rel="stylesheet" href="{css_file}" />', f'<style>{css}</style>')
+    theme = (ROOT / 'theme.css').read_text(encoding='utf-8')
+    html = html.replace('<link rel="stylesheet" href="theme.css" />', f'<style>{theme}</style>')
     html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
