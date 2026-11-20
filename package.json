@@ -16,7 +16,9 @@
     "verify:retrospective": "node scripts/verify-retrospective.mjs",
     "verify:history": "node scripts/build-history-2024.mjs",
     "build:history": "node scripts/build-history-2024.mjs --write",
-    "verify:2026": "node scripts/verify-match-2026.mjs"
+    "verify:2026": "node scripts/verify-match-2026.mjs",
+    "stream:probe": "node scripts/stream-observer.mjs --probe",
+    "stream:observe": "node scripts/stream-observer.mjs --observe"
   },
   "engines": {
     "node": ">=20"
