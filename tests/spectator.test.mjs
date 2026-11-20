@@ -95,7 +95,7 @@ test('corrupt browser session is preserved and isolated from future writes',()=>
   session.lock(first);
   assert.equal(session.list().length,1);
   assert.equal(storage.getItem(SPECTATOR_STORAGE_KEY),'{"schema":"unknown"}');
-  assert.match(session.warning,/Saved choices unavailable/);
+  assert.match(session.warning,/Browser-saved choices unreadable/);
 });
 
 test('storage quota exception degrades to memory without claiming persistence',()=>{
@@ -104,7 +104,7 @@ test('storage quota exception degrades to memory without claiming persistence',(
   session.lock(first);
   assert.equal(session.persisted,false);
   assert.equal(session.find(1,1).uci,'e2e4');
-  assert.match(session.warning,/Storage unavailable/);
+  assert.match(session.warning,/storage unavailable/i);
 });
 
 test('share text states that local predictions are not authenticated priority',()=>{
@@ -212,5 +212,6 @@ test('return visits prioritize a revealed saved choice unless no move has yet ap
   const after=play(START_FEN,'e2e4').fen;
   const later={...choice,ply:2,fen:after,uci:'e7e5'};
   assert.equal(spectatorReturnPly([choice,later],1,8),1);
+  assert.equal(spectatorReturnPly([choice,later],1,1),1);
   assert.throws(()=>spectatorReturnPly([choice],15,2),/Invalid returning/);
 });

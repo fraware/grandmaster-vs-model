@@ -187,8 +187,11 @@ export function spectatorReturnPly(choices,game,moveCount){
   if(!Number.isInteger(game)||game<1||game>14||
     !Number.isInteger(moveCount)||moveCount<0||moveCount>500)
     throw new Error('Invalid returning spectator board position');
-  const resolved=validateChoices(choices).filter(
-    choice=>choice.game===game&&choice.ply<=moveCount);
+  const sameGame=validateChoices(choices).filter(c=>c.game===game);
+  // An existing prediction at the newest unplayed position is the most useful
+  // return state. Once that move appears, its reveal takes precedence.
+  if(sameGame.some(c=>c.ply===moveCount+1))return moveCount;
+  const resolved=sameGame.filter(choice=>choice.ply<=moveCount);
   return resolved.length?Math.max(...resolved.map(c=>c.ply))-1:moveCount;
 }
 
