@@ -145,11 +145,11 @@
 
 /* Live chess participation. Editorial design stays consistent with the archive. */
 [hidden]{display:none!important}
-body[data-mode="live"] .lab-intro{padding-top:28px;padding-bottom:24px}
-body[data-mode="live"] .lab-intro h1{font-size:clamp(37px,4.1vw,59px);margin:8px 0}
-body[data-mode="live"] .lab-intro p{font-size:14px;line-height:1.5;max-width:790px}
-body[data-mode="live"] .lab-back{margin-top:10px}
-body[data-mode="live"] .experience-header{min-height:57px}
+body[data-mode="live"] .lab-intro{padding-top:14px;padding-bottom:12px}
+body[data-mode="live"] .lab-intro h1{font-size:clamp(34px,3.4vw,45px);margin:4px 0}
+body[data-mode="live"] .lab-intro p{font-size:13px;line-height:1.4;max-width:900px}
+body[data-mode="live"] .lab-back{display:none}
+body[data-mode="live"] .experience-header{min-height:48px;padding-top:8px;padding-bottom:8px}
 body[data-mode="live"] .decisions-column .guess-area{order:1;margin-top:5px}
 body[data-mode="live"] .decisions-column .spectator-panel{order:2}
 body[data-mode="live"] .decisions-column .decisions{order:3;margin-top:19px}
@@ -158,6 +158,15 @@ body[data-mode="live"] .decisions-column .trace-row{order:5;margin-top:8px}
 body[data-mode="live"] .decisions-column .score-line{order:6}
 body[data-mode="live"] .decision-intro{margin-bottom:10px}
 body[data-mode="live"] .result-headline{margin-top:14px}
+body[data-mode="live"] .source-strip{min-height:38px;padding-top:6px;padding-bottom:6px}
+body[data-mode="live"] .board-column{padding:15px 22px}
+body[data-mode="live"] .board-heading{margin-bottom:8px}
+body[data-mode="live"] .board-heading h2{font-size:20px;margin-top:5px}
+body[data-mode="live"] .board-wrap{max-width:400px}
+body[data-mode="live"] .board-player{height:23px}
+body[data-mode="live"] .board-player.top{margin-bottom:4px}
+body[data-mode="live"] .board-player.bottom{margin-top:4px}
+
 .chess-board.interactive .square{touch-action:none}
 .chess-board .square:disabled{opacity:1;cursor:default}
 .spectator-panel{background:var(--paper);border:1px solid var(--line);padding:18px 19px;margin-top:16px}
@@ -177,10 +186,15 @@ body[data-mode="live"] .result-headline{margin-top:14px}
 #spectator-storage-note{border-top:1px solid var(--line);padding-top:12px;margin-top:14px;
   font-size:10px;color:var(--faint)}
 @media(max-width:760px){
-  body[data-mode="live"] .lab-intro{padding-top:16px;padding-bottom:16px}
-  body[data-mode="live"] .lab-intro h1{font-size:37px}
-  body[data-mode="live"] .lab-intro p{font-size:12px}
+  body[data-mode="live"] .lab-intro{padding-top:9px;padding-bottom:9px}
+  body[data-mode="live"] .lab-intro h1{font-size:33px}
+  body[data-mode="live"] .lab-intro p{font-size:11px;line-height:1.35}
   body[data-mode="live"] .experience-body{grid-template-columns:minmax(0,1fr)}
+  body[data-mode="live"] .experience-header{padding:9px 12px}
+  body[data-mode="live"] .board-column{padding:10px 12px 14px}
+  body[data-mode="live"] .board-heading{margin-bottom:5px}
+  body[data-mode="live"] .source-strip{padding:7px 10px}
+
   .spectator-panel{padding:15px}
   .spectator-meta{font-size:9px}
   .spectator-actions button{flex:1}
