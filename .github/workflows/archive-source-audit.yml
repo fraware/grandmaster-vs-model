@@ -1,0 +1,75 @@
+name: Audit historical championship source files
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/archive-source-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Collect independent source files
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import time
+          import urllib.error
+          import urllib.request
+
+          target = pathlib.Path('source-audit')
+          target.mkdir(exist_ok=True)
+          rounds = [
+              'G2R2lPcA', 'YL0LEwAL', 'RYXkK9po', '9DU8PRwg',
+              '57VhOk8z', 'I2LcDwAT', 'Nax0ffrf', 'EkzWKHiy',
+              'HMJKeeue', 'X5h2mPby', 'z3yejSAa', 'zVdckLtg',
+              'UXqUOvNU', 'LtsCRK9D',
+          ]
+          report = []
+          sources = [(f'lichess-{i:02}', f'https://lichess.org/api/broadcast/round/{rid}.pgn')
+                     for i, rid in enumerate(rounds, start=1)]
+          sources.extend([
+              ('pgnmentor-pgn', 'https://www.pgnmentor.com/events/WorldChamp2024.pgn'),
+              ('pgnmentor-zip', 'https://www.pgnmentor.com/files/WorldChamp2024.zip'),
+          ])
+          for label, url in sources:
+              error = None
+              for attempt in range(3):
+                  try:
+                      req = urllib.request.Request(url, headers={'User-Agent': 'grandmaster-vs-model-source-audit/1.0', 'Accept': '*/*'})
+                      with urllib.request.urlopen(req, timeout=22) as response:
+                          payload = response.read(1_000_001)
+                          content_type = response.headers.get('Content-Type', '')
+                      if len(payload) > 1_000_000: raise ValueError('Response over 1MB')
+                      if not payload: raise ValueError('Empty source')
+                      suffix = '.zip' if label.endswith('zip') else '.pgn'
+                      (target / (label + suffix)).write_bytes(payload)
+                      report.append({'name': label, 'url': url, 'bytes': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(), 'contentType': content_type})
+                      print(f'Source {label}: {len(payload)} bytes', flush=True)
+                      break
+                  except (OSError, ValueError) as ex:
+                      error = f'{type(ex).__name__}: {ex}'[:400]
+                      time.sleep(attempt + 1)
+              else:
+                  report.append({'name':label, 'url':url, 'error':error})
+                  print(f'Source {label}: {error}', flush=True)
+          (target/'manifest.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          ok = [r for r in report if r['name'].startswith('lichess-') and 'sha256' in r]
+          print(f'RECEIVED {len(ok)}/14 Lichess rounds, {sum(r["name"].startswith("pgnmentor") and "sha256" in r for r in report)} second-source files')
+          if len(ok) != 14:
+              raise SystemExit('Historical source retrieval incomplete; inspect manifest')
+          PY
+      - name: Upload source records for deterministic inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: championship-source-audit
+          path: source-audit/
+          retention-days: 14
