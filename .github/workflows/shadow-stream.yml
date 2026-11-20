@@ -2,18 +2,19 @@ name: Observe championship broadcast stream without model calls
 on:
   workflow_dispatch:
   schedule:
-    # Exact classical-round dates; scheduled Actions starts remain best effort.
-    - cron: '5 14 24,25,26,28,29,30 11 *'
-    - cron: '5 14 2,3,4,6,7,8,10,11 12 *'
+    # One short independent session per hour over the match-day observation
+    # window. GitHub Actions cron is best effort; delayed or missed starts
+    # are explicitly possible. Every session has its own retained artifact.
+    - cron: '3 14-23 24,25,26,28,29,30 11 *'
+    - cron: '3 14-23 2,3,4,6,7,8,10,11 12 *'
 permissions:
   contents: read
-concurrency:
-  group: championship-shadow-stream
-  cancel-in-progress: false
+# Independent jobs are permitted to overlap if GitHub delays a scheduled start.
+# They never write to the repository and each upload is uniquely named.
 jobs:
   shadow:
     runs-on: ubuntu-24.04
-    timeout-minutes: 100
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,7 +24,7 @@ jobs:
         run: node --test tests/stream-observer.test.mjs && npm run verify:2026
       - name: Observe the actual scheduled round without any provider credentials
         env:
-          STREAM_DURATION_MS: '5400000'
+          STREAM_DURATION_MS: '3300000'
         run: npm run stream:observe
       - name: Preserve read-only source observations for reconciliation
         if: always()
@@ -33,5 +34,6 @@ jobs:
           path: |
             data/observations/
             data/collection.json
+            artifacts/shadow/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 90
