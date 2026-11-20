@@ -5,7 +5,7 @@ import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
-import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText} from './src/spectator.mjs';
+import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
 import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
@@ -20,10 +20,14 @@ const liveGames=new Map(),liveStatus=new Map();
 let selectedGame=Number(query.get('game'))||(mode==='archive'?14:1);if(selectedGame<1||selectedGame>14)selectedGame=mode==='archive'?14:1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
-let spectatorStorage=null;
-try{spectatorStorage=window.sessionStorage;}catch{/* Session storage can be blocked. */}
-const spectatorSession=createSpectatorSession({storage:spectatorStorage});
+let spectatorStorage=null,legacySpectatorStorage=null;
+try{spectatorStorage=window.localStorage;}catch{/* Persistent storage can be blocked. */}
+try{legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be blocked. */}
+const spectatorSession=createSpectatorSession({
+  storage:spectatorStorage,legacyStorage:legacySpectatorStorage
+});
 let keyboardSquare=0,dragStart=null,suppressBoardClick=false;
+let returningRevealPending=mode==='live'&&!query.has('ply');
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const setText=(id,text)=>{$(id).textContent=String(text)};
 const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
@@ -46,6 +50,10 @@ function liveOpportunity(){
   }),fen:data?.positions?.[ply]||START_FEN,ply:ply+1};
 }
 function liveChoice(){return spectatorSession.find(selectedGame,currentIndex()+1);}
+/** On a return visit, show the most recent saved reveal before the latest board. */
+function restoredSpectatorPly(gameNumber,gameData){
+  return spectatorReturnPly(spectatorSession.list(),gameNumber,gameData?.moves?.length??0);
+}
 function liveOutcome(choice){return spectatorOutcome(choice,liveGames.get(choice.game));}
 function focusNewSourceMove(gameNumber,previousCount,latestCount){
   if(mode!=='live'||selectedGame!==gameNumber||
@@ -56,6 +64,7 @@ function focusNewSourceMove(gameNumber,previousCount,latestCount){
   selectedPly=resolved.length?resolved.at(-1).ply-1:latestCount;
 }
 function selectIndex(n){
+  returningRevealPending=false;
   selectedPly=Math.max(0,Math.min(n,game()?.moves?.length||0));
   originSquare=null;selectedArrow=null;syncUrl();render();
 }
@@ -67,6 +76,7 @@ function syncUrl(){
   history.replaceState(null,'',url);
 }
 function switchMode(next,manual=true){
+  if(manual)returningRevealPending=false;
   mode=next;
   if(manual)userChangedMode=true;
   selectedGame=isArchive()?14:1;
@@ -134,7 +144,7 @@ function boardClick(square,legal){
   originSquare=legal.some(m=>m.uci.startsWith(square))?square:null;
   selectedArrow=null;render();
 }
-/** One legal board move immediately records a per-tab, non-editable guess. */
+/** One legal board move records a browser-local guess; no priority attestation. */
 function lockLiveChoice(uci){
   if(isArchive())return;
   const chance=liveOpportunity();
@@ -322,7 +332,7 @@ function renderLive(){
   const complete=all.map(c=>liveOutcome(c)).filter(o=>['match','different'].includes(o.kind));
   const matched=complete.filter(o=>o.kind==='match').length;
   const pending=all.filter(c=>liveOutcome(c).kind==='pending').length;
-  setText('spectator-stats',`${matched} matched / ${complete.length} resolved · ${pending} waiting · local to this tab`);
+  setText('spectator-stats',`${matched} matched / ${complete.length} resolved · ${pending} waiting · saved on this device`);
   $('spectator-share').hidden=!choice;
   $('spectator-next').hidden=!(choice&&outcome&&['match','different'].includes(outcome.kind)&&
     i<(data?.moves.length||0));
@@ -332,7 +342,7 @@ function renderLive(){
       outcome.kind==='different'?`Grandmaster played ${outcome.actualSan}.`:
       outcome.kind==='source-conflict'?'Source history differs.':'Prediction locked.';
     const resultDetail=outcome.kind==='pending'?
-      'Waiting for the next official Lichess move. Your move is locked in this tab.':
+      'Waiting for the next official Lichess move. Your choice stays in this browser unless its site data is cleared.':
       outcome.kind==='source-conflict'?
       'The broadcast position disagrees with the recorded FEN. No result is scored.':
       `Compared against the sourced broadcast move. ${liveStatus.get(choice.game)?.checkedAt?
@@ -347,7 +357,7 @@ function renderLive(){
     }else if(outcome.kind==='source-conflict'){
       resultSummary('Local source conflict.','The saved guess is preserved, but this position cannot be scored.');
     }else{
-      resultSummary('Your move is locked.','This tab will check the next validated broadcast move. The local clock is not evidence of physical move timing.');
+      resultSummary('Your move is locked.','Return in this browser to check the next validated broadcast move. Local storage and clocks provide no independent timing proof.');
     }
   }else{
     const pregame=chance.kind==='opening';
@@ -364,7 +374,11 @@ function renderLive(){
   }
   if(spectatorSession.warning)
     setText('spectator-storage-note',spectatorSession.warning);
-  else setText('spectator-storage-note','No account, analytics or model API calls. Local device time is not independently verified.');
+  else setText('spectator-storage-note',spectatorSession.persistence==='browser'?
+    'Saved in this browser across visits. Clearing site data removes it; other devices do not share it. No account or verified timestamp.':
+    spectatorSession.persistence==='tab'?
+    'Saved in this tab only; closing the tab may erase it. No account or verified timestamp.':
+    'Temporary memory only. Closing the page erases the prediction. No account or verified timestamp.');
   setText('live-board-instruction',choice?(
     outcome.kind==='pending'?'Your move is locked. Await the next broadcast move.':
     outcome.kind==='source-conflict'?'Source mismatch. Your saved move is preserved.':
@@ -374,7 +388,7 @@ function renderLive(){
   if(!choice&&chance.kind==='opening')resultSummary('Your opening call.',
     'Play a legal first move and we will compare it with the official PGN once the game begins. Local timestamps are unverified.');
   if(!choice&&chance.kind==='live')resultSummary('Play before the next feed update.',
-    'Your decision is stored only in this tab, without model API requests or an independent timing certificate.');
+    'Your decision stays on this device if browser storage is available. It is not a certified pre-move claim.');
   drawBoard(before,choice?.uci||selectedArrow||shownMove?.uci||null,playable);
 }
 function render(){
@@ -430,7 +444,16 @@ async function refreshBroadcast(){
     const before=previous?.moves.length||0;
     liveGames.set(targetGame,latest);liveStatus.set(targetGame,{checkedAt:new Date(),error:null});
     if(!userChangedMode&&latest.moves.length&&mode==='archive'){switchMode('live',false);}
-    if(mode==='live'&&selectedGame===targetGame)focusNewSourceMove(targetGame,before,latest.moves.length);
+    if(mode==='live'&&selectedGame===targetGame){
+      focusNewSourceMove(targetGame,before,latest.moves.length);
+      if(returningRevealPending){
+        const restored=restoredSpectatorPly(targetGame,latest);
+        if(restored<latest.moves.length){
+          selectedPly=restored;
+          returningRevealPending=false;
+        }
+      }
+    }
   }catch(error){
     liveStatus.set(targetGame,{checkedAt:null,error:error instanceof Error?error.message:'unavailable'});
     console.warn('Lichess broadcast fetch failed:',error);
@@ -486,8 +509,13 @@ async function refreshPublishedIndex(){
   finally{indexRequestRunning=false;}
 }
 for(let g=1;g<=14;g++){const o=document.createElement('option');o.value=String(g);o.textContent=String(g).padStart(2,'0');$('game-select').append(o);}
-$('game-select').addEventListener('change',e=>{selectedGame=Number(e.target.value);selectedPly=isArchive()?0:(liveGames.get(selectedGame)?.moves.length||0);guesses.clear();revealedPly.clear();originSquare=null;selectedArrow=null;syncUrl();render();if(!isArchive())void refreshBroadcast();});
+$('game-select').addEventListener('change',e=>{returningRevealPending=false;selectedGame=Number(e.target.value);selectedPly=isArchive()?0:(liveGames.get(selectedGame)?.moves.length||0);guesses.clear();revealedPly.clear();originSquare=null;selectedArrow=null;syncUrl();render();if(!isArchive())void refreshBroadcast();});
 $('tab-live').addEventListener('click',()=>switchMode('live'));
+window.addEventListener('storage',event=>{
+  // Browser storage events are hints, not atomic cross-tab reservation locks.
+  if(event.key===SPECTATOR_STORAGE_KEY&&event.storageArea===spectatorStorage&&mode==='live')
+    render();
+});
 $('tab-archive').addEventListener('click',()=>switchMode('archive'));
 $('flip-button').addEventListener('click',()=>{flipped=!flipped;render();});
 $('nav-start').addEventListener('click',()=>selectIndex(0));
@@ -595,7 +623,9 @@ async function initialize(){
       catch(error){console.warn('Broadcast cache rejected:',error);}
     }
     const deepPly=Number(query.get('ply'));
-    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:isArchive()?(selectedGame===14?historical.highlightPly-1:0):(liveGames.get(selectedGame)?.moves.length||0);
+    selectedPly=query.has('ply')&&Number.isInteger(deepPly)&&deepPly>=0?deepPly:
+      isArchive()?(selectedGame===14?historical.highlightPly-1:0):
+      restoredSpectatorPly(selectedGame,liveGames.get(selectedGame));
     if(!userChangedMode&&Array.from(liveGames.values()).some(x=>x.moves.length)&&mode==='archive')switchMode('live',false);
   }catch(error){
     console.error('Cannot load recorded data:',error);

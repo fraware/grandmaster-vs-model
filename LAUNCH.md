@@ -65,3 +65,7 @@ Each scheduled hourly observer uploads a uniquely named, 90-day source artifact.
 ## Automatic game-day browser readiness
 
 At 13:25 UTC on each scheduled classical game date, the GitHub Actions preflight is intended to test the live Pages route and public PGN for **that day's game**. Verify both its success and the JSON artifact before presenting any round as operationally tested. This is a best-effort scheduled run, not guaranteed real-time monitoring or evidence of player move times. Game 1's first check is scheduled for 24 November 2026, ahead of the 14:00 UTC announced opening.
+
+## Returning participants (v1.11)
+
+The pregame interaction now retains a local opening prediction across normal tab closure using browser site storage and migrates older in-tab predictions. A returning visitor is directed to the saved reveal from sourced PGN, then can continue to the latest position. Test cross-tab changes, storage access failures, loss of site data, external/other-device visits and browser back/forward behavior. No account or telemetry is introduced; do not describe these records as independently authenticated prediction timestamps.

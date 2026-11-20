@@ -160,3 +160,9 @@ The reconciliation report is deliberately separate from the canonical model ledg
 ## Round-specific production browser preflight (v1.10)
 
 Every official game day has a scheduled 13:25 UTC production preflight. The test selects the next applicable round from `data/broadcast-2026.json`, rejects invalid or reordered schedule records, opens the actual corresponding public Game-N URL, checks that the application selects Game N and completes a fresh broadcast fetch, and then performs an independent cross-origin PGN request within the same Chromium origin. The reported timing refers solely to the observed public browser HTTP retrieval. The workflow contains no model credentials and retains test screenshots and a JSON report for 60 days. GitHub Actions may postpone or omit a scheduled job; the workflow's status and artifact presence must be checked before asserting that readiness was verified.
+
+## Browser-local spectator continuity (v1.11)
+
+Spectator predictions now use origin-scoped browser `localStorage`, with best-effort migration of older tab-only entries from `sessionStorage`. Existing saved positions are protected from silent replacement; damaged records are preserved and storage failures produce an explicit fallback warning. Local storage is mutable and can be erased by the visitor, private browsing cleanup or browser retention policy. Two tabs are not guaranteed to serialize simultaneous writes. Consequently, no such record is independent evidence of pre-move priority, shared participant identity or event latency.
+
+A normal revisit to the game's live URL preferentially shows a stored choice for a move that the validated public PGN has since revealed. Explicit `ply` URLs and manually selected positions take precedence. Spectator comparison remains recreational and excluded from all provider model-evaluation evidence.
