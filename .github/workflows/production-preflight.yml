@@ -1,0 +1,32 @@
+name: Production spectator and Lichess browser preflight
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/production-live-preflight]
+    paths:
+      - tests/production-preflight.py
+      - .github/workflows/production-preflight.yml
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Chromium runtime
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Verify deployed Pages and real Lichess cross-origin access
+        run: python tests/production-preflight.py
+      - name: Retain browser evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-chess-preflight
+          path: artifacts/production-preflight/
+          retention-days: 7
