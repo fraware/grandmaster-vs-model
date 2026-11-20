@@ -53,6 +53,12 @@ if (wantsLab) {
 } else {
   try { updateLiveInvite(); }
   catch(error) { console.warn('The scheduled live round label is unavailable:',error); }
+  // A tab restored from history or reactivated on another match day must not
+  // keep pointing to yesterday's scheduled round.
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden)updateLiveInvite();
+  });
+  window.addEventListener('pageshow',()=>updateLiveInvite());
   initializeHome().catch(() => {
     const area = document.querySelector('.challenge-right');
     if (!area) return;
