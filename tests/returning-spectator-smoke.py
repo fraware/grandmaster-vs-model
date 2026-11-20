@@ -91,7 +91,7 @@ def test_close_reopen_and_reveal(browser):
         calendar = Path(download.path()).read_bytes().decode("utf-8")
         assert "DTSTART:20261124T140000Z\r\n" in calendar
         assert "TRIGGER:-PT15M\r\n" in calendar
-        assert "game=1#experiment\r\n" in calendar
+        assert "game=1#experiment\r\n" in calendar.replace("\r\n ", "")
         assert "e2e4" not in calendar
         assert "Calendar file prepared." in first.locator(
             "#spectator-calendar-status"
