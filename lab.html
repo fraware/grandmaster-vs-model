@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f6f1e8" />
-  <meta name="description" content="Follow the 2026 World Chess Championship with source-backed game moves, recorded AI model forecasts, and a reproducible evidence protocol." />
+  <meta name="description" content="Predict the next grandmaster move in the 2026 World Chess Championship. Lock a legal move on your own device, then follow the verified Lichess broadcast. Free, no signup." />
   <link rel="canonical" href="https://fraware.github.io/grandmaster-vs-model/lab.html" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://fraware.github.io/grandmaster-vs-model/lab.html" />
   <meta property="og:title" content="Grandmaster vs Model | The open experiment" />
-  <meta property="og:description" content="Three positions from a real World Championship final. Predict the moves, reveal the answers, share your score. Free, open-source chess challenge." />
+  <meta property="og:description" content="Play the next move before the broadcast reveals it. Follow every sourced move and compare your local guess. No signup, no model API costs." />
   <meta property="og:image" content="https://fraware.github.io/grandmaster-vs-model/assets/share-cover.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -36,8 +36,8 @@
   <main id="top">
     <section class="shell lab-intro" id="lab-top" aria-label="The public experiment">
       <span class="eyebrow">CHAMPIONSHIP 2026 &nbsp;/&nbsp; OPEN EXPERIMENT</span>
-      <h1>Behind the moves.</h1>
-      <p>Replay every recorded move of the 2024 championship, then inspect the 2026 broadcast and prospective model evidence. Results appear only once recorded and verifiable.</p>
+      <h1 id="lab-title">Behind the moves.</h1>
+      <p id="lab-subtitle">Replay the 2024 championship and inspect the sourced 2026 model experiment.</p>
       <a class="lab-back" href="./#challenge">← Play the three-move challenge</a>
     </section>
     <section id="experiment" class="shell experience" aria-label="Interactive chessboard">
@@ -60,6 +60,7 @@
       <div class="experience-body">
         <div class="board-column">
           <div class="board-heading"><div><span class="board-sup" id="position-kicker">REAL CHAMPIONSHIP ARCHIVE</span><h2 id="position-name">A world title on the line</h2></div><button class="icon-button" id="flip-button" type="button" title="Rotate board" aria-label="Rotate chessboard">↻</button></div>
+          <p class="live-board-instruction" id="live-board-instruction">Tap or drag a piece to lock your local choice.</p>
           <div class="board-wrap">
             <div class="board-player top"><span class="player-disc dark-disc">♟</span><span id="top-player">Gukesh D</span><span class="player-side" id="top-side">BLACK</span></div>
             <div class="chess-board" id="board" role="group" aria-label="Chessboard; choose a piece and its destination to guess a move"></div>
@@ -82,10 +83,22 @@
           <div id="score-line" class="score-line" hidden></div>
           <div class="decisions" id="decision-list" aria-live="polite"></div>
           <div class="guess-area" id="guess-area">
-            <label for="guess-select">YOUR MOVE <span class="quiet">/ STANDARD CHESS NOTATION</span></label>
+            <label for="guess-select"><span id="spectator-guess-label">YOUR MOVE</span> <span class="quiet">/ STANDARD CHESS NOTATION</span></label>
             <div class="guess-input"><select id="guess-select" aria-label="Select your predicted chess move"></select><button id="guess-button" type="button">Lock prediction</button></div>
             <button id="reveal-button" type="button" class="text-button">Reveal the grandmaster’s move →</button>
           </div>
+          <section id="spectator-panel" class="spectator-panel" aria-label="Your local championship prediction" hidden>
+            <div class="spectator-meta"><span id="spectator-phase">PREGAME · OPENING MOVE</span><span id="spectator-stats">0 matched / 0 resolved</span></div>
+            <h3 id="spectator-message">How will White open?</h3>
+            <p id="spectator-detail">Choose a legal move on the board to lock your local prediction.</p>
+            <div class="spectator-actions">
+              <button type="button" id="spectator-next" hidden>Continue to the latest position →</button>
+              <button type="button" id="spectator-share" hidden>Share my prediction ↗</button>
+            </div>
+            <textarea id="spectator-share-text" hidden readonly aria-label="Copyable local chess prediction"></textarea>
+            <p id="spectator-share-status" role="status" aria-live="polite"></p>
+            <p id="spectator-storage-note">No account or API costs. Local time is not independently verified.</p>
+          </section>
           <div class="result-summary" id="result-summary" aria-live="polite"><span class="result-icon">◎</span><div><strong>Historical decisions, genuine chess.</strong><p>This is a retrospective test of your prediction, not a claim about model performance.</p></div></div>
           <div class="trace-row"><span class="trace-mark">⤷</span><span id="trace-text">Sourced to the 2024 Lichess championship broadcast.</span></div>
         </div>

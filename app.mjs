@@ -5,6 +5,7 @@ import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
+import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText} from './src/spectator.mjs';
 import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
@@ -19,6 +20,10 @@ const liveGames=new Map(),liveStatus=new Map();
 let selectedGame=Number(query.get('game'))||(mode==='archive'?14:1);if(selectedGame<1||selectedGame>14)selectedGame=mode==='archive'?14:1;
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
+let spectatorStorage=null;
+try{spectatorStorage=window.sessionStorage;}catch{/* Session storage can be blocked. */}
+const spectatorSession=createSpectatorSession({storage:spectatorStorage});
+let keyboardSquare=0,dragStart=null,suppressBoardClick=false;
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const setText=(id,text)=>{$(id).textContent=String(text)};
 const humanMoveLabel=(ply)=>`Move ${Math.floor(ply/2)+1}${ply%2===0?' (White)':' (Black)'}`;
@@ -29,6 +34,27 @@ function game(){
   return liveGames.get(selectedGame)||null;
 }
 function currentIndex(){const data=game();return Math.max(0,Math.min(selectedPly??data?.moves?.length??0,data?.moves?.length??0));}
+/** A source-anchored live position or an explicitly pregame opening guess. */
+function liveOpportunity(){
+  const data=liveGames.get(selectedGame),ply=currentIndex();
+  const status=liveStatus.get(selectedGame)||{};
+  return {...spectatorOpportunity({
+    game:selectedGame,ply,moveCount:data?.moves.length??0,
+    at:new Date(Date.now()).toISOString(),
+    sourceReady:Boolean(status.checkedAt),sourceError:Boolean(status.error),
+    result:data?.tags?.Result??'*'
+  }),fen:data?.positions?.[ply]||START_FEN,ply:ply+1};
+}
+function liveChoice(){return spectatorSession.find(selectedGame,currentIndex()+1);}
+function liveOutcome(choice){return spectatorOutcome(choice,liveGames.get(choice.game));}
+function focusNewSourceMove(gameNumber,previousCount,latestCount){
+  if(mode!=='live'||selectedGame!==gameNumber||
+      (selectedPly!==null&&selectedPly<previousCount))return;
+  const resolved=spectatorSession.list().filter(x=>
+    x.game===gameNumber&&x.ply>previousCount&&x.ply<=latestCount);
+  // Land on a newly resolved choice first, rather than skipping its reveal.
+  selectedPly=resolved.length?resolved.at(-1).ply-1:latestCount;
+}
 function selectIndex(n){
   selectedPly=Math.max(0,Math.min(n,game()?.moves?.length||0));
   originSquare=null;selectedArrow=null;syncUrl();render();
@@ -58,13 +84,17 @@ function arrowSvg(uci){
   return `<svg class="arrow-overlay" viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="move-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b14f2f"/></marker></defs><path d="M${a.x} ${a.y} L${ex} ${ey}" fill="none" stroke="#b14f2f" stroke-width="1.65" stroke-linecap="round" marker-end="url(#move-arrow)"/></svg>`;
 }
 function drawBoard(fen,arrow,interactive){
-  const state=parseFen(fen),board=$('board');board.replaceChildren();
+  const state=parseFen(fen),board=$('board');
+  const hadKeyboardFocus=board.contains(document.activeElement);
+  board.replaceChildren();
   board.classList.toggle('interactive',interactive);
   const legal=interactive?withSans(fen):[];
   const targets=originSquare?legal.filter(x=>x.uci.startsWith(originSquare)).map(x=>x.uci.slice(2,4)):[];
   for(let pos=0;pos<64;pos++){
     const squareIndex=flipped?63-pos:pos,row=Math.floor(pos/8),col=pos%8,square=toSquare(squareIndex);
     const cell=document.createElement('button');cell.type='button';cell.className=`square ${(row+col)%2?'dark':'light'}`;
+    cell.dataset.square=square;cell.dataset.visual=String(pos);
+    cell.tabIndex=pos===keyboardSquare?0:-1;
     const piece=state.board[squareIndex];
     cell.setAttribute('aria-label',`${square}${piece==='.'?' empty':` ${piece===piece.toUpperCase()?'white':'black'} ${pieceNames[piece.toUpperCase()]}`}`);
     cell.disabled=!interactive;
@@ -76,25 +106,54 @@ function drawBoard(fen,arrow,interactive){
     }
     if(row===7){const label=document.createElement('span');label.className='square-label file';label.textContent=square[0];cell.append(label);}
     if(col===0){const label=document.createElement('span');label.className='square-label rank';label.textContent=square[1];cell.append(label);}
-    if(interactive)cell.addEventListener('click',()=>boardClick(square,legal));
+    if(interactive)cell.addEventListener('click',()=>{
+      if(!suppressBoardClick)boardClick(square,legal);
+    });
     board.append(cell);
   }
   board.setAttribute('aria-label',`Position after ${currentIndex()} plies. ${state.side==='w'?'White':'Black'} to move.`);
   board.insertAdjacentHTML('beforeend',arrowSvg(arrow));
+  if(hadKeyboardFocus&&interactive)
+    board.querySelector(`button.square[data-visual="${keyboardSquare}"]`)?.focus({preventScroll:true});
 }
 function boardClick(square,legal){
-  if(!isArchive()||!game()||currentIndex()>=game().moves.length||revealedPly.has(currentIndex()))return;
-  const fromChoices=originSquare?legal.filter(m=>m.uci.startsWith(originSquare)&&m.uci.slice(2,4)===square):[];
+  const i=currentIndex();
+  if(isArchive()){
+    if(!game()||i>=game().moves.length||revealedPly.has(i))return;
+  }else if(!liveOpportunity().enabled||liveChoice())return;
+  const fromChoices=originSquare?legal.filter(m=>
+    m.uci.startsWith(originSquare)&&m.uci.slice(2,4)===square):[];
   if(fromChoices.length){
-    const selected=fromChoices.find(m=>m.uci.length===4)||fromChoices.find(m=>m.uci.endsWith('q'))||fromChoices[0];
-    $('guess-select').value=selected.uci;originSquare=null;selectedArrow=selected.uci;render();return;
+    const selected=fromChoices.find(m=>m.uci.length===4)||
+      fromChoices.find(m=>m.uci.endsWith('q'))||fromChoices[0];
+    originSquare=null;selectedArrow=selected.uci;
+    if(!isArchive())lockLiveChoice(selected.uci);
+    else{$('guess-select').value=selected.uci;render();}
+    return;
   }
   originSquare=legal.some(m=>m.uci.startsWith(square))?square:null;
   selectedArrow=null;render();
 }
+/** One legal board move immediately records a per-tab, non-editable guess. */
+function lockLiveChoice(uci){
+  if(isArchive())return;
+  const chance=liveOpportunity();
+  if(!chance.enabled||liveChoice())return;
+  try{
+    spectatorSession.lock({game:selectedGame,ply:chance.ply,fen:chance.fen,uci});
+    originSquare=null;selectedArrow=null;
+    render();
+  }catch(error){
+    console.warn('Local prediction could not be locked:',error);
+    setText('spectator-message','The prediction was not saved. Try the move list.');
+  }
+}
 function renderPlayerNames(data){
-  const white=data?.tags?.White||(isArchive()?archive?.white:'White player');
-  const black=data?.tags?.Black||(isArchive()?archive?.black:'Black player');
+  // A pregame PGN tag is not confirmation that players have sat down and
+  // played with the published colors. Avoid asserting identities at ply zero.
+  const colorsConfirmed=isArchive()||Boolean(data?.moves?.length);
+  const white=colorsConfirmed?(data?.tags?.White||(isArchive()?archive?.white:'White player')):'White player';
+  const black=colorsConfirmed?(data?.tags?.Black||(isArchive()?archive?.black:'Black player')):'Black player';
   setText('top-player',flipped?white:black);setText('top-side',flipped?'WHITE':'BLACK');
   setText('bottom-player',flipped?black:white);setText('bottom-side',flipped?'BLACK':'WHITE');
 }
@@ -132,6 +191,9 @@ function renderArchive(){
   const i=currentIndex(),next=data.moves[i]||null,prior=i?data.moves[i-1]:null;
   const revealed=revealedPly.has(i),guess=guesses.get(i)||null;
   $('guess-area').hidden=!next||revealed;
+  $('reveal-button').hidden=false;
+  $('decision-list').hidden=false;
+  $('spectator-panel').hidden=true;
   setText('position-kicker','SINGAPORE · WORLD CHAMPIONSHIP 2024');
   setText('position-name',selectedGame===14&&i===108?'The move that changed history':`Game ${selectedGame} · ${humanMoveLabel(i)}`);
   setText('result-heading','PLAY THE HUMAN');setText('status-indicator','HISTORICAL · VERIFIED');
@@ -191,14 +253,32 @@ function renderLive(){
   const relevant=matchData?.games?.find(x=>x.game===selectedGame);
   const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
   const modelAttempts=(collectionIndex?.attempts||[]).filter(a=>a.game===selectedGame&&a.ply===i+1&&a.fen===before);
+  const chance=liveOpportunity(),choice=liveChoice();
+  const outcome=choice?liveOutcome(choice):null;
+  const playable=chance.enabled&&!choice;
   const unresolved=(collectionIndex?.reservations||[]).filter(r=>r.game===selectedGame&&
     r.ply===i+1&&r.fen===before&&r.status==='unresolved');
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
-  setText('result-heading','CHAMPIONSHIP DECISIONS');
-  setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
-  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:(forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.');
-  setText('result-description',latest?'The board displays the newest move available from the broadcast. Navigate back to inspect earlier decisions. Source-observation time differs from physical move time.':data?.moves.length?'The board is reconstructed from Lichess PGN. Model forecasts remain timing-unverified until separately corroborated.':`Game ${selectedGame} starts ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}. No moves have been observed for this round.`);
+  setText('result-heading',chance.enabled||choice?'YOUR CHALLENGE':'CHAMPIONSHIP DECISIONS');
+  setText('status-indicator',chance.kind==='opening'?'PREGAME GUESS':
+    chance.kind==='live'?'LIVE MOVE OPEN':data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
+  const researchTitle=shownMove?`Broadcast move · ${shownMoveLabel}`:
+    (forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':
+    unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.';
+  setText('result-title',choice?
+    (outcome.kind==='match'?'You matched the move.':
+     outcome.kind==='different'?'The grandmaster chose differently.':
+     outcome.kind==='source-conflict'?'The position changed.':'Your move is locked.'):
+    chance.kind==='opening'?'Your opening move.':
+    chance.kind==='live'?'You’re on the move.':researchTitle);
+  setText('result-description',chance.kind==='opening'?
+    `Game ${selectedGame} is scheduled for ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit'})}. Your opening guess is recreational and local to your browser.`:
+    chance.kind==='live'?'The latest legally reconstructed position is ready. Tap or drag a legal move, then watch the source feed for the answer.':
+    choice?'Your locally saved answer is compared only with the official broadcast move. Local timing is not independently verified.':
+    latest?'The board displays the newest move available from the broadcast. Navigate back to inspect earlier decisions. Source-observation time differs from physical move time.':
+    data?.moves.length?'The board is reconstructed from Lichess PGN. Model forecasts remain timing-unverified until separately corroborated.':
+    `Game ${selectedGame} starts ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit'})}. No moves have been observed for this round.`);
   const rows=forecastList.map(f=>{
     const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
     return decisionRow({label:f.model.id,subtitle:`${f.model.version} · operator-submitted / timing unverified`,san,move:f.prediction.uci,id:f.model.id,status:observation?(observation.uci===f.prediction.uci?'MATCH':'OTHER'):'FORECAST',matched:Boolean(observation&&observation.uci===f.prediction.uci)});
@@ -207,7 +287,15 @@ function renderLive(){
     const move=a.status==='valid'?withSans(before).find(x=>x.uci===a.predictedUci):null;
     rows.push(decisionRow({label:a.model.name||a.model.id,subtitle:`${a.model.version} · operator-recorded response · physical pre-move timing unverified`,san:move?.san||'—',move:a.predictedUci||null,id:a.model.id,status:a.status==='valid'?(a.comparison?(a.comparison.exact?'MATCH*':'OTHER*'):'RECORDED'):a.status==='invalid'?'INVALID':'FAILED'}));
   }
+  if(choice){
+    const yours=withSans(choice.fen).find(x=>x.uci===choice.uci);
+    rows.unshift(decisionRow({label:'Your local move',subtitle:'Recreational, unverified local timestamp',
+      san:yours?.san||choice.uci,move:choice.uci,id:'spectator',matched:outcome.kind==='match',
+      status:outcome.kind==='match'?'MATCH':outcome.kind==='different'?'OTHER':
+        outcome.kind==='source-conflict'?'CONFLICT':'LOCKED'}));
+  }
   if(shownMove)rows.push(decisionRow({label:shownMove.ply%2===1?(data.tags.White||'White player'):(data.tags.Black||'Black player'),subtitle:latest?'Latest available move · Lichess broadcast':'Observed move · Lichess broadcast',san:shownMove.san,move:shownMove.uci,actual:true,status:latest?'LATEST':'PLAYED'}));
+  $('decision-list').hidden=!rows.length&&chance.enabled;
   $('decision-list').innerHTML=rows.length?rows.join(''):'<div class="empty-row"><strong>Results have to be earned.</strong><p>Model comparisons appear only after real responses have been recorded and matched to a sourced chess position.</p></div>';
   $('guess-area').hidden=true;$('score-line').hidden=true;
   if(shownMove)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
@@ -216,11 +304,87 @@ function renderLive(){
   else resultSummary('No manufactured leaderboard.','Public prediction accuracy is withheld until real provider responses, sourced moves, and credible pre-move publication evidence are available.');
   setText('trace-text',`Source: Lichess Game ${selectedGame}, round ${roundInfo(selectedGame).roundId}. Public feed observations are not physical move timestamps.`);
   setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
-  drawBoard(before,shownMove?.uci||null,false);
+
+  // Spectator guesses are local, unsigned, and excluded from the provider ledger.
+  $('reveal-button').hidden=true;
+  $('guess-area').hidden=!playable;
+  $('spectator-panel').hidden=false;
+  const legal=playable?withSans(chance.fen).sort((a,b)=>a.san.localeCompare(b.san)):[];
+  const select=$('guess-select');
+  select.innerHTML='<option value="">Choose a legal move…</option>'+
+    legal.map(move=>`<option value="${move.uci}">${escapeHtml(move.san)} · ${move.uci}</option>`).join('');
+  if(selectedArrow&&legal.some(m=>m.uci===selectedArrow))select.value=selectedArrow;
+  $('guess-button').disabled=!select.value;
+  $('guess-button').textContent='Lock this move';
+  setText('spectator-guess-label',chance.kind==='opening'?
+    'YOUR OPENING GUESS':'YOUR NEXT-MOVE GUESS');
+  const all=spectatorSession.list().filter(c=>c.game===selectedGame);
+  const complete=all.map(c=>liveOutcome(c)).filter(o=>['match','different'].includes(o.kind));
+  const matched=complete.filter(o=>o.kind==='match').length;
+  const pending=all.filter(c=>liveOutcome(c).kind==='pending').length;
+  setText('spectator-stats',`${matched} matched / ${complete.length} resolved · ${pending} waiting · local to this tab`);
+  $('spectator-share').hidden=!choice;
+  $('spectator-next').hidden=!(choice&&outcome&&['match','different'].includes(outcome.kind)&&
+    i<(data?.moves.length||0));
+  if(choice){
+    const san=withSans(choice.fen).find(x=>x.uci===choice.uci)?.san||choice.uci;
+    const resultLabel=outcome.kind==='match'?'Exact match.':
+      outcome.kind==='different'?`Grandmaster played ${outcome.actualSan}.`:
+      outcome.kind==='source-conflict'?'Source history differs.':'Prediction locked.';
+    const resultDetail=outcome.kind==='pending'?
+      'Waiting for the next official Lichess move. Your move is locked in this tab.':
+      outcome.kind==='source-conflict'?
+      'The broadcast position disagrees with the recorded FEN. No result is scored.':
+      `Compared against the sourced broadcast move. ${liveStatus.get(choice.game)?.checkedAt?
+      'Public feed checked at '+liveStatus.get(choice.game).checkedAt.toLocaleTimeString()+' (not the physical move time). ':
+      ''}Your local prediction has no independent timing proof.`;
+    setText('spectator-phase',outcome.kind==='pending'?'AWAITING THE BROADCAST':'REVEALED BY THE FEED');
+    setText('spectator-message',`${san} · ${resultLabel}`);
+    setText('spectator-detail',resultDetail);
+    if(outcome.kind==='match'||outcome.kind==='different'){
+      resultSummary(outcome.kind==='match'?'You anticipated the move.':'The grandmaster chose differently.',
+        'A local spectator result, not a certified prospective claim or model benchmark.');
+    }else if(outcome.kind==='source-conflict'){
+      resultSummary('Local source conflict.','The saved guess is preserved, but this position cannot be scored.');
+    }else{
+      resultSummary('Your move is locked.','This tab will check the next validated broadcast move. The local clock is not evidence of physical move timing.');
+    }
+  }else{
+    const pregame=chance.kind==='opening';
+    setText('spectator-phase',pregame?'PREGAME · OPENING MOVE':
+      chance.enabled?'LIVE · YOUR MOVE':'BROADCAST STATUS');
+    setText('spectator-message',pregame?'How will White open?':
+      chance.enabled?'What would you play here?':
+      chance.kind==='history'?'Return to the latest position to predict.':
+      'The next-move challenge is not open yet.');
+    setText('spectator-detail',pregame?
+      'Pick White’s first legal move before Game 1. Player colors await the official game feed.':
+      chance.enabled?'Tap a piece, then its destination to lock your answer. A move list is available below.':
+      'Browse the official moves or play the 2024 challenge. An unverified or finished game is never presented as live.');
+  }
+  if(spectatorSession.warning)
+    setText('spectator-storage-note',spectatorSession.warning);
+  else setText('spectator-storage-note','No account, analytics or model API calls. Local device time is not independently verified.');
+  setText('live-board-instruction',choice?(
+    outcome.kind==='pending'?'Your move is locked. Await the next broadcast move.':
+    outcome.kind==='source-conflict'?'Source mismatch. Your saved move is preserved.':
+    'Your move is revealed. Continue for the latest position.'
+  ):playable?'Tap or drag a piece to lock your local choice.':
+    'Replay the available moves. Live guesses open on the latest verified position.');
+  if(!choice&&chance.kind==='opening')resultSummary('Your opening call.',
+    'Play a legal first move and we will compare it with the official PGN once the game begins. Local timestamps are unverified.');
+  if(!choice&&chance.kind==='live')resultSummary('Play before the next feed update.',
+    'Your decision is stored only in this tab, without model API requests or an independent timing certificate.');
+  drawBoard(before,choice?.uci||selectedArrow||shownMove?.uci||null,playable);
 }
 function render(){
   renderModelRoster();
   const historical=isArchive(),data=game(),i=currentIndex();
+  document.body.dataset.mode=mode;
+  setText('lab-title',historical?'Behind the moves.':'Your next move.');
+  setText('lab-subtitle',historical?
+    'Replay the 2024 championship and inspect the sourced 2026 model experiment.':
+    'Choose a legal move, lock your local prediction, then follow the official World Championship broadcast.');
   $('tab-live').classList.toggle('active',!historical);$('tab-archive').classList.toggle('active',historical);
   $('tab-live').setAttribute('aria-pressed',String(!historical));$('tab-archive').setAttribute('aria-pressed',String(historical));
   $('game-select').disabled=historical&&!historicalGames;$('game-select').value=String(selectedGame);
@@ -232,12 +396,14 @@ function render(){
   setText('nav-position',`${i} / ${data?.moves.length||0} PLIES`);
   $('nav-start').disabled=i<=0;$('nav-back').disabled=i<=0;
   $('nav-next').disabled=i>=(data?.moves.length||0);$('nav-end').disabled=i>=(data?.moves.length||0);
-  setText('board-context',historical?'2024 match · use the board to make your guess · ◀ ▶ to replay':'2026 match · sourced PGN · ◀ ▶ to inspect observed moves');
+  setText('board-context',historical?'2024 match · use the board to make your guess · ◀ ▶ to replay':
+    '2026 · Play a legal move to lock a local guess. Use ◀ ▶ to inspect received broadcast moves.');
 }
 
 function recordGuess(){
+  if(!isArchive()){lockLiveChoice($('guess-select').value);return;}
   const data=game();
-  if(!data||!isArchive())return;
+  if(!data)return;
   const i=currentIndex(),uci=$('guess-select').value;
   if(i>=data.moves.length||revealedPly.has(i)||guesses.has(i))return;
   if(!withSans(data.positions[i]).some(m=>m.uci===uci))return;
@@ -264,7 +430,7 @@ async function refreshBroadcast(){
     const before=previous?.moves.length||0;
     liveGames.set(targetGame,latest);liveStatus.set(targetGame,{checkedAt:new Date(),error:null});
     if(!userChangedMode&&latest.moves.length&&mode==='archive'){switchMode('live',false);}
-    if(mode==='live'&&selectedGame===targetGame&&(selectedPly===null||selectedPly>=before))selectedPly=latest.moves.length;
+    if(mode==='live'&&selectedGame===targetGame)focusNewSourceMove(targetGame,before,latest.moves.length);
   }catch(error){
     liveStatus.set(targetGame,{checkedAt:null,error:error instanceof Error?error.message:'unavailable'});
     console.warn('Lichess broadcast fetch failed:',error);
@@ -289,6 +455,7 @@ function applyPublishedObservations(index){
     }
     if(previous)validateAppendOnly(previous,{moves});
     liveGames.set(row.game,{tags:{White:'White player',Black:'Black player',Result:'*'},moves,positions});
+    focusNewSourceMove(row.game,previous?.moves.length||0,moves.length);
   }
 }
 
@@ -330,6 +497,68 @@ $('nav-end').addEventListener('click',()=>selectIndex(game()?.moves.length||0));
 $('guess-select').addEventListener('change',e=>{selectedArrow=e.target.value||null;originSquare=null;render();});
 $('guess-button').addEventListener('click',recordGuess);
 $('reveal-button').addEventListener('click',revealMove);
+$('spectator-next').addEventListener('click',()=>selectIndex(game()?.moves.length||0));
+$('spectator-share').addEventListener('click',async()=>{
+  const choice=liveChoice();if(!choice)return;
+  $('spectator-share-text').hidden=true;
+  setText('spectator-share-status','');
+  const text=spectatorShareText(choice,liveOutcome(choice));
+  try{
+    if(navigator.share)await navigator.share({text});
+    else if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(text);
+    else throw new Error('Clipboard unavailable');
+    setText('spectator-share-status','Your local result was shared or copied.');
+  }catch{
+    $('spectator-share-text').value=text;
+    $('spectator-share-text').hidden=false;
+    setText('spectator-share-status','Copy your local result from the text field.');
+  }
+});
+// Arrow-key board navigation preserves a single keyboard tab stop.
+$('board').addEventListener('keydown',event=>{
+  const cell=event.target.closest('button.square');
+  if(!cell||!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(event.key))return;
+  const current=Number(cell.dataset.visual),row=Math.floor(current/8),col=current%8;
+  const target=event.key==='ArrowRight'&&col<7?current+1:
+    event.key==='ArrowLeft'&&col>0?current-1:
+    event.key==='ArrowUp'&&row>0?current-8:
+    event.key==='ArrowDown'&&row<7?current+8:current;
+  event.preventDefault();
+  keyboardSquare=target;
+  for(const square of $('board').querySelectorAll('button.square'))
+    square.tabIndex=Number(square.dataset.visual)===target?0:-1;
+  $('board').querySelector(`button.square[data-visual="${target}"]`)?.focus();
+});
+// Touch/pen/mouse drag selects exactly one legal move, using the same lock path
+// as the tap and keyboard interfaces. No promotion is guessed beyond a queen.
+$('board').addEventListener('pointerdown',event=>{
+  const cell=event.target.closest('button.square');
+  if(!cell||cell.disabled){dragStart=null;return;}
+  dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY,
+    pointerId:event.pointerId};
+  // A global pointerup observer handles release across squares. Do not set
+  // pointer capture on taps: doing so retargets the native click to the board
+  // and breaks the two-tap selection interaction.
+});
+window.addEventListener('pointerup',event=>{
+  const start=dragStart;dragStart=null;
+  if(!start||start.pointerId!==event.pointerId||
+    Math.hypot(event.clientX-start.x,event.clientY-start.y)<9)return;
+  const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('#board button.square');
+  if(!target||target.disabled)return;
+  const fen=game()?.positions?.[currentIndex()]||START_FEN;
+  const candidates=withSans(fen).filter(m=>m.uci.startsWith(start.square)&&
+    m.uci.slice(2,4)===target.dataset.square);
+  const chosen=candidates.find(m=>m.uci.length===4)||
+    candidates.find(m=>m.uci.endsWith('q'))||candidates[0];
+  if(!chosen)return;
+  suppressBoardClick=true;
+  if(isArchive()){
+    selectedArrow=chosen.uci;originSquare=null;render();
+  }else lockLiveChoice(chosen.uci);
+  window.setTimeout(()=>{suppressBoardClick=false;},0);
+});
+window.addEventListener('pointercancel',()=>{dragStart=null;});
 $('refresh-button').addEventListener('click',refreshBroadcast);
 $('share-button').addEventListener('click',async()=>{
   syncUrl();try{await navigator.clipboard.writeText(location.href);setText('share-button','Link copied ✓');}

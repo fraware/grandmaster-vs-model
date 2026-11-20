@@ -39,7 +39,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
     if kind == 'lab':
-        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs']
+        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
@@ -60,24 +60,28 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     return html, '\n'.join(source), responses
 
 
-def populate(page, source: tuple[str, str, dict], *, online: bool = True) -> None:
+def populate(page, source: tuple[str, str, dict], *, online: bool = True,
+             pgn: str = PGN, now_iso: str | None = None) -> None:
     """Install a deterministic network facade without touching provider secrets."""
     html, script, responses = source
     page.set_content(html)
-    page.evaluate('''({responses,pgn,online}) => {
+    page.evaluate('''({responses,pgn,online,nowIso}) => {
        window.history.replaceState = () => {};
+       window.__fixturePgn = pgn;
+       window.__fixtureOnline = online;
+       if (nowIso) Date.now = () => Date.parse(nowIso);
        window.fetch = async (url) => {
          const key = String(url);
          if (Object.prototype.hasOwnProperty.call(responses, key)) {
            return new Response(JSON.stringify(responses[key]), {status: 200});
          }
          if (key.includes('lichess.org/api/broadcast/')) {
-           if (!online) throw new Error('Broadcast network unavailable');
-           return new Response(pgn, {status: 200});
+           if (!window.__fixtureOnline) throw new Error('Broadcast network unavailable');
+           return new Response(window.__fixturePgn, {status: 200});
          }
          throw new Error('Unexpected resource: ' + key);
        };
-    }''', {'responses': responses, 'pgn': PGN, 'online': online})
+    }''', {'responses': responses, 'pgn': pgn, 'online': online, 'nowIso': now_iso})
     page.add_script_tag(content=script)
     ready = '#challenge-board button.challenge-square' if 'id="challenge-board"' in html else '#board button.square'
     page.locator(ready).first.wait_for(timeout=5000)

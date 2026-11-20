@@ -2,6 +2,7 @@ name: Test and verify
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -47,6 +48,8 @@ jobs:
           node --check scripts/collection.mjs
           node --check src/collection.mjs
           node --check src/reservations.mjs
+          node --check src/spectator.mjs
+          python3 -c "import ast; from pathlib import Path; ast.parse(Path('tests/live-spectator-smoke.py').read_text())"
   browser:
     # Playwright 1.57 does not support GitHub's Ubuntu 26.04 image.
     runs-on: ubuntu-24.04
@@ -62,3 +65,5 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Test the historical game and all 14 registered live round selections
         run: python tests/browser-smoke.py
+      - name: Play a full spectator prediction, reveal, and continuation
+        run: python tests/live-spectator-smoke.py

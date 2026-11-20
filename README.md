@@ -4,13 +4,29 @@
 
 Play a free chess challenge built from the real 2024 World Championship final. Make a legal move directly on the board to reveal the recorded grandmaster decision, compare your first three moves with a retrospective GPT API run, and continue through four further three-position practice sets. Share a score from any completed set. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Play the chess challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Follow the 2026 match](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the 2026 next-move challenge](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
 ![Grandmaster vs Model three-move chess challenge, showing a real World Championship position](assets/preview.webp)
 
 *Actual Chromium capture of the new editorial-style historical challenge. Its retrospective GPT comparison is distinct from the upcoming 2026 model experiment.*
+
+## Play the 2026 championship as it unfolds
+
+**The next move is yours.** Before Game 1, open the [2026 board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1#experiment) and make a legal opening guess for White. The choice locks as soon as you play it on the board. Once the official, source-validated Lichess PGN adds the move, your choice is revealed as an exact match or an alternative. Continue to the latest position to make the next decision. During an active 2026 game, the current legally reconstructed position supports the same interaction; older positions are read-only.
+
+**One visible action.** Tap a piece and its destination, drag a piece, or use the legal-move selector and Lock button. The board supports arrow-key navigation and Enter. Mobile touch and reduced-motion users are supported. Share your local guess or match result without signing in.
+
+**Private by design.** Each choice is kept in the browser's per-tab `sessionStorage`, falling back to volatile in-memory state if storage is blocked. No visitor-specific data, public leaderboard submission, provider credential, tracking identifier or model inference is sent from the participation flow. Its local timestamp is **not independently authenticated**. The result is recreational and never enters the scientific model-forecast ledger. A failed source refresh preserves the locked choice, and inconsistent broadcast history is rejected rather than silently rewriting it.
+
+**Source limitations.** A submitted opening guess before the game is not an authenticated claim of prospectivity. During play, a supported next-move position exists only in the official game session and with a successfully retrieved, legally validated open broadcast. The public source can arrive later than physical play. No local prediction is certified as preceding the player's physical move. The audience-facing 2026 experience is independent of the paid, reserved model requests.
+
+The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [live chess interface](app.mjs). Reproduce the isolated unit tests with `npm test` and the full spectator browser sequence with `python tests/live-spectator-smoke.py` after installing the pinned Playwright/Chromium environment described in [CI](.github/workflows/ci.yml).
+
+![Actual Chromium rendering of the playable 2026 championship board before Game 1](assets/live-preview.webp)
+
+*Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
 ## Complete 2024 championship game records
 

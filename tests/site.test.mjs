@@ -126,3 +126,19 @@ test('bot-authored forecast commits explicitly dispatch the public Pages deploym
   assert.match(capture,/always\(\) && \(steps\.reservation\.outputs\.published/);
   assert.match(pages,/workflow_dispatch:/);
 });
+
+test('live spectator entry is independent of public model-evaluation records',async()=>{
+  const home=await text('index.html'),lab=await text('lab.html');
+  const app=await text('app.mjs'),spectator=await text('src/spectator.mjs');
+  const ci=await text('.github/workflows/ci.yml');
+  assert.match(home,/Predict the 2026 move/);
+  for(const id of ['spectator-panel','spectator-guess-label','spectator-stats',
+    'spectator-next','spectator-share','spectator-storage-note']){
+    assert.match(lab,new RegExp(`id="${id}"`));
+  }
+  assert.match(spectator,/sessionStorage|spectator-session-v1/);
+  assert.match(app,/spectatorOpportunity/);
+  assert.match(app,/spectatorOutcome/);
+  assert.match(ci,/live-spectator-smoke\.py/);
+  assert.doesNotMatch(spectator,/fetch\(|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY/);
+});

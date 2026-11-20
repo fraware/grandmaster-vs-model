@@ -142,3 +142,66 @@
 .lab-intro p{font-size:16px;color:var(--ink-soft);line-height:1.65;max-width:700px;margin:0}
 .lab-back{display:inline-block;margin-top:22px;color:var(--accent);text-decoration:underline;text-underline-offset:4px;font-weight:650;font-size:13px}
 @media(max-width:760px){.lab-intro{padding-top:30px;padding-bottom:29px}.lab-intro h1{font-size:45px}.lab-intro p{font-size:14px}}
+
+/* Live chess participation. Editorial design stays consistent with the archive. */
+[hidden]{display:none!important}
+body[data-mode="live"] .lab-intro{padding-top:14px;padding-bottom:12px}
+body[data-mode="live"] .lab-intro h1{font-size:clamp(34px,3.4vw,45px);margin:4px 0}
+body[data-mode="live"] .lab-intro p{font-size:13px;line-height:1.4;max-width:900px}
+body[data-mode="live"] .lab-back{display:none}
+body[data-mode="live"] .experience-header{min-height:48px;padding-top:8px;padding-bottom:8px}
+body[data-mode="live"] .decisions-column .guess-area{order:1;margin-top:5px}
+body[data-mode="live"] .decisions-column .spectator-panel{order:2}
+body[data-mode="live"] .decisions-column .decisions{order:3;margin-top:19px}
+body[data-mode="live"] .decisions-column .result-summary{order:4;margin-top:15px}
+body[data-mode="live"] .decisions-column .trace-row{order:5;margin-top:8px}
+body[data-mode="live"] .decisions-column .score-line{order:6}
+body[data-mode="live"] .decision-intro{margin-bottom:10px}
+body[data-mode="live"] .result-headline{margin-top:14px}
+body[data-mode="live"] .source-strip{min-height:38px;padding-top:6px;padding-bottom:6px}
+body[data-mode="live"] .board-column{padding:15px 22px}
+body[data-mode="live"] .board-heading{margin-bottom:8px}
+body[data-mode="live"] .board-heading h2{font-size:20px;margin-top:5px}
+body[data-mode="live"] .board-wrap{max-width:400px}
+.live-board-instruction{display:none}
+body[data-mode="live"] .live-board-instruction{display:block;margin:0 0 8px;
+  font-size:11px;line-height:1.35;color:var(--accent);font-weight:650}
+body[data-mode="live"] .board-player{height:23px}
+body[data-mode="live"] .board-player.top{margin-bottom:4px}
+body[data-mode="live"] .board-player.bottom{margin-top:4px}
+
+.chess-board.interactive .square{touch-action:none}
+.chess-board .square:disabled{opacity:1;cursor:default}
+.spectator-panel{background:var(--paper);border:1px solid var(--line);padding:18px 19px;margin-top:16px}
+.spectator-meta{display:flex;justify-content:space-between;gap:14px;align-items:baseline;flex-wrap:wrap;
+  font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.08em}
+.spectator-meta span:last-child{color:var(--ink-soft);font-weight:500;letter-spacing:0}
+.spectator-panel h3{font:400 clamp(23px,2vw,31px)/1.18 var(--font-serif);letter-spacing:-.5px;margin:14px 0 10px}
+.spectator-panel p{font-size:12px;line-height:1.6;color:var(--ink-soft);margin:0}
+.spectator-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 8px}
+.spectator-actions button{min-height:42px;border:1px solid var(--accent);padding:10px 13px;
+  color:var(--accent);background:transparent;font-size:12px;font-weight:700}
+.spectator-actions button:first-child{background:var(--accent);color:var(--paper)}
+.spectator-actions button:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:var(--paper)}
+#spectator-share-text{width:100%;min-height:98px;background:#fffaf2;border:1px solid var(--line);
+  padding:10px;font:12px/1.5 var(--font-sans);resize:vertical}
+#spectator-share-status:empty{display:none}
+#spectator-storage-note{border-top:1px solid var(--line);padding-top:12px;margin-top:14px;
+  font-size:10px;color:var(--faint)}
+@media(max-width:760px){
+  body[data-mode="live"] .lab-intro{padding-top:9px;padding-bottom:9px}
+  body[data-mode="live"] .lab-intro h1{font-size:33px}
+  body[data-mode="live"] .lab-intro p{font-size:11px;line-height:1.35}
+  body[data-mode="live"] .experience-body{grid-template-columns:minmax(0,1fr)}
+  body[data-mode="live"] .experience-header{padding:9px 12px}
+  body[data-mode="live"] .board-column{padding:10px 12px 14px}
+  body[data-mode="live"] .board-heading{margin-bottom:5px}
+  body[data-mode="live"] .source-strip{padding:7px 10px}
+
+  .spectator-panel{padding:15px}
+  .spectator-meta{font-size:9px}
+  .spectator-actions button{flex:1}
+}
+@media(prefers-reduced-motion:reduce){
+  .spectator-actions button{transition:none}
+}
