@@ -8,6 +8,7 @@ on:
     - cron: '2-59/5 0-1 * 11,12 *'
 permissions:
   contents: write
+  actions: write
   id-token: write
   attestations: write
 concurrency:
@@ -26,7 +27,42 @@ jobs:
           node-version: '22'
       - name: Validate current data before sampling
         run: npm test && npm run verify:2026 && npm run verify && npm run verify:collection
-      - name: Poll the scheduled championship round and record a bounded predeclared sample
+      - name: Prepare immutable reservations without calling providers
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CAPTURE_SAMPLE_EVERY: '5'
+          CAPTURE_MAX_REQUESTS: '900'
+          CAPTURE_PROVIDERS: 'openai'
+        run: npm run capture:reserve
+      - name: Validate reserved source observations and model slots
+        run: npm run verify:collection
+      - name: Publish reservations to GitHub before spending
+        id: reservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          new_claims="$(git ls-files --others --exclude-standard -- data/claims)"
+          if [ -z "$(git status --porcelain -- data/claims data/observations data/collection.json)" ]; then
+            echo 'No new source observations or reservations'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # New reservations are optional when only the broadcast changes.
+          # Stage the generated data tree without a nonexistent pathspec.
+          git add -A -- data
+          git commit -m 'Reserve championship requests before inference'
+          git push origin HEAD:main
+          git fetch --quiet origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+          if [ -n "$new_claims" ]; then
+            echo 'execute=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Execute only remotely committed reservations
+        if: steps.reservation.outputs.execute == 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -34,10 +70,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CAPTURE_SAMPLE_EVERY: '5'
           CAPTURE_MAX_REQUESTS: '900'
-          # Only the provider with a successful authenticated integration check.
-          # Expand this allowlist after separately verifying other providers.
           CAPTURE_PROVIDERS: 'openai'
-        run: npm run capture:once
+        run: npm run capture:execute
       - name: Check collection integrity
         run: |
           npm run verify:collection
@@ -72,12 +106,14 @@ jobs:
         with:
           name: capture-recovery-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            data/claims/
             data/observations/
             data/attempts/
             data/collection.json
           if-no-files-found: error
           retention-days: 30
       - name: Publish sourced observations and recorded attempts
+        id: final_publish
         run: |
           if [ -z "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then
             echo 'No new observations or model attempts'
@@ -88,3 +124,11 @@ jobs:
           git add -- data/observations data/attempts data/collection.json
           git commit -m 'Record championship broadcast observations and model attempts'
           git push origin HEAD:main
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+      - name: Dispatch GitHub Pages explicitly for bot-authored data commits
+        # GITHUB_TOKEN push events intentionally do not trigger Pages workflows.
+        # Dispatch even if inference failed after a successful claim publication.
+        if: ${{ always() && (steps.reservation.outputs.published == 'true' || steps.final_publish.outputs.published == 'true') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

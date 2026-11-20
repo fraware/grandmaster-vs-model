@@ -5,6 +5,7 @@
 import {canonical,assertIso,EVENT_ID} from './protocol.mjs';
 import {START_FEN,play,parseFen} from './chess.mjs';
 import {roundInfo} from './match-2026.mjs';
+import {validateReservation,validateCaptureRun,reservationKey} from './reservations.mjs';
 
 export const ATTEMPT_SCHEMA='prediction-attempt-v1';
 export const OBSERVATION_SCHEMA='observed-feed-v1';
@@ -32,14 +33,10 @@ export function validateAttempt(a){
   if(a.error!==null&&typeof a.error!=='string')throw new Error('Invalid error description');
   if(a.providerResponseId!==null&&typeof a.providerResponseId!=='string')throw new Error('Invalid provider response identifier');
   if(a.postflightConfirmed!==undefined&&typeof a.postflightConfirmed!=='boolean')throw new Error('Invalid postflight flag');
-  if(a.captureRun!==undefined&&a.captureRun!==null){
-    const c=a.captureRun;
-    if(typeof c.repository!=='string'||!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(c.repository)||
-       typeof c.runId!=='string'||!/^[1-9][0-9]{0,19}$/.test(c.runId)||
-       typeof c.runAttempt!=='string'||!/^[1-9][0-9]{0,5}$/.test(c.runAttempt)){
-      throw new Error('Invalid GitHub workflow provenance reference');
-    }
-  }
+  if(a.captureRun!==undefined&&a.captureRun!==null)validateCaptureRun(a.captureRun);
+  if(a.reservationDigest!==undefined&&a.reservationDigest!==null&&
+     (typeof a.reservationDigest!=='string'||!/^[a-f0-9]{64}$/.test(a.reservationDigest)))
+    throw new Error('Invalid reservation reference digest');
   return true;
 }
 
@@ -76,7 +73,7 @@ export function extendObservation(previous,game,at,gameNumber=1){
 }
 
 /** Single observation documents remain accepted for backward compatible callers. */
-export function buildIndex({observations,attempts,models}){
+export function buildIndex({observations,attempts,models,reservations=[]}){
   const observedGames=(Array.isArray(observations)?observations:[observations]).filter(Boolean).sort((a,b)=>a.game-b.game);
   const observationMap=new Map();
   for(const o of observedGames){
@@ -87,12 +84,41 @@ export function buildIndex({observations,attempts,models}){
   if(models?.schema!=='model-roster-v1'||!Array.isArray(models.models))throw new Error('Unrecognized roster');
   const registered=new Map(models.models.map(m=>[m.id,m]));
   if(registered.size!==models.models.length)throw new Error('Duplicate roster id');
+  const reservationMap=new Map();
+  for(const reservation of reservations){
+    validateReservation(reservation);
+    const model=registered.get(reservation.model.id);
+    if(!model||model.version!==reservation.model.version||
+       model.provider!==reservation.model.provider)
+      throw new Error('Unregistered reservation model');
+    const key=reservationKey(reservation);
+    if(reservationMap.has(key))throw new Error('Duplicate request reservation '+key);
+    const sourceMove=observationMap.get(reservation.game)?.moves[reservation.ply-1];
+    if(sourceMove&&sourceMove.fenBefore!==reservation.fen)
+      throw new Error('Request reservation contradicts observed game');
+    reservationMap.set(key,reservation);
+  }
   const keys=new Set();
   for(const a of attempts){
     validateAttempt(a);
-    if(!registered.has(a.model.id)||registered.get(a.model.id).version!==a.model.version)throw new Error('Unregistered model attempt');
+    const registeredModel=registered.get(a.model.id);
+    if(!registeredModel||registeredModel.version!==a.model.version||
+       registeredModel.provider!==a.model.provider)
+      throw new Error('Unregistered model attempt');
     const key=attemptKey(a);
     if(keys.has(key))throw new Error('Duplicate attempt '+key);
+    const reservation=reservationMap.get(key);
+    if(reservation){
+      if(a.reservationDigest!==reservation.digest||a.promptSha256!==reservation.promptSha256||
+         a.fen!==reservation.fen||a.source!==reservation.source||
+         a.model.provider!==reservation.model.provider||
+         a.model.version!==reservation.model.version||
+         Date.parse(a.startedAt)<Date.parse(reservation.reservedAt)||
+         canonical(a.captureRun??null)!==canonical(reservation.captureRun))
+        throw new Error('Attempt and durable reservation differ');
+    }else if(a.reservationDigest){
+      throw new Error('Referenced durable reservation is missing');
+    }
     keys.add(key);
   }
   const indexed=attempts.map(a=>{
@@ -108,11 +134,18 @@ export function buildIndex({observations,attempts,models}){
     return {game:a.game,ply:a.ply,fen:a.fen,model:a.model,attemptKey:attemptKey(a),status:a.status,
       startedAt:a.startedAt,completedAt:a.completedAt,predictedUci:a.predictedUci,
       providerResponseId:a.providerResponseId,providerReportedModel:a.providerReportedModel,source:a.source,
-      captureRun:a.captureRun??null,
+      captureRun:a.captureRun??null,reservationDigest:a.reservationDigest??null,
       publication:'operator-supplied',timing:'unverified',comparison};
   });
   return {schema:INDEX_SCHEMA,event:EVENT_ID,rosterVerifiedOn:models.verifiedOn,source:publicSource,
     observedMoves:observationMap.get(1)?.moves??[],
-    observedGames:observedGames.map(o=>({game:o.game,source:o.source,moves:o.moves})),attempts:indexed};
+    observedGames:observedGames.map(o=>({game:o.game,source:o.source,moves:o.moves})),
+    reservations:reservations.map(c=>({
+      key:reservationKey(c),game:c.game,ply:c.ply,fen:c.fen,model:c.model,
+      reservedAt:c.reservedAt,captureRun:c.captureRun,
+      status:keys.has(reservationKey(c))?'completed':'unresolved',
+      digest:c.digest
+    })),
+    attempts:indexed};
 }
 export function canonicalPayload(value){return canonical(value);}

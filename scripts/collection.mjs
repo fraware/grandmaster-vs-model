@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildIndex,validateAttempt,validateObservation} from '../src/collection.mjs';
+import {validateReservation,reservationKey} from '../src/reservations.mjs';
 import {canonical} from '../src/protocol.mjs';
 
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
@@ -22,6 +23,20 @@ export async function collect({root=defaultRoot,write=false}={}){
       validateObservation(doc);observations.push(doc);
     }
   }
+  const reservations=[];
+  const reservationDir=join(path,'data/claims');
+  if(existsSync(reservationDir)){
+    for(const name of (await readdir(reservationDir)).filter(n=>n.endsWith('.json')).sort()){
+      if(!/^[a-z0-9-]+\.json$/.test(name))
+        throw new Error('Invalid reservation filename: '+name);
+      const doc=await get('data/claims/'+name);
+      const {digest:stored,...raw}=doc;
+      if(stored!==digest(raw))throw new Error('Reservation checksum mismatch: '+name);
+      validateReservation(doc);
+      if(name!==reservationKey(doc)+'.json')throw new Error('Noncanonical reservation filename: '+name);
+      reservations.push(doc);
+    }
+  }
   const dir=join(path,'data/attempts'), attempts=[];
   if(existsSync(dir)){
     for(const name of (await readdir(dir)).filter(n=>/^[a-z0-9-]+\.json$/.test(n)).sort()){
@@ -34,7 +49,7 @@ export async function collect({root=defaultRoot,write=false}={}){
       attempts.push(raw);
     }
   }
-  const index=buildIndex({models,observations,attempts});
+  const index=buildIndex({models,observations,attempts,reservations});
   if(write){await mkdir(join(path,'data'),{recursive:true});await writeFile(join(path,'data/collection.json'),JSON.stringify(index,null,2)+'\n');}
   return index;
 }

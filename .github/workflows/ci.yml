@@ -46,6 +46,7 @@ jobs:
           node --check scripts/stream-observer.mjs
           node --check scripts/collection.mjs
           node --check src/collection.mjs
+          node --check src/reservations.mjs
   browser:
     # Playwright 1.57 does not support GitHub's Ubuntu 26.04 image.
     runs-on: ubuntu-24.04
