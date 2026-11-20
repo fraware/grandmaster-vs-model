@@ -49,7 +49,9 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- data/claims data/observations data/collection.json
+          # New reservations are optional when only the broadcast changes.
+          # Stage the generated data tree without a nonexistent pathspec.
+          git add -A -- data
           git commit -m 'Reserve championship requests before inference'
           git push origin HEAD:main
           git fetch --quiet origin main:refs/remotes/origin/main
