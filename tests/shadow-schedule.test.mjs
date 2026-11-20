@@ -37,7 +37,7 @@ test('source shadow collector is scheduled across the full classical-game observ
   assert.match(yaml,/timeout-minutes: 65/);
   assert.match(yaml,/STREAM_DURATION_MS: '3300000'/);
   assert.match(yaml,/artifacts\/shadow\//);
-  assert.match(yaml,/retention-days: 14/);
+  assert.match(yaml,/retention-days: 90/);
   assert.match(yaml,/contents: read/);
   assert.doesNotMatch(yaml,/OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|gh workflow run/);
 });
