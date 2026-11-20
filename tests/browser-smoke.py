@@ -104,6 +104,16 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         populate(page, source)
         assert page.locator('#board').count() == 0, 'Main page must not duplicate the board'
         assert page.locator('#challenge-board button.challenge-square').count() == 64
+        visual = page.evaluate("""() => ({
+          background: getComputedStyle(document.body).backgroundColor,
+          headingFont: getComputedStyle(document.querySelector('#hero-title')).fontFamily,
+          light: getComputedStyle(document.querySelector('.challenge-square.light')).backgroundColor,
+          dark: getComputedStyle(document.querySelector('.challenge-square.dark')).backgroundColor
+        })""")
+        assert visual['background'] == 'rgb(16, 27, 29)', visual
+        assert 'Bahnschrift' in visual['headingFont'], visual
+        assert visual['light'] == 'rgb(219, 230, 214)', visual
+        assert visual['dark'] == 'rgb(101, 140, 123)', visual
         invitation = page.locator('#live-hero-link')
         assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')

@@ -2,8 +2,9 @@ name: Capture real live chess spectator preview
 on:
   workflow_dispatch:
   push:
-    branches: [feat/live-spectator-challenge]
+    branches: [feat/live-spectator-challenge, feat/tournament-workspace-redesign]
     paths:
+      - theme.css
       - app.mjs
       - lab.html
       - style.css
