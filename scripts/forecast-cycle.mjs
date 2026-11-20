@@ -4,7 +4,9 @@
  *
  * Each attempted provider call is recorded once, even if invalid or unsuccessful.
  * No result is certified as pre-move without independent public chronology.
- * Running repeatedly is safe: known positions are never invoiced twice.
+ * Production uses a remotely published reservation before provider requests.
+ * In-flight interruptions remain unresolved and are never automatically retried.
+ * The exported legacy mode is retained for isolated offline adapter tests only.
  */
 import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
@@ -16,6 +18,7 @@ import {parsePgn,findChampionshipGame} from '../src/pgn.mjs';
 import {roundInfo,activeRound} from '../src/match-2026.mjs';
 import {validateAppendOnly} from '../src/broadcast.mjs';
 import {extendObservation,ATTEMPT_SCHEMA,attemptKey,validateAttempt} from '../src/collection.mjs';
+import {RESERVATION_SCHEMA,reservationKey,validateReservation} from '../src/reservations.mjs';
 import {EVENT_ID,canonical} from '../src/protocol.mjs';
 import {START_FEN,withSans} from '../src/chess.mjs';
 import {collect} from './collection.mjs';
@@ -56,7 +59,7 @@ async function broadcast(fetcher,round){
   return game;
 }
 /** Test-injectable orchestration. Do not log response bodies or environment secrets. */
-export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requestModel,clock=()=>new Date(),keys=process.env,activeOnly=true,gameNumber=null,sampleEvery=5,maxRequests=900,captureProviders=null}={}){
+export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requestModel,clock=()=>new Date(),keys=process.env,activeOnly=true,gameNumber=null,sampleEvery=5,maxRequests=900,captureProviders=null,mode='legacy'}={}){
   const dir=resolve(root);
   if(!Number.isInteger(sampleEvery)||sampleEvery<1||sampleEvery>20)throw new Error('Invalid sampling stride');
   if(!Number.isInteger(maxRequests)||maxRequests<1||maxRequests>10000)throw new Error('Invalid total request ceiling');
@@ -65,7 +68,9 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
       new Set(captureProviders).size!==captureProviders.length)){
     throw new Error('Invalid capture provider allowlist');
   }
+  if(!['legacy','reserve','execute'].includes(mode))throw new Error('Invalid collection phase');
   const captureRun=currentWorkflowContext(keys);
+  if(mode!=='legacy'&&!captureRun)throw new Error('Durable collection requires a GitHub Actions run');
   const at=clock().toISOString();
   const scheduled=activeRound(at);
   if(activeOnly&&!scheduled)return {status:'outside-game-session',newAttempts:0};
@@ -127,24 +132,81 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
   const legal=withSans(fen).map(x=>x.uci);
   const prompt=makePrompt({fen,player:side==='White'?actualWhite:actualBlack,opponent:side==='White'?actualBlack:actualWhite,game:round.game,history:sourceGame.moves.map(m=>m.uci).join(' ')});
   const outdir=join(dir,'data/attempts');await mkdir(outdir,{recursive:true});
-  const existingAttempts=(await readdir(outdir)).filter(name=>/^g\d{2}-p\d{3}-[a-z0-9-]+\.json$/.test(name)).length;
-  const slots=Math.max(0,maxRequests-existingAttempts);
-  if(slots===0){
+  const claimDir=join(dir,'data/claims');
+  await mkdir(claimDir,{recursive:true});
+  // Validate the full stored history before allocating an expense slot.
+  await collect({root:dir});
+  const filePattern=/^g\\d{2}-p\\d{3}-[a-z0-9-]+\\.json$/;
+  const recorded=(await readdir(outdir)).filter(name=>filePattern.test(name));
+  const reserved=(await readdir(claimDir)).filter(name=>filePattern.test(name));
+  const occupied=new Set([...recorded,...reserved]);
+  const slots=Math.max(0,maxRequests-occupied.size);
+  const filename=model=>`g${String(round.game).padStart(2,'0')}-p${String(ply).padStart(3,'0')}-${model.id}.json`;
+  const available=models.filter(m=>!existsSync(join(outdir,filename(m))));
+  if(mode==='reserve'){
+    const pending=available.filter(m=>!existsSync(join(claimDir,filename(m))));
+    if(pending.length>slots){
+      await collect({root:dir,write:true});
+      return {status:slots===0?'total-request-ceiling-reached':'insufficient-request-allowance-for-comparators',game:round.game,ply,newReservations:0,newAttempts:0};
+    }
+    if(!pending.length){
+      await collect({root:dir,write:true});
+      return {status:'position-already-reserved',game:round.game,ply,newReservations:0,newAttempts:0};
+    }
+    // The workflow MUST commit and push these immutable documents to main
+    // before it invokes --execute. A local reservation alone is insufficient.
+    const reservedAt=clock().toISOString();
+    for(const model of pending){
+      const raw={schema:RESERVATION_SCHEMA,event:EVENT_ID,game:round.game,ply,
+        fen,source:round.pgnUrl,model:{id:model.id,name:model.name,
+          provider:model.provider,version:model.version},
+        promptSha256:hash(prompt),reservedAt,captureRun};
+      const claim={...raw,digest:hash(raw)};
+      validateReservation(claim);
+      await writeFile(join(claimDir,filename(model)),JSON.stringify(claim,null,2)+'\\n',{flag:'wx'});
+    }
     await collect({root:dir,write:true});
-    return {status:'total-request-ceiling-reached',game:round.game,ply,newAttempts:0};
+    return {status:'reserved-awaiting-publication',game:round.game,ply,
+      newReservations:pending.length,newAttempts:0};
   }
-  const pending=models.filter(m=>!existsSync(join(outdir,`g${String(round.game).padStart(2,'0')}-p${String(ply).padStart(3,'0')}-${m.id}.json`)));
-  // Do not silently evaluate only one model when the remaining allowance
-  // cannot cover all configured comparators for this source position.
-  if(pending.length>slots){
-    await collect({root:dir,write:true});
-    return {status:'insufficient-request-allowance-for-comparators',game:round.game,ply,newAttempts:0};
+  let pending=[];
+  if(mode==='execute'){
+    for(const model of available){
+      const path=join(claimDir,filename(model));
+      if(!existsSync(path))continue;
+      const claim=JSON.parse(await readFile(path,'utf8'));
+      const {digest,...raw}=claim;
+      validateReservation(claim);
+      if(digest!==hash(raw))throw new Error('Reservation digest mismatch');
+      if(canonical(claim.captureRun)!==canonical(captureRun))continue;
+      if(claim.fen!==fen||claim.ply!==ply||claim.game!==round.game||
+         claim.source!==round.pgnUrl||claim.model.id!==model.id||
+         claim.model.version!==model.version||claim.promptSha256!==hash(prompt))
+        throw new Error('Reserved position or prompt changed');
+      pending.push({model,claim});
+    }
+    if(!pending.length){
+      await collect({root:dir,write:true});
+      return {status:'no-current-run-reservations',game:round.game,ply,newAttempts:0};
+    }
+  }else{
+    // Legacy mode exists strictly for offline unit tests and is never exposed
+    // by the production CLI. It cannot be treated as restart-safe.
+    if(slots===0){
+      await collect({root:dir,write:true});
+      return {status:'total-request-ceiling-reached',game:round.game,ply,newAttempts:0};
+    }
+    pending=available.map(model=>({model,claim:null}));
+    if(pending.length>slots){
+      await collect({root:dir,write:true});
+      return {status:'insufficient-request-allowance-for-comparators',game:round.game,ply,newAttempts:0};
+    }
+    if(!pending.length){
+      await collect({root:dir,write:true});
+      return {status:'position-already-attempted',game:round.game,ply,newAttempts:0};
+    }
   }
-  if(!pending.length){
-    await collect({root:dir,write:true});
-    return {status:'position-already-attempted',game:round.game,ply,newAttempts:0};
-  }
-  const results=await Promise.all(pending.map(async model=>{
+  const results=await Promise.all(pending.map(async({model,claim})=>{
     const startedAt=clock().toISOString();
     let status='request-failed',response='',predictedUci=null,error=null,providerResponseId=null,providerReportedModel=null,elapsedMs=null,usage=null;
     try{
@@ -158,7 +220,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
       catch{status='invalid';error='Model did not return one legal UCI move';}
     }catch(e){status='request-failed';error=sanitizeError(e);}
     const completedAt=clock().toISOString();
-    return {schema:ATTEMPT_SCHEMA,event:EVENT_ID,game:round.game,ply,fen,source:round.pgnUrl,model:{id:model.id,name:model.name,provider:model.provider,version:model.version},prompt,promptSha256:hash(prompt),response,responseSha256:hash(response),status,predictedUci,error,startedAt,completedAt,providerResponseId,providerReportedModel,elapsedMs,usage,captureRun};
+    return {schema:ATTEMPT_SCHEMA,event:EVENT_ID,game:round.game,ply,fen,source:round.pgnUrl,model:{id:model.id,name:model.name,provider:model.provider,version:model.version},prompt,promptSha256:hash(prompt),response,responseSha256:hash(response),status,predictedUci,error,startedAt,completedAt,providerResponseId,providerReportedModel,elapsedMs,usage,captureRun,reservationDigest:claim?.digest??null};
   }));
   // A second PGN retrieval detects an obvious race. A successful check is not
   // proof that a forecast preceded a physical move or its public observation.
@@ -185,6 +247,13 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
   return {status:stillCurrent?'captured-provisional':'captured-with-feed-change',game:round.game,ply,newAttempts,newObservations:observations.moves.length-known,models:results.map(x=>({id:x.model.id,status:x.status}))};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  if(process.argv.length!==2)throw new Error('Usage: node scripts/forecast-cycle.mjs');
-  cycle({sampleEvery:Number(process.env.CAPTURE_SAMPLE_EVERY||5),maxRequests:Number(process.env.CAPTURE_MAX_REQUESTS||900),captureProviders:process.env.CAPTURE_PROVIDERS?.split(',').map(p=>p.trim())??null}).then(result=>console.log(JSON.stringify(result))).catch(error=>{console.error(`Capture cycle failed: ${sanitizeError(error)}`);process.exitCode=1;});
+  const flag=process.argv[2];
+  if(process.argv.length!==3||!['--reserve','--execute'].includes(flag))
+    throw new Error('Usage: node scripts/forecast-cycle.mjs --reserve|--execute');
+  cycle({mode:flag.slice(2),sampleEvery:Number(process.env.CAPTURE_SAMPLE_EVERY||5),
+    maxRequests:Number(process.env.CAPTURE_MAX_REQUESTS||900),
+    captureProviders:process.env.CAPTURE_PROVIDERS?.split(',').map(p=>p.trim())??null
+  }).then(result=>console.log(JSON.stringify(result))).catch(error=>{
+    console.error(`Capture cycle failed: ${sanitizeError(error)}`);process.exitCode=1;
+  });
 }
