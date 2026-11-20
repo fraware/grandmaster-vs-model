@@ -1,0 +1,53 @@
+name: Discover championship broadcast source
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/discover-broadcast.yml
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve official round and tournament IDs without credentials
+        run: |
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          const targets={
+            round:'https://lichess.org/api/broadcast/-/-/xLgOJ6cb',
+            pgn:'https://lichess.org/api/broadcast/round/xLgOJ6cb.pgn',
+          };
+          const info={checkedAt:new Date().toISOString(),endpoints:{}};
+          for(const [name,url] of Object.entries(targets)){
+            try{
+              const response=await fetch(url,{headers:{Accept:name==='pgn'?'application/x-chess-pgn':'application/json'},signal:AbortSignal.timeout(15000)});
+              const body=await response.text();
+              const record={status:response.status,contentType:response.headers.get('content-type'),bytes:body.length};
+              if(response.ok&&name==='round'){
+                const parsed=JSON.parse(body);
+                record.round=parsed.round?{id:parsed.round.id,name:parsed.round.name,url:parsed.round.url,startsAt:parsed.round.startsAt}:null;
+                record.tour=parsed.tour?{id:parsed.tour.id,name:parsed.tour.name,url:parsed.tour.url}:null;
+                if(record.tour?.id){
+                  const res=await fetch(`https://lichess.org/api/broadcast/${record.tour.id}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});
+                  record.tourStatus=res.status;
+                  if(res.ok){const t=await res.json();record.rounds=(t.rounds||[]).map(r=>({id:r.id,name:r.name,url:r.url,startsAt:r.startsAt,ongoing:r.ongoing}));}
+                }
+              }
+              if(response.ok&&name==='pgn')record.pgnHasMoves=/\d+\.\s*[a-hKQRBNO]/.test(body);
+              info.endpoints[name]=record;
+            }catch(e){info.endpoints[name]={error:String(e?.name||'NetworkError')};}
+          }
+          writeFileSync('broadcast-discovery.json',JSON.stringify(info,null,2)+'\n');
+          console.log(JSON.stringify(info));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: broadcast-discovery
+          path: broadcast-discovery.json
+          retention-days: 7
