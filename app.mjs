@@ -149,8 +149,11 @@ function lockLiveChoice(uci){
   }
 }
 function renderPlayerNames(data){
-  const white=data?.tags?.White||(isArchive()?archive?.white:'White player');
-  const black=data?.tags?.Black||(isArchive()?archive?.black:'Black player');
+  // A pregame PGN tag is not confirmation that players have sat down and
+  // played with the published colors. Avoid asserting identities at ply zero.
+  const colorsConfirmed=isArchive()||Boolean(data?.moves?.length);
+  const white=colorsConfirmed?(data?.tags?.White||(isArchive()?archive?.white:'White player')):'White player';
+  const black=colorsConfirmed?(data?.tags?.Black||(isArchive()?archive?.black:'Black player')):'Black player';
   setText('top-player',flipped?white:black);setText('top-side',flipped?'WHITE':'BLACK');
   setText('bottom-player',flipped?black:white);setText('bottom-side',flipped?'BLACK':'WHITE');
 }
@@ -257,8 +260,9 @@ function renderLive(){
     r.ply===i+1&&r.fen===before&&r.status==='unresolved');
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
-  setText('result-heading','CHAMPIONSHIP DECISIONS');
-  setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
+  setText('result-heading',chance.enabled||choice?'YOUR CHALLENGE':'CHAMPIONSHIP DECISIONS');
+  setText('status-indicator',chance.kind==='opening'?'PREGAME GUESS':
+    chance.kind==='live'?'LIVE MOVE OPEN':data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
   const researchTitle=shownMove?`Broadcast move · ${shownMoveLabel}`:
     (forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':
     unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.';
@@ -361,6 +365,16 @@ function renderLive(){
   if(spectatorSession.warning)
     setText('spectator-storage-note',spectatorSession.warning);
   else setText('spectator-storage-note','No account, analytics or model API calls. Local device time is not independently verified.');
+  setText('live-board-instruction',choice?(
+    outcome.kind==='pending'?'Your move is locked. Await the next broadcast move.':
+    outcome.kind==='source-conflict'?'Source mismatch. Your saved move is preserved.':
+    'Your move is revealed. Continue for the latest position.'
+  ):playable?'Tap or drag a piece to lock your local choice.':
+    'Replay the available moves. Live guesses open on the latest verified position.');
+  if(!choice&&chance.kind==='opening')resultSummary('Your opening call.',
+    'Play a legal first move and we will compare it with the official PGN once the game begins. Local timestamps are unverified.');
+  if(!choice&&chance.kind==='live')resultSummary('Play before the next feed update.',
+    'Your decision is stored only in this tab, without model API requests or an independent timing certificate.');
   drawBoard(before,choice?.uci||selectedArrow||shownMove?.uci||null,playable);
 }
 function render(){
