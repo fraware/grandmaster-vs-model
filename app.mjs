@@ -449,11 +449,11 @@ async function refreshBroadcast(){
     if(mode==='live'&&selectedGame===targetGame){
       focusNewSourceMove(targetGame,before,latest.moves.length);
       if(returningRevealPending){
-        const restored=restoredSpectatorPly(targetGame,latest);
-        if(restored<latest.moves.length){
-          selectedPly=restored;
-          returningRevealPending=false;
-        }
+        // The initial source refresh must restore the saved *pending* move
+        // too. A prior resolved opening must not pull a returning visitor
+        // away from a newer choice awaiting the official feed.
+        selectedPly=restoredSpectatorPly(targetGame,latest);
+        returningRevealPending=false;
       }
     }
   }catch(error){
