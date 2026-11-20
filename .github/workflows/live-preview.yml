@@ -2,17 +2,20 @@ name: Capture real live chess spectator preview
 on:
   workflow_dispatch:
   push:
-    branches: [feat/live-spectator-challenge, feat/tournament-workspace-redesign]
+    branches: [main]
     paths:
       - theme.css
       - app.mjs
       - lab.html
       - style.css
       - src/spectator.mjs
+      - src/calendar.mjs
+      - src/challenge-ui.mjs
       - scripts/capture-live-preview.py
       - .github/workflows/live-preview.yml
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: spectator-visual-preview
   cancel-in-progress: true
@@ -31,8 +34,10 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Render real desktop and mobile screens against an offline pregame fixture
         run: python scripts/capture-live-preview.py
-      - name: Commit reproducible previews to the development branch
+      - name: Commit reproducible previews and publish updated screenshots
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
@@ -48,3 +53,7 @@ jobs:
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+          # Commits authored using GITHUB_TOKEN do not auto-run Pages.
+          if [ "${GITHUB_REF_NAME}" = main ]; then
+            gh workflow run pages.yml --ref main
+          fi

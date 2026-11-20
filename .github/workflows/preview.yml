@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/tournament-workspace-redesign
     paths:
       - theme.css
       - index.html
