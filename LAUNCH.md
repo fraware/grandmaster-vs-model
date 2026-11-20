@@ -49,3 +49,7 @@ The core conversion path is home or direct shared link → 2026 board → tap/dr
 ## Production live-browser acceptance
 
 The live page has been checked from an independent Chromium browser running against the deployed `fraware.github.io` origin. The [20 November preflight](https://github.com/fraware/grandmaster-vs-model/actions/runs/44742780417) returned a fresh in-app Lichess source observation and a cross-origin HTTP 200 for Game 1. The acceptance script and manual workflow are in `tests/production-preflight.py` and `.github/workflows/production-preflight.yml`. The test performs read-only public network requests and has no provider secrets. Run it again before Game 1 and investigate any discrepancy before announcing real-time reliability. Actual observed-move delivery and pre-physical-move model prediction timing remain open validation problems.
+
+## Homepage live entry (v1.7, 20 November 2026)
+
+The next relevant official 2026 round is prominently linked in the first-screen home heading, even at narrow mobile widths, with a fuller event introduction following the immediately playable retrospective board. The copy distinguishes pregame opening guesses, a scheduled broadcast window, and historical board exploration. It never asserts physical play from scheduling metadata alone. Node tests cover all fourteen game boundaries and Chromium tests verify that the entry is visible without scrolling on desktop and mobile. Neither conversion analytics nor visitor tracking is introduced.

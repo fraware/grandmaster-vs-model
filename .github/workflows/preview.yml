@@ -10,6 +10,7 @@ on:
       - .github/workflows/preview.yml
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: chess-visual-preview
   cancel-in-progress: false
@@ -28,8 +29,10 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Validate first-screen board and regenerate screenshot
         run: python scripts/capture-preview.py
-      - name: Commit the actual browser preview
+      - name: Commit the actual browser preview and refresh Pages when on main
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if git diff --quiet -- assets/preview.webp; then
@@ -40,4 +43,10 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- assets/preview.webp
           git commit -m 'Update verified desktop challenge preview'
-          git push origin HEAD:"${GITHUB_REF_NAME}"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          # Bot-authored pushes are not ordinary Pages triggers.
+          if [ "${GITHUB_REF_NAME}" = main ]; then
+            gh workflow run pages.yml --ref main
+          fi
