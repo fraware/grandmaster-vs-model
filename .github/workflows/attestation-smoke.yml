@@ -1,0 +1,22 @@
+name: Verify forecast attestation infrastructure
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/attestation-smoke.yml'
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+jobs:
+  attest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare the checksums file used by championship capture
+        run: sha256sum data/models.json > "$RUNNER_TEMP/model-roster.sha256"
+      - name: Attest the pinned model roster without invoking a provider
+        uses: actions/attest@v4
+        with:
+          subject-checksums: ${{ runner.temp }}/model-roster.sha256

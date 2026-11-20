@@ -4,10 +4,12 @@ on:
   schedule:
     # GitHub cron is best effort, not a precision real-time scheduler.
     # The collector enforces the match date window independently.
-    - cron: '*/5 13-23 * 11,12 *'
-    - cron: '*/5 0-1 * 11,12 *'
+    - cron: '2-59/5 13-23 * 11,12 *'
+    - cron: '2-59/5 0-1 * 11,12 *'
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 concurrency:
   group: championship-collector
   cancel-in-progress: false
@@ -32,11 +34,49 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CAPTURE_SAMPLE_EVERY: '5'
           CAPTURE_MAX_REQUESTS: '900'
+          # Only the provider with a successful authenticated integration check.
+          # Expand this allowlist after separately verifying other providers.
+          CAPTURE_PROVIDERS: 'openai'
         run: npm run capture:once
       - name: Check collection integrity
         run: |
           npm run verify:collection
           npm run verify
+      - name: Enumerate newly generated attempt records
+        id: evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(git ls-files --others --exclude-standard -z -- data/attempts)
+          if (( ${#files[@]} > 0 )); then
+            printf '%s\0' "${files[@]}" | xargs -0 sha256sum > "$RUNNER_TEMP/forecast-attempts.sha256"
+            echo 'new_attempts=true' >> "$GITHUB_OUTPUT"
+            echo "Prepared ${#files[@]} forecast record(s) for signed provenance"
+          else
+            echo 'No newly generated forecast records to attest'
+          fi
+          if [ -n "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Sign forecast record digests with workflow provenance
+        id: evidence_attest
+        if: steps.evidence.outputs.new_attempts == 'true'
+        # Evidence publication must continue if the attestation service is unavailable.
+        continue-on-error: true
+        uses: actions/attest@v4
+        with:
+          subject-checksums: ${{ runner.temp }}/forecast-attempts.sha256
+      - name: Preserve capture records before Git push
+        if: steps.evidence.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            data/observations/
+            data/attempts/
+            data/collection.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Publish sourced observations and recorded attempts
         run: |
           if [ -z "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then

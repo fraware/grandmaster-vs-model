@@ -22,6 +22,21 @@ import {collect} from './collection.mjs';
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
 const hash=x=>createHash('sha256').update(typeof x==='string'?x:canonical(x)).digest('hex');
 const providerKeys={openai:'OPENAI_API_KEY',anthropic:'ANTHROPIC_API_KEY',gemini:'GEMINI_API_KEY'};
+/**
+ * Operator-supplied GitHub Actions reference. A signed GitHub attestation, when
+ * available, independently binds a file digest to the workflow identity.
+ * The environment reference itself is not cryptographic evidence.
+ */
+export function currentWorkflowContext(keys){
+  if(keys?.GITHUB_ACTIONS!=='true')return null;
+  const repository=keys.GITHUB_REPOSITORY,runId=keys.GITHUB_RUN_ID,runAttempt=keys.GITHUB_RUN_ATTEMPT;
+  if(typeof repository!=='string'||!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)||
+     typeof runId!=='string'||!/^[1-9][0-9]{0,19}$/.test(runId)||
+     typeof runAttempt!=='string'||!/^[1-9][0-9]{0,5}$/.test(runAttempt)){
+    throw new Error('Invalid GitHub Actions provenance context');
+  }
+  return {repository,runId,runAttempt};
+}
 export function withinMatchWindow(at){return activeRound(at)!==null;}
 export function sanitizeError(error){
   const msg=String(error?.message??error);
@@ -41,10 +56,16 @@ async function broadcast(fetcher,round){
   return game;
 }
 /** Test-injectable orchestration. Do not log response bodies or environment secrets. */
-export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requestModel,clock=()=>new Date(),keys=process.env,activeOnly=true,gameNumber=null,sampleEvery=5,maxRequests=900}={}){
+export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requestModel,clock=()=>new Date(),keys=process.env,activeOnly=true,gameNumber=null,sampleEvery=5,maxRequests=900,captureProviders=null}={}){
   const dir=resolve(root);
   if(!Number.isInteger(sampleEvery)||sampleEvery<1||sampleEvery>20)throw new Error('Invalid sampling stride');
   if(!Number.isInteger(maxRequests)||maxRequests<1||maxRequests>10000)throw new Error('Invalid total request ceiling');
+  if(captureProviders!==null&&(!Array.isArray(captureProviders)||captureProviders.length===0||
+      captureProviders.some(p=>!Object.hasOwn(providerKeys,p))||
+      new Set(captureProviders).size!==captureProviders.length)){
+    throw new Error('Invalid capture provider allowlist');
+  }
+  const captureRun=currentWorkflowContext(keys);
   const at=clock().toISOString();
   const scheduled=activeRound(at);
   if(activeOnly&&!scheduled)return {status:'outside-game-session',newAttempts:0};
@@ -92,7 +113,8 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
   }
   const roster=JSON.parse(await readFile(join(dir,'data/models.json'),'utf8'));
   if(roster.schema!=='model-roster-v1'||!Array.isArray(roster.models))throw new Error('Invalid model roster');
-  const models=roster.models.filter(m=>m.capture&&keys[providerKeys[m.provider]]);
+  const models=roster.models.filter(m=>m.capture&&keys[providerKeys[m.provider]]&&
+    (captureProviders===null||captureProviders.includes(m.provider)));
   if(!models.length){
     await collect({root:dir,write:true});
     return {status:'no-provider-credentials',newObservations:observations.moves.length-known,newAttempts:0};
@@ -136,7 +158,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
       catch{status='invalid';error='Model did not return one legal UCI move';}
     }catch(e){status='request-failed';error=sanitizeError(e);}
     const completedAt=clock().toISOString();
-    return {schema:ATTEMPT_SCHEMA,event:EVENT_ID,game:round.game,ply,fen,source:round.pgnUrl,model:{id:model.id,name:model.name,provider:model.provider,version:model.version},prompt,promptSha256:hash(prompt),response,responseSha256:hash(response),status,predictedUci,error,startedAt,completedAt,providerResponseId,providerReportedModel,elapsedMs,usage};
+    return {schema:ATTEMPT_SCHEMA,event:EVENT_ID,game:round.game,ply,fen,source:round.pgnUrl,model:{id:model.id,name:model.name,provider:model.provider,version:model.version},prompt,promptSha256:hash(prompt),response,responseSha256:hash(response),status,predictedUci,error,startedAt,completedAt,providerResponseId,providerReportedModel,elapsedMs,usage,captureRun};
   }));
   // A second PGN retrieval detects an obvious race. A successful check is not
   // proof that a forecast preceded a physical move or its public observation.
@@ -164,5 +186,5 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   if(process.argv.length!==2)throw new Error('Usage: node scripts/forecast-cycle.mjs');
-  cycle({sampleEvery:Number(process.env.CAPTURE_SAMPLE_EVERY||5),maxRequests:Number(process.env.CAPTURE_MAX_REQUESTS||900)}).then(result=>console.log(JSON.stringify(result))).catch(error=>{console.error(`Capture cycle failed: ${sanitizeError(error)}`);process.exitCode=1;});
+  cycle({sampleEvery:Number(process.env.CAPTURE_SAMPLE_EVERY||5),maxRequests:Number(process.env.CAPTURE_MAX_REQUESTS||900),captureProviders:process.env.CAPTURE_PROVIDERS?.split(',').map(p=>p.trim())??null}).then(result=>console.log(JSON.stringify(result))).catch(error=>{console.error(`Capture cycle failed: ${sanitizeError(error)}`);process.exitCode=1;});
 }

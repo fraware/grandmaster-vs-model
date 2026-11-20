@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {roundInfo,activeRound,validateRegistry,BROADCAST_REGISTRY} from '../src/match-2026.mjs';
 import {snapshotFromPgn,restoreSnapshot} from '../src/broadcast.mjs';
-import {cycle} from '../scripts/forecast-cycle.mjs';
+import {cycle,currentWorkflowContext} from '../scripts/forecast-cycle.mjs';
 import {collect} from '../scripts/collection.mjs';
 import {buildIndex,extendObservation,validateObservation} from '../src/collection.mjs';
 import {START_FEN,play} from '../src/chess.mjs';
@@ -142,5 +142,58 @@ test('first-observed timestamps are taken after completed PGN retrieval',async()
     assert.equal(result.status,'no-provider-credentials');
     const obs=JSON.parse(await readFile(join(root,'data/observations/game1.json'),'utf8'));
     assert.equal(obs.moves[0].firstObservedAt,times[1]);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('provider readiness allowlist is enforced before any paid request',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-ready-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify({
+      ...roster,models:[model,{
+        id:'anthropic-claude-fable-5-2',name:'Claude Fable 5.2',
+        provider:'anthropic',version:'claude-fable-5-2',capture:true
+      }]
+    }));
+    const calls=[];
+    const options={root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>gameTwo}),sampleEvery:1,
+      keys:{OPENAI_API_KEY:'offline-key',ANTHROPIC_API_KEY:'offline-key'},
+      providerRequest:async({provider})=>{calls.push(provider);
+        return {output:'e7e5',model:model.version,responseId:'offline',elapsedMs:1,usage:null};}
+    };
+    await assert.rejects(()=>cycle({...options,captureProviders:['unknown']}),/allowlist/);
+    assert.deepEqual(calls,[]);
+    const result=await cycle({...options,captureProviders:['openai']});
+    assert.equal(result.newAttempts,1);
+    assert.deepEqual(calls,['openai']);
+    assert.equal((await collect({root})).attempts.length,1);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('GitHub workflow reference is recorded but never treated as proof of physical move time',async()=>{
+  const keys={OPENAI_API_KEY:'offline-key',GITHUB_ACTIONS:'true',
+    GITHUB_REPOSITORY:'fraware/grandmaster-vs-model',GITHUB_RUN_ID:'44719842201',
+    GITHUB_RUN_ATTEMPT:'2'};
+  assert.deepEqual(currentWorkflowContext(keys),{
+    repository:'fraware/grandmaster-vs-model',runId:'44719842201',runAttempt:'2'
+  });
+  assert.throws(()=>currentWorkflowContext({...keys,GITHUB_RUN_ID:'-1'}),/provenance/);
+  assert.equal(currentWorkflowContext({}),null);
+  const root=await mkdtemp(join(tmpdir(),'gvm-provenance-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
+    const result=await cycle({root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>gameTwo}),sampleEvery:1,
+      keys,providerRequest:async()=>({output:'e7e5',model:model.version,responseId:'fixture',elapsedMs:2,usage:null})});
+    assert.equal(result.newAttempts,1);
+    const raw=JSON.parse(await readFile(join(root,'data/attempts/g02-p002-openai-gpt-6-2-astra.json'),'utf8'));
+    assert.deepEqual(raw.captureRun,currentWorkflowContext(keys));
+    const index=await collect({root});
+    assert.deepEqual(index.attempts[0].captureRun,currentWorkflowContext(keys));
+    assert.equal(index.attempts[0].timing,'unverified');
+    assert.equal(index.attempts[0].comparison,null);
+    assert.equal(index.attempts[0].publication,'operator-supplied');
   }finally{await rm(root,{recursive:true,force:true});}
 });

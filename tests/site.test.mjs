@@ -88,3 +88,17 @@ test('first move commits automatically and all practice rounds remain historical
   assert.match(challenge, /createPracticeDecks/);
   assert.match(challenge, /Practice position is duplicated or outside the recorded game/);
 });
+
+test('attested forecast manifest uses NUL-separated filenames and limits signing to new attempts',async()=>{
+  const yaml=await text('.github/workflows/capture.yml');
+  assert.match(yaml,/mapfile -d '' files/);
+  assert.ok(yaml.includes(String.raw`printf '%s\0'`));
+  assert.ok(!yaml.includes(String.raw`printf '%s\\0'`));
+  assert.match(yaml,/subject-checksums:/);
+  assert.match(yaml,/steps\.evidence\.outputs\.new_attempts == 'true'/);
+  assert.match(yaml,/continue-on-error: true/);
+  assert.match(yaml,/CAPTURE_PROVIDERS: 'openai'/);
+  assert.match(yaml,/name: capture-recovery-/);
+  assert.match(yaml,/steps\.evidence\.outputs\.changed == 'true'/);
+  assert.match(yaml,/retention-days: 30/);
+});
