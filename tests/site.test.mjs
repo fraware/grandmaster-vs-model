@@ -16,6 +16,8 @@ test('public site exposes the real challenge and canonical, shareable image',asy
   assert.match(html,/src="src\/home\.mjs"/);
   assert.doesNotMatch(html,/id="board"/);
   assert.match(html,/href="lab\.html\?mode=live#experiment"/);
+  assert.match(html,/id="challenge-live-next-link"/);
+  assert.match(html,/id="challenge-live-next-status"/);
   const image=await readFile(new URL('assets/share-cover.png',base));
   assert.equal(image.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   assert.equal(image.readUInt32BE(16),1200);
@@ -35,6 +37,8 @@ test('production Pages workflow includes every client-side module and image asse
   const entrance=await text('src/home.mjs');
   assert.match(entrance,/mountChallenge\(archive, replay, retrospective\)/);
   assert.match(entrance,/retrospective-2024\.json/);
+  assert.match(entrance,/challenge-live-next-link/);
+  assert.match(entrance,/challenge-live-next-time/);
   assert.match(yaml,/verify:retrospective/);
 });
 
