@@ -30,7 +30,7 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 
 ## The championship is one action from the homepage
 
-A compact, event-aware 2026 World Championship invitation now appears **above the 2024 challenge** on desktop and mobile. It links directly to the next relevant game using the pinned 14-round UTC registry. Ahead of the announced start it invites a local opening prediction, during the scheduled session it opens the latest sourced position, and beyond the listed rounds it provides a replay entry. The schedule does not establish that physical play has started. Route selection is deterministic and tested in [`src/home-entry.mjs`](src/home-entry.mjs) and [`tests/home-entry.test.mjs`](tests/home-entry.test.mjs).
+A compact 2026 World Championship action appears in the **first-screen homepage heading** on desktop and mobile, retaining the original 2024 chessboard's first-viewport placement. A fuller event invitation follows the historical challenge. Both links select the next relevant round using the pinned 14-round UTC registry. Ahead of the announced start it invites a local opening prediction, during the scheduled session it opens the latest sourced position, and beyond the listed rounds it provides a replay entry. The schedule does not establish that physical play has started. Route selection is deterministic and tested in [`src/home-entry.mjs`](src/home-entry.mjs) and [`tests/home-entry.test.mjs`](tests/home-entry.test.mjs).
 
 ## Complete 2024 championship game records
 

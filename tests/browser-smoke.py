@@ -102,11 +102,12 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         populate(page, source)
         assert page.locator('#board').count() == 0, 'Main page must not duplicate the board'
         assert page.locator('#challenge-board button.challenge-square').count() == 64
-        invitation = page.locator('#live-invite-link')
-        assert invitation.is_visible(), 'Live championship link must be visible on mobile'
+        invitation = page.locator('#live-hero-link')
+        assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')
-        assert page.locator('#live-invite-title').inner_text()
         assert invitation.bounding_box()['y'] < viewport['height'], 'Live entry must be above the fold'
+        assert page.locator('#live-invite-link').count() == 1
+        assert page.locator('#live-invite-title').inner_text()
         assert page.locator('#challenge-board button[tabindex="0"]').count() == 1
         first_cell = page.locator('#challenge-board button.challenge-square').first
         first_cell.focus()

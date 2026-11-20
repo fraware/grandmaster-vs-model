@@ -20,6 +20,12 @@ function updateLiveInvite(){
     const label=link.querySelector('span:first-child');
     if(label)label.textContent=data.action;
   }
+  const heroLink=document.getElementById('live-hero-link');
+  if(heroLink){
+    heroLink.href=data.href;
+    heroLink.firstChild.textContent=`GAME ${String(data.game).padStart(2,'0')} · PLAY 2026 `;
+    heroLink.setAttribute('aria-label',`${data.status}. ${data.time}. ${data.action}.`);
+  }
 }
 
 
