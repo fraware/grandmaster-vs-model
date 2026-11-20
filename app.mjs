@@ -168,13 +168,16 @@ function renderArchive(){
 function renderModelRoster(){
   const models=modelRoster?.models||[];
   const attempts=collectionIndex?.attempts||[];
+  const unresolved=(collectionIndex?.reservations||[]).filter(x=>x.status==='unresolved');
   setText('model-attempt-total',attempts.length);
   if(modelRoster?.verifiedOn)setText('roster-date','PROVIDER IDS CHECKED '+modelRoster.verifiedOn);
   const grid=$('model-grid');
   if(!models.length){grid.textContent='The versioned model roster is currently unavailable.';return;}
   grid.innerHTML=models.map((m,i)=>{
     const record=attempts.filter(x=>x.model?.id===m.id);
-    const caption=record.length?`${record.length} recorded API attempt${record.length===1?'':'s'}`:'No published call yet';
+    const pending=unresolved.filter(x=>x.model?.id===m.id);
+    const completed=record.length?`${record.length} recorded API attempt${record.length===1?'':'s'}`:'No published call yet';
+    const caption=pending.length?`${completed} · ${pending.length} unresolved reservation${pending.length===1?'':'s'}`:completed;
     return `<article class="model-card"><div class="model-card-meta"><span>${escapeHtml(m.provider.toUpperCase())}</span><span>0${i+1} / ${String(models.length).padStart(2,'0')}</span></div><h3>${escapeHtml(m.name)}</h3><div class="model-card-version">${escapeHtml(m.version)}</div><div class="model-card-foot"><span class="model-card-count">${escapeHtml(caption)}</span><a href="${escapeHtml(m.source)}" target="_blank" rel="noopener noreferrer">Official model docs ↗</a></div></article>`;
   }).join('');
 }
@@ -188,11 +191,13 @@ function renderLive(){
   const relevant=matchData?.games?.find(x=>x.game===selectedGame);
   const forecastList=(relevant?.forecasts||[]).filter(f=>f.ply===i+1&&f.fen===before);
   const modelAttempts=(collectionIndex?.attempts||[]).filter(a=>a.game===selectedGame&&a.ply===i+1&&a.fen===before);
+  const unresolved=(collectionIndex?.reservations||[]).filter(r=>r.game===selectedGame&&
+    r.ply===i+1&&r.fen===before&&r.status==='unresolved');
   setText('position-kicker','GENEVA · WORLD CHAMPIONSHIP 2026');
   setText('position-name',data?.moves.length?`Game ${String(selectedGame).padStart(2,'0')} · ${i} moves played`:`Game ${String(selectedGame).padStart(2,'0')} · opening position`);
   setText('result-heading','CHAMPIONSHIP DECISIONS');
   setText('status-indicator',data?.moves.length?'SOURCED MOVES':'AWAITING PLAY');
-  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:(forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':'No verified model forecasts yet.');
+  setText('result-title',shownMove?`Broadcast move · ${shownMoveLabel}`:(forecastList.length||modelAttempts.length)?'Forecast attempts recorded · timing not verified.':unresolved.length?'Request reserved · response not published.':'No verified model forecasts yet.');
   setText('result-description',latest?'The board displays the newest move available from the broadcast. Navigate back to inspect earlier decisions. Source-observation time differs from physical move time.':data?.moves.length?'The board is reconstructed from Lichess PGN. Model forecasts remain timing-unverified until separately corroborated.':`Game ${selectedGame} starts ${new Date(roundInfo(selectedGame).startsAt).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}. No moves have been observed for this round.`);
   const rows=forecastList.map(f=>{
     const san=withSans(before).find(x=>x.uci===f.prediction.uci)?.san||f.prediction.uci;
@@ -207,6 +212,7 @@ function renderLive(){
   $('guess-area').hidden=true;$('score-line').hidden=true;
   if(shownMove)resultSummary('Observed, not predicted.','The source identifies the played move. Its exact real-world playing time is not established by the moment the PGN was fetched.');
   else if(forecastList.length||modelAttempts.length)resultSummary('Submitted forecasts are provisional.','Displayed records have locally checked content. Public pre-move chronology and provider origin are still separate checks.');
+  else if(unresolved.length)resultSummary('Reserved; no response recorded.','A request slot was published before inference. Its outcome is missing and this request will not be repeated automatically. No model prediction has been established.');
   else resultSummary('No manufactured leaderboard.','Public prediction accuracy is withheld until real provider responses, sourced moves, and credible pre-move publication evidence are available.');
   setText('trace-text',`Source: Lichess Game ${selectedGame}, round ${roundInfo(selectedGame).roundId}. Public feed observations are not physical move timestamps.`);
   setText('bottom-source','2026 MATCH · LICHESS PGN · NO VERIFIED MODEL SCORES');
@@ -299,8 +305,13 @@ async function refreshPublishedIndex(){
     const updated=await response.json();
     if(updated?.schema!=='collection-index-v1'||!Array.isArray(updated.attempts)||!Array.isArray(updated.observedMoves)||updated.source!==GAME_ONE_PGN)throw new Error('Unrecognized published evidence');
     if(updated.attempts.length>2000)throw new Error('Unexpected attempt count');
+    if(updated.reservations!==undefined&&(!Array.isArray(updated.reservations)||updated.reservations.length>10000))
+      throw new Error('Unexpected reservation evidence');
     const registered=new Set((modelRoster?.models||[]).map(m=>m.id));
-    if(updated.attempts.some(a=>!registered.has(a.model?.id)))throw new Error('Unregistered model in public index');
+    if(updated.attempts.some(a=>!registered.has(a.model?.id))||
+       (updated.reservations||[]).some(c=>!registered.has(c.model?.id)||
+         !['completed','unresolved'].includes(c.status)))
+      throw new Error('Unregistered or invalid model record in public index');
     applyPublishedObservations(updated);
     collectionIndex=updated;
     if(mode==='live')render();
