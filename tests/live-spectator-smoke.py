@@ -101,7 +101,12 @@ def run_spectator_test(browser) -> None:
             page.mouse.move(finish["x"] + finish["width"]/2,
                             finish["y"] + finish["height"]/2, steps=8)
             page.mouse.up()
-        assert "Prediction locked." in page.locator("#spectator-message").inner_text()
+        detail = page.locator("#spectator-message").inner_text()
+        assert "Prediction locked." in detail, (
+            f"{label}: second move was not locked; spectator={detail}; "
+            f"selector={page.locator('#guess-select').input_value()}; "
+            f"phase={page.locator('#spectator-phase').inner_text()}"
+        )
         assert "1 waiting" in page.locator("#spectator-stats").inner_text()
 
         next_pgn = PGN.replace("3. Bb5 a6 *", "3. Bb5 a6 4. Ba4 *")
