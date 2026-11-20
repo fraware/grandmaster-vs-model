@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,rm,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {START_FEN,play} from '../src/chess.mjs';
@@ -135,5 +135,18 @@ test('directory ingester reads actual expected GitHub artifact layout without to
     assert.equal(output.reportedDistinctMoves,1);
     assert.equal(output.sessions.filter(x=>x.reportedMoveCount===0).length,1);
     await assert.rejects(()=>reconcileDirectory(join(root,'missing')),/ENOENT/);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('untrusted artifact JSON symlinks cannot read files outside their session',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-shadow-boundary-'));
+  try{
+    const id='shadow-broadcast-44700000009-1';
+    const base=join(root,id);
+    await mkdir(join(base,'artifacts/shadow'),{recursive:true});
+    const outside=join(root,'outside.json');
+    await writeFile(outside,JSON.stringify(makeSummary()));
+    await symlink(outside,join(base,'artifacts/shadow/session.json'));
+    await assert.rejects(()=>reconcileDirectory(root),/escapes its declared download directory/);
   }finally{await rm(root,{recursive:true,force:true});}
 });

@@ -57,3 +57,7 @@ The next relevant official 2026 round is prominently linked in the first-screen 
 ## Championship stream readiness (v1.8)
 
 Before Game 1, verify the hourly read-only source workflow is enabled, that every run receives a unique artifact, and that a representative source snapshot succeeds. The expected observational start sequence for November 24 is 14:03, 15:03, …, 23:03 UTC. The ten sessions are distinct because GitHub Actions scheduling is best effort and one interrupted job must not erase the entire day's collection. Source update observations must later be reconciled across runs; never report source timestamps as independently established physical move times. The scheduled paid model collector stays separate from this observer.
+
+## Recover and reconcile match-day shadow artifacts
+
+Each scheduled hourly observer uploads a uniquely named, 90-day source artifact. Reconcile downloaded artifacts through `npm run reconcile:shadow -- --dir DIRECTORY --out NEW_REPORT.json`, preserving their original names and content. Check the report for contradictory histories, missing sessions and anomalous operator timestamps. The deterministic output is not a signed physical move timeline, and its source records must not be substituted for canonical provider prediction attempts. Real data from Game 1 or later rounds are necessary before any empirical latency statistics can be reported.

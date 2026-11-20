@@ -1,7 +1,7 @@
 {
   "name": "grandmaster-vs-model",
   "private": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
   "description": "Sourced world chess championship replay and auditable frontier model predictions",
   "scripts": {
@@ -19,7 +19,8 @@
     "stream:probe": "node scripts/stream-observer.mjs --probe",
     "stream:observe": "node scripts/stream-observer.mjs --observe",
     "capture:reserve": "node scripts/forecast-cycle.mjs --reserve",
-    "capture:execute": "node scripts/forecast-cycle.mjs --execute"
+    "capture:execute": "node scripts/forecast-cycle.mjs --execute",
+    "reconcile:shadow": "node scripts/reconcile-shadow.mjs"
   },
   "engines": {
     "node": ">=20"

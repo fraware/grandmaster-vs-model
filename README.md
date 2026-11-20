@@ -242,3 +242,17 @@ The scheduled [shadow observation workflow](.github/workflows/shadow-stream.yml)
 The stream adapter now rotates a quiet connection every two minutes to make a fresh validated PGN observation even if no stream update arrives. Temporary PGN HTTP 408/429/5xx and transport failures trigger bounded reconnection. Authorization errors and invalid legality, player identity, or append-only source history continue to fail closed. Pure whitespace heartbeat chunks do not initiate unnecessary PGN fetches; each substantive stream update still triggers a canonical snapshot. The observer exits early on an official game-finished result.
 
 The workflow makes **zero provider calls** and has no model API credentials or write permission to the repository. Its result and sanitized diagnostics are preserved in a `read-only-broadcast-session-v1` JSON artifact next to any locally recovered move observations. The runner's retrieval timestamps establish local feed access only and are not physical move times. Sessions are independent, so observation files and their first-observed times are not a single consolidated, canonical chronology without subsequent reconciliation. The existing paid inference collector is unchanged and continues under its independently reviewed reservation protocol.
+
+## Reconcile independent source observations without inventing chronology (v1.9)
+
+The hourly shadow stream jobs publish independent GitHub Actions recovery artifacts. They do **not** form one trusted, monotone timeline automatically. The [source reconciliation module](src/shadow-reconcile.mjs) and [offline runner](scripts/reconcile-shadow.mjs) now validate and compare downloaded observation artifacts without modifying the canonical model ledger.
+
+Download each `shadow-broadcast-RUN_ID-ATTEMPT` Actions artifact into its own directory, retaining the contained `artifacts/shadow/session.json` and optional `data/observations/gameN.json` paths. Place those directories under a common local parent. Then use:
+
+```sh
+npm run reconcile:shadow -- --dir /path/to/shadow-artifacts --out /path/to/new-shadow-report.json
+```
+
+The tool checks the summary's game, official source URL, timestamps, zero-provider-request declaration, PGN position legality, append-only source history and cross-artifact agreement. It refuses contradictory game histories, malformed inputs, duplicate artifact identifiers and file paths escaping their own artifact directories. Its deterministic JSON report includes per-artifact checksums and the **earliest operator-reported** first-observation timestamp carried for each move. Timestamps in downloaded artifacts can be inherited from earlier repository states; multiple copies do not constitute independent confirmations.
+
+**Evidence limitation:** these are locally calculated SHA-256 checksums and operator-originated timestamps. Neither GitHub artifact names nor the reconciled report authenticate hosted-run provenance, provider execution, physical move time, or pre-move priority. The tool leaves `data/collection.json`, provider reservations, and model-attempt records untouched. No real 2026 reconciliation result is published until actual source observations exist.
