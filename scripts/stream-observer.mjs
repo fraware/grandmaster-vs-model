@@ -19,7 +19,7 @@ import {cycle,sanitizeError} from './forecast-cycle.mjs';
 const currentFile=fileURLToPath(import.meta.url);
 const waitDefault=ms=>new Promise(resolveWait=>setTimeout(resolveWait,ms));
 const HTTP_AUTH_FAILURE=/^Broadcast stream HTTP (401|403)$/;
-const TRANSIENT_SOURCE=/Broadcast source HTTP (408|429|5\\d\\d)|fetch failed|network|ECONN|ETIMEDOUT|timeout|aborted/i;
+const TRANSIENT_SOURCE=/Broadcast source HTTP (408|429|5\d\d)|fetch failed|network|ECONN|ETIMEDOUT|timeout|aborted/i;
 // Suppress pure transport whitespace and empty heartbeat fragments. Streaming
 // data otherwise acts only as a change signal: never parse incomplete PGNs.
 export function isStreamHeartbeat(bytes){
@@ -101,9 +101,9 @@ export async function observeBroadcast({
         if(item.done)break;
         const size=item.value?.byteLength??0;
         if(!Number.isSafeInteger(size)||size<0)throw new Error('Unexpected stream chunk');
-        if(isStreamHeartbeat(item.value))continue;
         bytesReceived+=size;
         if(bytesReceived>50_000_000)throw new Error('Broadcast stream byte ceiling reached');
+        if(isStreamHeartbeat(item.value))continue;
         const delay=Math.max(0,minRefreshMs-(now()-lastRefreshMs));
         if(delay)await wait(delay);
         if(now()>=until)break;

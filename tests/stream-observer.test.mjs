@@ -165,7 +165,7 @@ test('PGN whitespace stream fragments do not trigger redundant full source fetch
   });
   assert.deepEqual(reasons,['connected','stream-update']);
   assert.equal(result.notifications,2);
-  assert.equal(result.bytesReceived,7);
+  assert.equal(result.bytesReceived,11);
 });
 
 test('temporary PGN source transport errors reconnect without sacrificing the full session',async()=>{
@@ -244,4 +244,20 @@ test('single-session resource limits reject unreasonable source connection setti
     streamFetcher:async()=>response(new Uint8Array([65])),onSnapshot:async()=>({})};
   await assert.rejects(()=>observeBroadcast({...base,maxConnections:513}),/connection limit/);
   await assert.rejects(()=>observeBroadcast({...base,maxConnectionAgeMs:600001}),/rotation limit/);
+});
+
+test('HTTP 503 while refreshing the source is transient rather than a permanent PGN error',async()=>{
+  const clock=controlled();let count=0;
+  const result=await observeReadOnly({
+    game:1,now:clock.now,wait:clock.wait,maxConnections:2,
+    retryDelayMs:0,maxDurationMs:30000,minRefreshMs:0,
+    streamFetcher:async()=>response(),
+    snapshotCycle:async()=>{
+      count++;
+      if(count===1)throw new Error('Broadcast source HTTP 503');
+      return {status:'no-provider-credentials'};
+    }
+  });
+  assert.equal(count,2);
+  assert.equal(result.transport,'source-temporarily-unavailable');
 });
