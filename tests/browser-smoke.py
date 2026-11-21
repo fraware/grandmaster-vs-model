@@ -506,7 +506,12 @@ def test_embedded_challenge(browser) -> None:
                 'series': frame.locator('#challenge-series').inner_text(),
                 'errors': errors,
             }
-        assert frame.locator('#challenge-next').is_visible()
+        if viewport['width'] > 720:
+            assert frame.locator('#challenge-next').is_visible()
+        else:
+            # The existing mobile UX uses a fixed next-position dock instead
+            # of the desktop in-panel continuation button.
+            assert frame.locator('#challenge-mobile-reveal').is_visible()
         assert not errors, errors
         page.close()
 
