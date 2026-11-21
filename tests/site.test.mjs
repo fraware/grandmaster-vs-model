@@ -288,3 +288,24 @@ test('the optional chess embed reuses the same validated challenge and no privat
   assert.match(readme,/referrerpolicy="no-referrer"/);
   assert.doesNotMatch(controller,/navigator\.sendBeacon|fetch\(.*analytics/);
 });
+
+test('publishers can discover and copy the iframe with no extra services',async()=>{
+  const html=await text('index.html');
+  const controller=await text('src/home.mjs');
+  const css=await text('theme.css');
+  const browser=await text('tests/browser-smoke.py');
+  const snippet=await text('src/embed.mjs');
+  for(const id of ['embed','publisher-embed-copy','publisher-embed-code',
+    'publisher-embed-details','publisher-embed-status','publisher-embed-preview']){
+    assert.match(html,new RegExp(`id="${id}"`));
+  }
+  assert.match(controller,/publisherEmbedHtml/);
+  assert.match(controller,/navigator\.clipboard\?\.writeText/);
+  assert.match(controller,/field\.select\(\)/);
+  assert.match(css,/\.publisher-embed-actions button/);
+  assert.match(css,/html\.embed-mode \.publisher-embed/);
+  assert.match(browser,/window\.__copiedEmbed/);
+  assert.match(browser,/el\.selectionStart === 0/);
+  assert.match(snippet,/referrerpolicy="no-referrer"/);
+  assert.doesNotMatch(snippet,/fetch\(|localStorage|sessionStorage|sendBeacon|analytics/);
+});
