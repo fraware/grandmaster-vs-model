@@ -2,10 +2,14 @@ name: Capture prospective forecasts
 on:
   workflow_dispatch:
   schedule:
+    # Only the 14 published game dates (14:00–01:00 UTC next day).
     # GitHub cron is best effort, not a precision real-time scheduler.
-    # The collector enforces the match date window independently.
-    - cron: '2-59/5 13-23 * 11,12 *'
-    - cron: '2-59/5 0-1 * 11,12 *'
+    # The collector also enforces activeRound() independently.
+    - cron: '2-59/5 14-23 24,25,26,28,29,30 11 *'
+    - cron: '2-59/5 0 25,26,27,29,30 11 *'
+    - cron: '2-59/5 0 1 12 *'
+    - cron: '2-59/5 14-23 2,3,4,6,7,8,10,11 12 *'
+    - cron: '2-59/5 0 3,4,5,7,8,9,11,12 12 *'
 permissions:
   contents: write
   actions: write
@@ -15,7 +19,24 @@ concurrency:
   group: championship-collector
   cancel-in-progress: false
 jobs:
+  season:
+    # GitHub cron has no year field. Expired 2026 invocations skip the
+    # expensive capture job; manual dispatch still allows safe diagnostics.
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+    steps:
+      - id: check
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" || "$(date -u +%Y)" == "2026" ]]; then
+            echo 'eligible=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          fi
   capture:
+    needs: season
+    if: needs.season.outputs.eligible == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
