@@ -3,7 +3,7 @@
  */
 import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs';
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
-import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
+import {restoreSnapshot,validateAppendOnly,validateStandardChampionshipPosition} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
 import {shouldAutoRefreshBroadcast,rateLimitDelayMs} from './src/live-poll.mjs';
 import {selectHomepageRound} from './src/home-entry.mjs';
@@ -477,6 +477,7 @@ async function refreshBroadcast(){
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     const games=parsePgn(await response.text());
     const current=findChampionshipGame(games,targetGame),previous=liveGames.get(targetGame);
+    if(current)validateStandardChampionshipPosition(current);
     if(!current&&games.some(g=>g.moves.length))throw new Error('Unexpected player identities in broadcast');
     if(previous?.moves.length&&!current)throw new Error('Broadcast omitted previously observed moves');
     validateAppendOnly(previous,current);
