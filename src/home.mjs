@@ -2,6 +2,7 @@
 import {replaySanMoves} from './pgn.mjs';
 import {mountChallenge} from './challenge-ui.mjs';
 import {homepageInvite} from './home-entry.mjs';
+import {parsePeerChallenge} from './challenge.mjs';
 
 /** Public, scheduled routing: no device analytics and no inference. */
 function updateLiveInvite(){
@@ -60,6 +61,18 @@ if (wantsLab) {
   const destination = new URL(`lab.html${window.location.search}${window.location.hash}`, window.location.href);
   window.location.replace(destination.href);
 } else {
+  // Embed mode is confined to the archival challenge. It does not fetch the
+  // live broadcast or change any verified chess data, scoring or share links.
+  if (parameters.get('embed') === '1') {
+    document.documentElement.classList.add('embed-mode');
+    const standalone = new URL('./#challenge', window.location.href);
+    const peer = parsePeerChallenge(window.location.href);
+    if (peer) {
+      standalone.searchParams.set('set', String(peer.set));
+      standalone.searchParams.set('target', String(peer.target));
+    }
+    document.getElementById('embed-open-full').href = standalone.href;
+  }
   try { updateLiveInvite(); }
   catch(error) { console.warn('The scheduled live round label is unavailable:',error); }
   // A tab restored from history or reactivated on another match day must not
