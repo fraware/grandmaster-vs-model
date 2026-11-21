@@ -40,14 +40,19 @@ function removeCommentsAndVariations(input) {
 function moveTokens(text){
   const stripped=removeCommentsAndVariations(text).replace(/\$\d+/g,' ');
   const tokens=stripped.split(/\s+/).filter(Boolean),out=[];
-  for(const token of tokens){
+  let result=null;
+  for(const [index,token] of tokens.entries()){
     const clean=token.replace(/^\d+\.(?:\.\.)?/, '').trim();
     if(!clean||/^\d+\.{1,3}$/.test(clean)||/^\.{2,3}$/.test(clean))continue;
-    if(['1-0','0-1','1/2-1/2','*'].includes(clean))continue;
+    if(['1-0','0-1','1/2-1/2','*'].includes(clean)){
+      if(index!==tokens.length-1)throw new Error('PGN result must terminate movetext');
+      result=clean;
+      continue;
+    }
     if(!/^(?:[a-hKQRBNO0][a-h1-8x=+#O0\-!?]*)$/.test(clean))throw new Error(`Unsupported PGN token: ${token}`);
     out.push(clean);
   }
-  return out;
+  return {moves:out,result};
 }
 
 /** Parse a PGN document containing one or more Lichess broadcast games. */
@@ -57,7 +62,15 @@ export function parsePgn(text) {
   const games=[];let tags={},body=[];
   const flush=()=>{
     if(!body.join('').trim()&&!Object.keys(tags).length)return;
-    const sans=moveTokens(body.join('\n'));
+    const {moves:sans,result}=moveTokens(body.join('\n'));
+    const headerResult=tags.Result;
+    if(headerResult!==undefined&&!['1-0','0-1','1/2-1/2','*'].includes(headerResult))
+      throw new Error('Invalid PGN Result header');
+    if(headerResult!==undefined&&result!==null&&headerResult!==result)
+      throw new Error('PGN result header contradicts movetext');
+    // When the header is absent, preserve a terminal result from the main
+    // movetext. Otherwise a completed game could appear open for paid calls.
+    if(headerResult===undefined&&result!==null)tags.Result=result;
     const initial=tags.FEN || START_FEN;
     games.push({tags, ...replaySanMoves(sans,initial)});
     tags={};body=[];

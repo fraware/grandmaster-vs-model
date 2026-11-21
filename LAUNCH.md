@@ -123,3 +123,10 @@ All three 2026 PGN ingestion paths now enforce exactly the official chess starti
 
 Node tests exercise a legally replayable alternate FEN and confirm no observation, reservation, or paid request is made. Chromium tests cover source rejection and subsequent recovery when a valid PGN becomes available. This proves consistent handling of the declared input boundary under controlled fixtures; the real live feed's correctness and physical chronology remain independently unverified.
 
+
+## Terminal PGN result integrity · 21 November 2026
+
+The PGN parser now retains a terminal, unambiguous result from the mainline movetext when the `Result` header is missing. It rejects contradiction with an explicit header and result markers inserted before further moves. This removes a paid-collection failure mode in which a completed game lacking a result header appeared ongoing. Fixture tests verify that `--reserve` ends a finished game with no provider calls or claims, while an internally inconsistent PGN produces no public observations or attempts. Comment and variation result markers are ignored as annotations.
+
+The outcome is sourced from PGN syntax; no independent confirmation of physical game termination is implied. Existing validated source snapshots and historical games are unchanged.
+
