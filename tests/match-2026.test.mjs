@@ -205,3 +205,23 @@ test('GitHub workflow reference is recorded but never treated as proof of physic
     assert.equal(index.attempts[0].publication,'operator-supplied');
   }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('collector refuses an explicitly mislabeled round without a model request',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-round-mismatch-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
+    let providerCalls=0;
+    const mislabeled='[Round "1"]\n'+gameTwo;
+    await assert.rejects(()=>cycle({
+      root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>mislabeled}),
+      providerRequest:async()=>{providerCalls++;throw Error('Must not call provider');},
+      sampleEvery:1,keys:{OPENAI_API_KEY:'offline-test-only'}
+    }),/round tag conflicts/);
+    assert.equal(providerCalls,0);
+    const ledger=await collect({root});
+    assert.equal(ledger.observedGames.length,0);
+    assert.equal(ledger.attempts.length,0);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
