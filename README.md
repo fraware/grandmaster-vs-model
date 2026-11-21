@@ -28,6 +28,12 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 
 *Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
+## Spoiler-free invitations to the 2026 championship
+
+The current live spectator board lets visitors invite a friend **before locking a move**, as well as after saving a local guess or receiving a sourced move. The invitation identifies the exact championship round and links to the official, current chessboard. It does **not** disclose the sender's SAN/UCI move, FEN, local timestamp or other saved browser records; recipients choose independently. A locally resolved result can be described in general terms as an unverified personal claim, without revealing the actual move. Native sharing, clipboard fallback and manual text copying remain available.
+
+These invitations are recreational and browser-local. Neither a share URL nor a personal match claim authenticates pre-move priority, player identity, independent human performance or provider-model accuracy. The 2026 live spectator invitation never makes a paid model request. The desktop/mobile Chromium regression covers sharing before a move, after a lock and after a confirmed broadcast outcome.
+
 ## Challenge a friend on the same three positions
 
 Every completed historical round now produces a direct challenge link containing the **exact one of five fixed three-position sets** and the sharer's **self-reported score**. When someone opens that link, the matching sourced positions load immediately and a restrained target badge shows the score to beat. The result compares the recipient's local exact-match score with the shared target, and the recipient can share a fresh link to continue the challenge. The scorecard image identifies its source set. Invalid or ambiguous query values are ignored.
