@@ -670,7 +670,7 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     altered_fen = ('rnbqkbnr/pppppppp/8/8/8/8/'
                    'PPPPPPPP/RNBQKBNR w - - 0 1')
     altered_pgn = PGN.replace('[Round "1"]',
-                              f'[Round "1"]\\n[FEN "{altered_fen}"]')
+                              f'[Round "1"]\n[FEN "{altered_fen}"]')
     altered_page = browser.new_page()
     altered_errors = []
     altered_page.on('pageerror', lambda error: altered_errors.append(str(error)))
