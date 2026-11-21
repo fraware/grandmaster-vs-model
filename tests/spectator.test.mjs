@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {START_FEN,play} from '../src/chess.mjs';
 import {roundInfo} from '../src/match-2026.mjs';
 import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,
-  spectatorShareText,validateSpectatorChoice,SPECTATOR_STORAGE_KEY,spectatorReturnPly} from '../src/spectator.mjs';
+  spectatorChallengeText,validateSpectatorChoice,SPECTATOR_STORAGE_KEY,spectatorReturnPly} from '../src/spectator.mjs';
 
 const fixed=()=>new Date('2026-11-20T12:00:00.000Z');
 const memoryStorage=()=>{
@@ -107,16 +107,48 @@ test('storage quota exception degrades to memory without claiming persistence',(
   assert.match(session.warning,/storage unavailable/i);
 });
 
-test('share text states that local predictions are not authenticated priority',()=>{
+test('a spoiler-free pregame invitation is available before any prediction',()=>{
+  for(let game=1;game<=14;game++){
+    const text=spectatorChallengeText({game,opening:true});
+    assert.match(text,new RegExp(`Game ${game}\\.`));
+    assert.match(text,/What will White play first/);
+    assert.match(text,new RegExp(`mode=live&game=${game}#experiment`));
+    assert.match(text,/timing is not independently verified/);
+    assert.doesNotMatch(text,/locked|exact match|My move:|lockedAt|uci|fen/i);
+  }
+});
+test('sharing a locked or resolved spectator choice preserves suspense and privacy',()=>{
   const session=createSpectatorSession({clock:fixed});
   const choice=session.lock(first);
-  const text=spectatorShareText(choice,spectatorOutcome(choice,{moves:[makeMove('e2e4')]}));
-  assert.match(text,/matched the grandmaster/);
-  assert.match(text,/My move: e4/);
-  assert.match(text,/Actual broadcast move: e4/);
-  assert.match(text,/Timing is not independently verified/);
-  assert.match(text,/mode=live&game=1#experiment/);
-  assert.doesNotMatch(text,/model accuracy|certified/);
+  const outcomes=[
+    {kind:'pending'},
+    spectatorOutcome(choice,{moves:[makeMove('e2e4')]}),
+    spectatorOutcome(choice,{moves:[makeMove('d2d4')]}),
+    {kind:'source-conflict'}
+  ];
+  for(const outcome of outcomes){
+    const text=spectatorChallengeText({game:1,choice,outcome,opening:true});
+    assert.match(text,/World Chess Championship 2026/);
+    assert.match(text,/local and their timing is not independently verified/);
+    assert.ok(text.endsWith('/lab.html?mode=live&game=1#experiment'));
+    for(const secret of ['e4','e2e4','d4','d2d4',choice.lockedAt,choice.fen,choice.source]){
+      assert.equal(text.includes(secret),false,`Leaked ${secret} in shared invitation`);
+    }
+  }
+  assert.match(spectatorChallengeText({game:1,choice,outcome:outcomes[1],opening:false}),
+    /shows an exact match with the sourced move/);
+  assert.match(spectatorChallengeText({game:1,choice,outcome:outcomes[2]}),/differed from/);
+  assert.doesNotMatch(spectatorChallengeText({game:1}),/GPT|certified|prospective/i);
+});
+test('untrusted or contradictory invitation arguments are rejected',()=>{
+  const choice=createSpectatorSession({clock:fixed}).lock(first);
+  assert.throws(()=>spectatorChallengeText({game:0}),/Unsupported championship/);
+  assert.throws(()=>spectatorChallengeText({game:15}),/Unsupported championship/);
+  assert.throws(()=>spectatorChallengeText({game:1,opening:'true'}),/phase/);
+  assert.throws(()=>spectatorChallengeText({game:1,outcome:{kind:'pending'}}),/without a local choice/);
+  assert.throws(()=>spectatorChallengeText({game:2,choice,outcome:{kind:'pending'}}),/mismatch/);
+  assert.throws(()=>spectatorChallengeText({game:1,choice}),/outcome/);
+  assert.throws(()=>spectatorChallengeText({game:1,choice,outcome:{kind:'verified'}}),/outcome/);
 });
 
 test('opening guesses survive a new browser session through origin-local storage',()=>{
