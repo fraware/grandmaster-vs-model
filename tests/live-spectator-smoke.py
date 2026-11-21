@@ -140,11 +140,68 @@ def run_spectator_test(browser) -> None:
         page.close()
 
 
+def run_rate_limit_recovery_test(browser) -> None:
+    """HTTP 429 freezes requests; an eventual source recovery retains the game."""
+    source = page_sources("lab")
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page.set_default_timeout(10000)
+    try:
+        populate(page, source, pgn=PGN, now_iso="2026-11-24T14:10:00Z")
+        page.locator("#tab-live").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('6 moves observed')"
+        )
+        assert page.locator("#nav-position").inner_text() == "6 / 6 PLIES"
+        page.evaluate("""() => {
+          window.__originalFetch = window.fetch;
+          window.__rateLimitedCalls = 0;
+          window.fetch = async (url, ...options) => {
+            if (String(url).includes('lichess.org/api/broadcast/')) {
+              window.__rateLimitedCalls += 1;
+              return new Response('', {status:429,
+                headers:{'Retry-After':'120'}});
+            }
+            return window.__originalFetch(url, ...options);
+          };
+        }""")
+        page.locator("#refresh-button").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('rate-limited')"
+        )
+        assert page.locator("#refresh-button").is_disabled()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+        assert page.locator("#nav-position").inner_text() == "6 / 6 PLIES"
+        assert page.locator("#board button.square").count() == 64
+
+        # Retry-After is 120 seconds, longer than the one-minute minimum.
+        page.evaluate("Date.now = () => Date.parse('2026-11-24T14:11:00Z')")
+        page.locator("#nav-start").click()
+        assert page.locator("#refresh-button").is_disabled()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+
+        page.evaluate("""() => {
+          Date.now = () => Date.parse('2026-11-24T14:12:01Z');
+          window.fetch = window.__originalFetch;
+        }""")
+        page.locator("#nav-end").click()
+        assert page.locator("#refresh-button").is_enabled()
+        page.locator("#refresh-button").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('6 moves observed')"
+        )
+        assert page.locator("#board button.square").count() == 64
+        assert page.locator("#guess-area").is_visible()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+    finally:
+        page.close()
+
+
 def main() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         try:
             run_spectator_test(browser)
+            run_rate_limit_recovery_test(browser)
         finally:
             browser.close()
     print("Live spectator smoke: pregame lock, outage recovery, sourced reveal, continuation, mobile drag, and private model ledger passed.")
