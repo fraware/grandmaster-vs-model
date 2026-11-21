@@ -74,10 +74,11 @@ def populate(page, source: tuple[str, str, dict], *, online: bool = True,
     else:
         # Exercise actual query-string parsing without external requests.
         site = 'https://fraware.github.io/grandmaster-vs-model/'
-        if not page_url.startswith(site + 'lab.html?'):
+        target_page = site if 'id="challenge-board"' in html else site + 'lab.html'
+        if page_url.split('#', 1)[0].split('?', 1)[0] != target_page:
             raise ValueError('Unsupported offline browser test URL')
         def fulfill_local(route):
-            if route.request.url.split('?', 1)[0] == site + 'lab.html':
+            if route.request.url.split('?', 1)[0] == target_page:
                 route.fulfill(status=200, content_type='text/html', body=html)
             else:
                 route.fulfill(status=404, body='')
@@ -249,17 +250,18 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         if label == 'mobile':
             page.wait_for_function('window.__shared !== null', timeout=10000)
             shared = page.evaluate('window.__shared')
-            assert '2/3 moves' in shared['text']
+            assert '2/3 grandmaster moves' in shared['text']
+            assert '?set=1&target=2#challenge' in shared['text']
             assert '🟩🟩⬛' in shared['text']
             assert 'GPT-6.2 Astra went 3/3' in shared['text']
             assert shared['fileName'] == 'grandmaster-vs-model-score.png'
             assert shared['fileType'] == 'image/png' and shared['size'] > 1000
         else:
             share_text = page.locator('#challenge-share-text').input_value()
-            assert '2/3 moves' in share_text
+            assert '2/3 grandmaster moves' in share_text
             assert '🟩🟩⬛' in share_text
             assert 'GPT-6.2 Astra went 3/3' in share_text
-            assert 'grandmaster-vs-model/#challenge' in share_text
+            assert 'grandmaster-vs-model/?set=1&target=2#challenge' in share_text
         with page.expect_download(timeout=10000) as info:
             page.locator('#challenge-download').click()
         download = info.value
@@ -312,6 +314,100 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert laptop.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     finally:
         laptop.close()
+
+
+def test_shared_peer_challenges(browser) -> None:
+    """Real query links select the same sourced round and compare local scores.
+
+    The incoming score is explicitly treated as user-editable and self-reported.
+    No analytics, accounts, network requests, or public ranking are involved.
+    """
+    source = page_sources('home')
+    site = 'https://fraware.github.io/grandmaster-vs-model/'
+    games = source[2]['./data/championship-2024.json']['games']
+    moves = games[13]['moves']
+    practice_plies = [[12, 41, 84], [20, 48, 92],
+                      [32, 67, 100], [36, 76, 104]]
+
+    for label, viewport, set_number, target, exact in [
+        ('desktop', {'width': 1280, 'height': 900}, 3, 2, True),
+        ('mobile', {'width': 390, 'height': 844}, 5, 3, False),
+    ]:
+        page = browser.new_page(viewport=viewport, has_touch=(label == 'mobile'))
+        page.set_default_timeout(10000)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        try:
+            populate(page, source,
+                     page_url=site + f'?set={set_number}&target={target}#challenge')
+            assert page.locator('#challenge-series').inner_text() == f'Round {set_number}'
+            assert page.locator('#challenge-peer-target').is_visible()
+            assert f'{target}/3' in page.locator('#challenge-peer-target-text').inner_text()
+            assert 'SELF-REPORTED' in page.locator('#challenge-peer-target').inner_text()
+            assert page.locator('#challenge-model-feedback').is_hidden()
+            assert page.locator('#challenge-board button.challenge-square').count() == 64
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+
+            for ply in practice_plies[set_number - 2]:
+                expected = moves[ply]['uci']
+                select = page.locator('#challenge-move-select')
+                if not page.locator('#challenge-move-details').evaluate('(node) => node.open'):
+                    page.locator('#challenge-move-details summary').click()
+                if exact:
+                    selected = expected
+                else:
+                    selected = select.locator('option').evaluate_all(
+                        '(opts, actual) => opts.map(o => o.value).find(v => v && v !== actual)',
+                        expected)
+                    assert selected
+                select.select_option(selected)
+                page.locator('#challenge-answer-result').get_by_text(
+                    'Exact match.' if exact else 'Different move.').wait_for(timeout=3500)
+                (page.locator('#challenge-next') if label == 'desktop'
+                 else page.locator('#challenge-mobile-reveal')).click()
+            assert page.locator('#challenge-finished').is_visible()
+            assert page.locator('#challenge-result-label').inner_text() == (
+                '3 of 3.' if exact else '0 of 3.')
+            assert page.locator('#challenge-peer-outcome').is_visible()
+            outcome = page.locator('#challenge-peer-outcome').inner_text()
+            assert ('beat the shared' if exact else 'against the shared') in outcome
+            assert 'self-reported' in outcome
+            assert page.locator('#challenge-versus').is_hidden()
+
+            page.evaluate("""() => {
+              Object.defineProperty(navigator,'canShare',{
+                configurable:true,value:() => false
+              });
+              Object.defineProperty(navigator,'share',{
+                configurable:true,value:async data => {
+                  window.__peerSharedText = data.text;
+                }
+              });
+            }""")
+            page.locator('#challenge-share').click()
+            page.wait_for_function('typeof window.__peerSharedText === "string"')
+            share_text = page.evaluate('window.__peerSharedText')
+            assert (f'?set={set_number}&target={3 if exact else 0}#challenge'
+                    in share_text)
+            assert 'self-reported' in share_text
+            assert 'GPT-6.2' not in share_text
+
+            page.locator('#challenge-continue').click()
+            assert page.locator('#challenge-peer-target').is_hidden()
+            assert page.locator('#challenge-peer-outcome').is_hidden()
+            assert not errors, errors
+        finally:
+            page.close()
+
+    for query in ['?set=99&target=3', '?set=2&target=8',
+                  '?set=2&target=2&target=3', '?set=03&target=2']:
+        page = browser.new_page()
+        try:
+            populate(page, source, page_url=site + query + '#challenge')
+            assert page.locator('#challenge-series').inner_text() == 'Round 1'
+            assert page.locator('#challenge-peer-target').is_hidden()
+        finally:
+            page.close()
 
 
 def test_full_session_and_fast_input(browser) -> None:
@@ -480,6 +576,7 @@ def main() -> None:
         browser = playwright.chromium.launch(**launch)
         try:
             test_home(browser, screenshot_dir)
+            test_shared_peer_challenges(browser)
             if os.environ.get("GVM_EXTENDED_BROWSER") == "1":
                 test_full_session_and_fast_input(browser)
             test_lab(browser, screenshot_dir)
