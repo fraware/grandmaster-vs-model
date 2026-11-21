@@ -184,14 +184,22 @@ test('GitHub workflow reference is recorded but never treated as proof of physic
   try{
     await mkdir(join(root,'data'));
     await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
-    const result=await cycle({root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+    const options={root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
       fetcher:async()=>({ok:true,text:async()=>gameTwo}),sampleEvery:1,
-      keys,providerRequest:async()=>({output:'e7e5',model:model.version,responseId:'fixture',elapsedMs:2,usage:null})});
+      keys,providerRequest:async()=>({output:'e7e5',model:model.version,responseId:'fixture',elapsedMs:2,usage:null})};
+    // A production-origin prediction must reference a previously recorded
+    // durable claim. The fixture models the two phases locally; it does not
+    // assert that any real remote publication or provider request occurred.
+    const reserved=await cycle({...options,mode:'reserve'});
+    assert.equal(reserved.newReservations,1);
+    const result=await cycle({...options,mode:'execute'});
     assert.equal(result.newAttempts,1);
     const raw=JSON.parse(await readFile(join(root,'data/attempts/g02-p002-openai-gpt-6-2-astra.json'),'utf8'));
     assert.deepEqual(raw.captureRun,currentWorkflowContext(keys));
     const index=await collect({root});
     assert.deepEqual(index.attempts[0].captureRun,currentWorkflowContext(keys));
+    assert.equal(index.reservations[0].status,'completed');
+    assert.equal(index.attempts[0].reservationDigest,index.reservations[0].digest);
     assert.equal(index.attempts[0].timing,'unverified');
     assert.equal(index.attempts[0].comparison,null);
     assert.equal(index.attempts[0].publication,'operator-supplied');
