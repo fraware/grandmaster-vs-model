@@ -26,7 +26,7 @@ const currentChampionshipGame=()=>selectHomepageRound(new Date(Date.now())).roun
 let selectedGame=hasValidRequestedGame?requestedGame:(mode==='archive'?14:currentChampionshipGame());
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
-let sourceRetryUntil=0;
+let sourceRetryUntil=0,queuedBroadcastGame=null;
 let spectatorStorage=null,legacySpectatorStorage=null;
 try{spectatorStorage=window.localStorage;}catch{/* Persistent storage can be blocked. */}
 try{legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be blocked. */}
@@ -458,7 +458,13 @@ function revealMove(){if(!isArchive()||!game()?.moves[currentIndex()])return;rev
  * Another user selection during the request must not redirect its result.
  */
 async function refreshBroadcast(){
-  if(requestRunning||isArchive()||Date.now()<sourceRetryUntil)return;
+  if(isArchive()||Date.now()<sourceRetryUntil)return;
+  if(requestRunning){
+    // A round change during an earlier PGN request must fetch the new round
+    // immediately after the old request settles, rather than waiting minutes.
+    queuedBroadcastGame=selectedGame;
+    return;
+  }
   const targetGame=selectedGame,round=roundInfo(targetGame);
   requestRunning=true;lastDirectAttempt=Date.now();$('refresh-button').disabled=true;
   try{
@@ -492,7 +498,14 @@ async function refreshBroadcast(){
   }catch(error){
     liveStatus.set(targetGame,{checkedAt:null,error:error instanceof Error?error.message:'unavailable'});
     console.warn('Lichess broadcast fetch failed:',error);
-  }finally{requestRunning=false;render();}
+  }finally{
+    requestRunning=false;
+    const queued=queuedBroadcastGame;
+    queuedBroadcastGame=null;
+    render();
+    if(queued!==null&&queued!==targetGame&&queued===selectedGame&&
+      mode==='live'&&Date.now()>=sourceRetryUntil)void refreshBroadcast();
+  }
 }
 
 /** Restore locally observed source positions as an outage fallback.
