@@ -36,6 +36,7 @@ jobs:
           node --check src/pgn.mjs
           node --check src/history.mjs
           node --check src/match-2026.mjs
+          node --check src/live-poll.mjs
           node --check scripts/verify-match-2026.mjs
           node --check scripts/build-history-2024.mjs
           node --check src/broadcast.mjs
