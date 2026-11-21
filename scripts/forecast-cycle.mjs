@@ -20,7 +20,7 @@ import {validateAppendOnly,validateStandardChampionshipPosition} from '../src/br
 import {extendObservation,ATTEMPT_SCHEMA,attemptKey,validateAttempt} from '../src/collection.mjs';
 import {RESERVATION_SCHEMA,reservationKey,validateReservation} from '../src/reservations.mjs';
 import {EVENT_ID,canonical} from '../src/protocol.mjs';
-import {START_FEN,withSans} from '../src/chess.mjs';
+import {withSans} from '../src/chess.mjs';
 import {collect} from './collection.mjs';
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
 const hash=x=>createHash('sha256').update(typeof x==='string'?x:canonical(x)).digest('hex');
