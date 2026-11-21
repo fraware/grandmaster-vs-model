@@ -7,7 +7,7 @@ import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
 import {shouldAutoRefreshBroadcast,rateLimitDelayMs} from './src/live-poll.mjs';
 import {selectHomepageRound} from './src/home-entry.mjs';
-import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
+import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorChallengeText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
 import {championshipCalendarIcs,championshipCalendarFilename} from './src/calendar.mjs';
 import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
@@ -361,7 +361,7 @@ function renderLive(){
   const matched=complete.filter(o=>o.kind==='match').length;
   const pending=all.filter(c=>liveOutcome(c).kind==='pending').length;
   setText('spectator-stats',`${matched} matched / ${complete.length} resolved · ${pending} waiting · saved on this device`);
-  $('spectator-share').hidden=!choice;
+  $('spectator-share').hidden=!(chance.enabled||choice);
   $('spectator-calendar').hidden=!(choice&&Date.now()<Date.parse(roundInfo(selectedGame).startsAt));
   $('spectator-next').hidden=!(choice&&outcome&&['match','different'].includes(outcome.kind)&&
     i<(data?.moves.length||0));
@@ -598,19 +598,27 @@ $('spectator-calendar').addEventListener('click',()=>{
   }
 });
 $('spectator-share').addEventListener('click',async()=>{
-  const choice=liveChoice();if(!choice)return;
+  if(mode!=='live')return;
+  const choice=liveChoice(),chance=liveOpportunity();
+  if(!choice&&!chance.enabled)return;
   $('spectator-share-text').hidden=true;
   setText('spectator-share-status','');
-  const text=spectatorShareText(choice,liveOutcome(choice));
+  const text=spectatorChallengeText({
+    game:selectedGame,choice,outcome:choice?liveOutcome(choice):null,
+    opening:chance.kind==='opening'
+  });
   try{
     if(navigator.share)await navigator.share({text});
     else if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(text);
     else throw new Error('Clipboard unavailable');
-    setText('spectator-share-status','Your local result was shared or copied.');
-  }catch{
+    setText('spectator-share-status','Challenge invitation shared or copied.');
+  }catch(error){
+    if(error?.name==='AbortError')return;
     $('spectator-share-text').value=text;
     $('spectator-share-text').hidden=false;
-    setText('spectator-share-status','Copy your local result from the text field.');
+    $('spectator-share-text').focus();
+    $('spectator-share-text').select();
+    setText('spectator-share-status','Copy your challenge invitation from the text field.');
   }
 });
 // Arrow-key board navigation preserves a single keyboard tab stop.
