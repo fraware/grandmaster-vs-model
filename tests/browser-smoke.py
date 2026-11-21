@@ -43,7 +43,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     if kind == 'home':
         module_names += ['src/match-2026.mjs', 'src/home-entry.mjs']
     if kind == 'lab':
-        module_names += ['src/match-2026.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs', 'src/calendar.mjs']
+        module_names += ['src/match-2026.mjs', 'src/home-entry.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs', 'src/calendar.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
     source = []
     for relative in module_names:
@@ -65,10 +65,24 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
 
 
 def populate(page, source: tuple[str, str, dict], *, online: bool = True,
-             pgn: str = PGN, now_iso: str | None = None) -> None:
+             pgn: str = PGN, now_iso: str | None = None,
+             page_url: str | None = None) -> None:
     """Install a deterministic network facade without touching provider secrets."""
     html, script, responses = source
-    page.set_content(html)
+    if page_url is None:
+        page.set_content(html)
+    else:
+        # Exercise actual query-string parsing without external requests.
+        site = 'https://fraware.github.io/grandmaster-vs-model/'
+        if not page_url.startswith(site + 'lab.html?'):
+            raise ValueError('Unsupported offline browser test URL')
+        def fulfill_local(route):
+            if route.request.url.split('?', 1)[0] == site + 'lab.html':
+                route.fulfill(status=200, content_type='text/html', body=html)
+            else:
+                route.fulfill(status=404, body='')
+        page.route(site + '**', fulfill_local)
+        page.goto(page_url, wait_until='domcontentloaded')
     page.evaluate('''({responses,pgn,online,nowIso}) => {
        window.history.replaceState = () => {};
        window.__fixturePgn = pgn;
@@ -413,6 +427,46 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     outage.locator('#tab-live').click()
     assert 'broadcast unavailable' in outage.locator('#source-status').inner_text().lower()
     outage.close()
+
+    # Undated links follow the scheduled round; explicit links retain identity.
+    pregame = PGN.replace('1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *', '*')
+    for instant, expected_game in [
+        ('2026-11-25T13:00:00Z', 2),
+        ('2026-11-27T10:00:00Z', 4),
+        ('2026-12-04T14:20:00Z', 9),
+        ('2026-12-13T10:00:00Z', 14),
+    ]:
+        round_page = browser.new_page()
+        try:
+            populate(round_page, source, pgn=pregame, now_iso=instant)
+            round_page.locator('#tab-live').click()
+            assert round_page.locator('#game-select').input_value() == str(expected_game)
+            assert round_page.locator('#source-url').get_attribute('href') == registry[expected_game - 1]['url']
+            assert round_page.locator('#board button.square').count() == 64
+        finally:
+            round_page.close()
+
+    for requested in (1, 7, 14):
+        shared_page = browser.new_page()
+        try:
+            populate(shared_page, source, pgn=pregame,
+                     now_iso='2026-12-04T14:20:00Z',
+                     page_url=f'https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game={requested}')
+            assert shared_page.locator('#tab-live').get_attribute('aria-pressed') == 'true'
+            assert shared_page.locator('#game-select').input_value() == str(requested)
+            assert shared_page.locator('#source-url').get_attribute('href') == registry[requested - 1]['url']
+        finally:
+            shared_page.close()
+
+    generic_page = browser.new_page()
+    try:
+        populate(generic_page, source, pgn=pregame,
+                 now_iso='2026-12-04T14:20:00Z',
+                 page_url='https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live')
+        assert generic_page.locator('#game-select').input_value() == '9'
+        assert generic_page.locator('#source-url').get_attribute('href') == registry[8]['url']
+    finally:
+        generic_page.close()
 
 
 def main() -> None:

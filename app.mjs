@@ -5,6 +5,7 @@ import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
+import {selectHomepageRound} from './src/home-entry.mjs';
 import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
 import {championshipCalendarIcs,championshipCalendarFilename} from './src/calendar.mjs';
 import {validateObservation} from './src/collection.mjs';
@@ -18,7 +19,10 @@ const requestedMode=query.get('mode');
 let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
 let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,historicalGames=null,liveSnapshotAt=null;
 const liveGames=new Map(),liveStatus=new Map();
-let selectedGame=Number(query.get('game'))||(mode==='archive'?14:1);if(selectedGame<1||selectedGame>14)selectedGame=mode==='archive'?14:1;
+const requestedGame=Number(query.get('game'));
+const hasValidRequestedGame=query.has('game')&&Number.isInteger(requestedGame)&&requestedGame>=1&&requestedGame<=14;
+const currentChampionshipGame=()=>selectHomepageRound(new Date(Date.now())).round.game;
+let selectedGame=hasValidRequestedGame?requestedGame:(mode==='archive'?14:currentChampionshipGame());
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
 let spectatorStorage=null,legacySpectatorStorage=null;
@@ -82,7 +86,7 @@ function switchMode(next,manual=true){
   if(manual){returningRevealPending=false;respectInitialDeepLink=false;}
   mode=next;
   if(manual)userChangedMode=true;
-  selectedGame=isArchive()?14:1;
+  selectedGame=isArchive()?14:currentChampionshipGame();
   selectedPly=isArchive()?(archive?.highlightPly||1)-1:(liveGames.get(selectedGame)?.moves.length??0);
   originSquare=null;selectedArrow=null;guesses.clear();revealedPly.clear();
   syncUrl();render();
