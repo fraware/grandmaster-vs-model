@@ -116,3 +116,10 @@ The browser's live 2026 board, the legally checked same-origin broadcast cache, 
 
 This guard detects explicit source contradictions; many official PGNs omit a numerical round label. It does not independently establish the identity of an untagged source, physical chronology, or the official accuracy of user-facing results.
 
+
+## Shared standard-position source guard · 21 November 2026
+
+All three 2026 PGN ingestion paths now enforce exactly the official chess starting FEN **on the parsed source game**: the spectator's direct Lichess fetch, the static broadcast-cache builder, and the paid forecast collector. A PGN played legally from an alternate starting FEN, including one with the original pieces but modified castling rights, is rejected before the public browser adopts it, the cache serializes it, or a collector reserves/spends a provider slot. This avoids silently recasting the alternate-source UCI sequence as a standard World Championship game.
+
+Node tests exercise a legally replayable alternate FEN and confirm no observation, reservation, or paid request is made. Chromium tests cover source rejection and subsequent recovery when a valid PGN becomes available. This proves consistent handling of the declared input boundary under controlled fixtures; the real live feed's correctness and physical chronology remain independently unverified.
+
