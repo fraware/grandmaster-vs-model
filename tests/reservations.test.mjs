@@ -205,3 +205,25 @@ test('unexpected JSON names under claims are rejected by evidence validation',as
   await writeFile(join(root,'data/claims','FAKE.json'),'{}');
   await assert.rejects(()=>collect({root}),/Invalid reservation filename/);
 }));
+
+test('a rehashed Actions attempt cannot hide its missing published claim',async()=>workspace(async root=>{
+  const options=params(root,{providerRequest:async()=>({
+    output:'e7e5',responseId:'offline-fixture',model:model.version,elapsedMs:1,usage:null
+  })});
+  await cycle({...options,mode:'reserve'});
+  await cycle({...options,mode:'execute'});
+
+  // Removing both the claim and its reference used to make an otherwise
+  // Action-originated prediction look like an accepted manual/legacy attempt.
+  // Recompute the outer digest to exercise semantic validation, not hashes.
+  const attemptPath=join(root,'data/attempts',claimFile);
+  const record=JSON.parse(await readFile(attemptPath,'utf8'));
+  await rm(join(root,'data/claims',claimFile));
+  record.reservationDigest=null;
+  const {digest:unused,...raw}=record;
+  record.digest=digest(raw);
+  await writeFile(attemptPath,JSON.stringify(record));
+  await assert.rejects(()=>collect({root}),
+    /Actions-originated attempt is missing its published reservation/);
+}));
+
