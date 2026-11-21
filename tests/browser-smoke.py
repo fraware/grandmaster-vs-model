@@ -482,14 +482,10 @@ def test_embedded_challenge(browser) -> None:
         ), label
 
         # Play directly through the embedded board; no host integration.
-        origin = frame.locator(
-            '#challenge-board button[data-square="b5"]' if expected_set == 1
-            else '#challenge-board button[data-square="e2"]'
-        )
         # The first set's Nc3 uses b5→c3; any alternative set's legal
         # move list yields a valid deterministic first prediction.
         if expected_set == 1:
-            origin.click()
+            frame.locator('#challenge-board button[data-square="b5"]').click()
             frame.locator('#challenge-board button[data-square="c3"]').click()
         else:
             frame.locator('#challenge-move-details summary').click()
@@ -497,13 +493,12 @@ def test_embedded_challenge(browser) -> None:
                 '(options) => options.map(o => o.value).find(Boolean)'
             )
             frame.locator('#challenge-move-select').select_option(candidate)
-        frame.locator('#challenge-answer-result').get_by_text(
-            'Exact match.' if expected_set == 1 else
-            'Exact match.|Different move.', exact=False
-        ).wait_for(timeout=4000) if expected_set == 1 else iframe.wait_for_function(
+        iframe.wait_for_function(
             '() => document.getElementById("challenge-feedback").hidden === false',
             timeout=4000
         )
+        if expected_set == 1:
+            assert frame.locator('#challenge-answer-result').inner_text() == 'Exact match.'
         assert frame.locator('#challenge-next').is_visible()
         assert not errors, errors
         page.close()
