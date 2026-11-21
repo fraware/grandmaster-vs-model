@@ -498,7 +498,14 @@ def test_embedded_challenge(browser) -> None:
             timeout=4000
         )
         if expected_set == 1:
-            assert frame.locator('#challenge-answer-result').inner_text() == 'Exact match.'
+            actual = frame.locator('#challenge-answer-result').inner_text()
+            assert actual == 'Exact match.', {
+                'actual': actual,
+                'selected': frame.locator('#challenge-move-select').input_value(),
+                'hint': frame.locator('#challenge-hint').inner_text(),
+                'series': frame.locator('#challenge-series').inner_text(),
+                'errors': errors,
+            }
         assert frame.locator('#challenge-next').is_visible()
         assert not errors, errors
         page.close()
