@@ -225,3 +225,27 @@ test('on mobile a locked live move reveals the result in the viewport',async()=>
   assert.match(html,/id="spectator-message" aria-live="polite"/);
   assert.match(theme,/#spectator-panel \{ scroll-margin-top:/);
 });
+
+
+test('production browser preflight follows successful Pages deploys without duplicate Lichess requests', async()=>{
+  const workflow=await text('.github/workflows/production-preflight.yml');
+  const preflight=await text('tests/production-preflight.py');
+  assert.match(workflow,/workflow_run:/);
+  assert.match(workflow,/workflows:\s*\['Publish site'\]/);
+  assert.match(workflow,/conclusion == 'success'/);
+  assert.match(workflow,/head_branch == 'main'/);
+  assert.match(preflight,/page\.on\("response", record_broadcast_response\)/);
+  assert.match(preflight,/broadcast_responses\[-1\]/);
+  assert.doesNotMatch(preflight,/browser_fetch\s*=\s*page\.evaluate\(/);
+});
+test('source polling remains bounded when the live game ends or Lichess rate-limits', async()=>{
+  const client=await text('app.mjs');
+  const policy=await text('src/live-poll.mjs');
+  const browser=await text('tests/live-spectator-smoke.py');
+  assert.match(client,/shouldAutoRefreshBroadcast/);
+  assert.match(client,/sourceRetryUntil=now\+rateLimitDelayMs/);
+  assert.match(client,/queuedBroadcastGame=selectedGame/);
+  assert.match(policy,/MIN_RATE_LIMIT_MS\s*=\s*65_000/);
+  assert.match(browser,/run_rate_limit_recovery_test/);
+  assert.match(browser,/run_round_switch_during_fetch_test/);
+});
