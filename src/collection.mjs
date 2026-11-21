@@ -116,8 +116,12 @@ export function buildIndex({observations,attempts,models,reservations=[]}){
          Date.parse(a.startedAt)<Date.parse(reservation.reservedAt)||
          canonical(a.captureRun??null)!==canonical(reservation.captureRun))
         throw new Error('Attempt and durable reservation differ');
-    }else if(a.reservationDigest){
-      throw new Error('Referenced durable reservation is missing');
+    }else if(a.reservationDigest||a.captureRun){
+      // The production collector publishes a claim *before* a paid request.
+      // An Actions-originated attempt without its claim cannot be classified
+      // as a durable prospective attempt, even if its digest was removed.
+      // Historical/manual records with neither field remain supported.
+      throw new Error('Actions-originated attempt is missing its published reservation');
     }
     keys.add(key);
   }
