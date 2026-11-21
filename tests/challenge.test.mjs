@@ -89,7 +89,7 @@ test('shared links preserve the actual practice set and discard earlier tracking
       const shared=challengeShareText(target,
         'https://fraware.github.io/grandmaster-vs-model/?utm_source=irrelevant&game=7#models',
         null,null,{set});
-      const url=shared.split('\\n').at(-1);
+      const url=shared.split('\n').at(-1);
       assert.equal(url,
         `https://fraware.github.io/grandmaster-vs-model/?set=${set}&target=${target}#challenge`);
       assert.deepEqual(parsePeerChallenge(url),{set,target});
