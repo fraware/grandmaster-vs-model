@@ -205,6 +205,65 @@ def run() -> int:
                     )
                 if report["mobileHorizontalOverflow"]:
                     raise AssertionError("Mobile layout has horizontal overflow")
+
+                # An independent publisher embeds the public historical
+                # challenge directly. This checks real GitHub Pages framing
+                # headers and actual CSS/JS from the deployed HTTPS origin.
+                # The embedded challenge uses archival data only: no added
+                # requests to Lichess or any model provider.
+                embed_page = browser.new_page(
+                    viewport={"width": 540, "height": 1100},
+                    reduced_motion="reduce",
+                    service_workers="block",
+                )
+                embed_errors: list[str] = []
+                embed_page.on(
+                    "pageerror",
+                    lambda error: embed_errors.append(str(error)[:300]),
+                )
+                embed_url = SITE_BASE + "?embed=1#challenge"
+                embed_page.set_content(
+                    '<iframe title="World Championship chess challenge" '
+                    'src="' + embed_url + '" '
+                    'style="width:100%;height:1020px;border:0"></iframe>'
+                )
+                frame = embed_page.frame_locator("iframe")
+                frame.locator(
+                    "#challenge-board button.challenge-square"
+                ).first.wait_for(timeout=20_000)
+                frame.locator(
+                    "#challenge-board button.challenge-square"
+                ).nth(63).wait_for(timeout=20_000)
+                report["embed"] = {
+                    "url": embed_url,
+                    "externalFrame": True,
+                    "squares": frame.locator(
+                        "#challenge-board button.challenge-square"
+                    ).count(),
+                    "siteHeaderHidden": frame.locator(
+                        ".site-header"
+                    ).is_hidden(),
+                    "sourceLinked": frame.locator(
+                        "#challenge-source"
+                    ).is_visible(),
+                    "fullGameLink": frame.locator(
+                        "#embed-open-full"
+                    ).get_attribute("href"),
+                    "pageErrors": embed_errors,
+                }
+                embed_page.screenshot(
+                    path=str(ARTIFACT_DIR / "embedded.png"),
+                    animations="disabled",
+                )
+                if (
+                    report["embed"]["squares"] != 64
+                    or not report["embed"]["siteHeaderHidden"]
+                    or not report["embed"]["sourceLinked"]
+                    or embed_errors
+                ):
+                    raise AssertionError(
+                        "Deployed embed failed source, layout, or script checks"
+                    )
                 report["result"] = "passed"
             finally:
                 browser.close()
