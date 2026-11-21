@@ -102,3 +102,10 @@ A production GitHub Actions forecast is now accepted into the public collection 
 
 The five-minute capture cron now matches the declared 14 classical game days, including 00:02–00:57 UTC on the subsequent calendar day. A separate season check skips expensive capture work for scheduled invocations after the year 2026. The 11-hour source-session limit remains independently enforced by the capture code. This prevents irrelevant off-day runs and guards historical provenance; it does not confirm provider credentials, eliminate GitHub scheduler delays, or certify model submissions as preceding physical chess moves.
 
+
+## Paid-capture recovery correction · 21 November 2026
+
+The collection workflow now detects uncommitted evidence and attempts a 30-day recovery upload **immediately after** the reservation/paid-execution steps, even if either step failed. This precedes index validation, signed attestations and the final Git push. The material may include a partially written or invalid record; it must be labeled as **unvalidated operational recovery**, kept out of the public comparison ledger until checked, and never automatically used to reissue a reserved provider request. A job-wide timeout, runner termination, or outage of artifact storage can still lose in-flight records. No exactly-once guarantee or independent pre-move timing follows.
+
+The regression tests assert the upload's position and unconditional-on-failure gating, uniqueness of the recovery artifact name, and absence of a dependency on post-execution validation. The launch operator should inspect the workflow's recovery artifact on any failed paid-capture run before taking action.
+

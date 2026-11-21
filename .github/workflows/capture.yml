@@ -49,6 +49,7 @@ jobs:
       - name: Validate current data before sampling
         run: npm test && npm run verify:2026 && npm run verify && npm run verify:collection
       - name: Prepare immutable reservations without calling providers
+        id: prepare
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -93,6 +94,31 @@ jobs:
           CAPTURE_MAX_REQUESTS: '900'
           CAPTURE_PROVIDERS: 'openai'
         run: npm run capture:execute
+      # A paid request can complete and still leave the job unsuccessful
+      # (process interruption, postflight exception, invalid local index).
+      # Recover any on-disk records before running validation or attestation.
+      # These artifacts are unverified recovery material, not certified claims.
+      - name: Detect uncommitted recovery evidence after execution
+        id: recovery
+        if: ${{ always() && steps.prepare.outcome != 'skipped' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain -- data/claims data/observations data/attempts data/collection.json)" ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Preserve recovery evidence before any later validation or push
+        if: ${{ always() && steps.recovery.outputs.changed == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            data/claims/
+            data/observations/
+            data/attempts/
+            data/collection.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Check collection integrity
         run: |
           npm run verify:collection
@@ -110,9 +136,6 @@ jobs:
           else
             echo 'No newly generated forecast records to attest'
           fi
-          if [ -n "$(git status --porcelain -- data/observations data/attempts data/collection.json)" ]; then
-            echo 'changed=true' >> "$GITHUB_OUTPUT"
-          fi
       - name: Sign forecast record digests with workflow provenance
         id: evidence_attest
         if: steps.evidence.outputs.new_attempts == 'true'
@@ -121,18 +144,6 @@ jobs:
         uses: actions/attest@v4
         with:
           subject-checksums: ${{ runner.temp }}/forecast-attempts.sha256
-      - name: Preserve capture records before Git push
-        if: steps.evidence.outputs.changed == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: capture-recovery-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            data/claims/
-            data/observations/
-            data/attempts/
-            data/collection.json
-          if-no-files-found: error
-          retention-days: 30
       - name: Publish sourced observations and recorded attempts
         id: final_publish
         run: |

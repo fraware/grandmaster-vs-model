@@ -107,7 +107,7 @@ test('attested forecast manifest uses NUL-separated filenames and limits signing
   assert.match(yaml,/continue-on-error: true/);
   assert.match(yaml,/CAPTURE_PROVIDERS: 'openai'/);
   assert.match(yaml,/name: capture-recovery-/);
-  assert.match(yaml,/steps\.evidence\.outputs\.changed == 'true'/);
+  assert.match(yaml,/steps\.recovery\.outputs\.changed == 'true'/);
   assert.match(yaml,/retention-days: 30/);
 });
 
@@ -308,4 +308,32 @@ test('publishers can discover and copy the iframe with no extra services',async(
   assert.match(browser,/el\.selectionStart === 0/);
   assert.match(snippet,/referrerpolicy="no-referrer"/);
   assert.doesNotMatch(snippet,/fetch\(|localStorage|sessionStorage|sendBeacon|analytics/);
+});
+
+test('capture preserves partial records even after a paid request or validation error',async()=>{
+  const yaml=await text('.github/workflows/capture.yml');
+  const prepare=yaml.indexOf('name: Prepare immutable reservations');
+  const execute=yaml.indexOf('name: Execute only remotely committed reservations');
+  const detect=yaml.indexOf('name: Detect uncommitted recovery evidence after execution');
+  const upload=yaml.indexOf('name: Preserve recovery evidence before any later validation or push');
+  const validate=yaml.indexOf('name: Check collection integrity');
+  const attest=yaml.indexOf('name: Sign forecast record digests');
+  const publish=yaml.indexOf('name: Publish sourced observations and recorded attempts');
+  assert.ok(prepare>=0&&prepare<execute&&execute<detect&&detect<upload&&
+    upload<validate&&validate<attest&&attest<publish,
+    'Recovery upload must precede every post-request verification and publish step');
+  assert.match(yaml,/name: Prepare immutable reservations without calling providers\n        id: prepare/);
+  assert.match(yaml,/id: recovery\n        if: \$\{\{ always\(\) && steps\.prepare\.outcome != 'skipped' \}\}/);
+  assert.match(yaml,/git status --porcelain -- data\/claims data\/observations data\/attempts data\/collection\.json/);
+  assert.match(yaml,/if: \$\{\{ always\(\) && steps\.recovery\.outputs\.changed == 'true' \}\}/);
+  const uploadBlock=yaml.slice(upload,validate);
+  assert.match(uploadBlock,/actions\/upload-artifact@v4/);
+  assert.match(uploadBlock,/data\/claims\//);
+  assert.match(uploadBlock,/data\/observations\//);
+  assert.match(uploadBlock,/data\/attempts\//);
+  assert.match(uploadBlock,/retention-days: 30/);
+  assert.equal((yaml.match(/name: capture-recovery-\$\{\{/g)||[]).length,1,
+    'Each capture job must create at most one uniquely named recovery artifact');
+  assert.doesNotMatch(uploadBlock,/steps\.evidence\.outputs|if: steps\./,
+    'Recovery must not depend on checks that would be skipped on a failed request');
 });
