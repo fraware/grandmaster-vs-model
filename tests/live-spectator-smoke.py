@@ -35,6 +35,23 @@ def run_spectator_test(browser) -> None:
         assert page.locator("#guess-area").is_visible()
         assert page.locator("#board button.square").count() == 64
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        assert page.locator("#spectator-share").is_visible()
+        page.evaluate("""() => {
+          window.__invitations = [];
+          Object.defineProperty(navigator, 'share', {
+            configurable:true, value:async ({text}) => {
+              window.__invitations.push(text);
+            }
+          });
+        }""")
+        page.locator("#spectator-share").click()
+        page.wait_for_function("() => window.__invitations.length === 1")
+        first_invite = page.evaluate("window.__invitations[0]")
+        assert "World Chess Championship 2026" in first_invite
+        assert "What will White play first" in first_invite
+        assert "mode=live&game=1#experiment" in first_invite
+        assert "I have locked my own move" not in first_invite
+        assert page.locator("#spectator-share-text").is_hidden()
 
         if label == "desktop":
             # One roving keyboard tab stop, with accessible arrows and Enter.
@@ -69,6 +86,16 @@ def run_spectator_test(browser) -> None:
         assert page.locator("#guess-area").is_hidden()
         assert page.locator("#spectator-next").is_hidden()
         assert page.locator("#spectator-share").is_visible()
+        page.locator("#spectator-share").click()
+        page.wait_for_function("() => window.__invitations.length === 2")
+        locked_invite = page.evaluate("window.__invitations[1]")
+        assert "I have locked my own move in this browser." in locked_invite
+        assert "mode=live&game=1#experiment" in locked_invite
+        assert "e4" not in locked_invite
+        assert "e2e4" not in locked_invite
+        assert "My move:" not in locked_invite
+        assert "lockedAt" not in locked_invite
+        assert page.locator("#spectator-share-text").is_hidden()
 
         # A network failure leaves the choice unaltered and unscored.
         page.evaluate("window.__fixtureOnline = false")
@@ -88,6 +115,12 @@ def run_spectator_test(browser) -> None:
         assert page.locator("#spectator-next").is_visible()
         assert "You matched the move." in page.locator("#result-title").text_content()
         assert "physical" in page.locator("#spectator-detail").inner_text()
+        page.locator("#spectator-share").click()
+        page.wait_for_function("() => window.__invitations.length === 3")
+        resolved_invite = page.evaluate("window.__invitations[2]")
+        assert "exact match with the sourced move" in resolved_invite
+        assert "e4" not in resolved_invite
+        assert "e2e4" not in resolved_invite
 
         # Continue from the resolved opening to the latest position.
         page.locator("#spectator-next").click()
