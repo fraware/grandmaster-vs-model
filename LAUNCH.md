@@ -109,3 +109,10 @@ The collection workflow now detects uncommitted evidence and attempts a 30-day r
 
 The regression tests assert the upload's position and unconditional-on-failure gating, uniqueness of the recovery artifact name, and absence of a dependency on post-execution validation. The launch operator should inspect the workflow's recovery artifact on any failed paid-capture run before taking action.
 
+
+## Explicit PGN round identity guard · 21 November 2026
+
+The browser's live 2026 board, the legally checked same-origin broadcast cache, and the prospective model collector now pass the requested game number into the same championship selector. If a provider PGN explicitly contains a parseable numeric `Round` value belonging to another game, the source is rejected before display or paid inference. Two matching championship boards in one feed are rejected as ambiguous. Historical and unnumbered PGN consumers preserve their prior behavior. Tests include a browser-level Game 2 mismatched feed, snapshot rejection, and no-paid-request collection rejection.
+
+This guard detects explicit source contradictions; many official PGNs omit a numerical round label. It does not independently establish the identity of an untagged source, physical chronology, or the official accuracy of user-facing results.
+

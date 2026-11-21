@@ -476,7 +476,7 @@ async function refreshBroadcast(){
     }
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     const games=parsePgn(await response.text());
-    const current=findChampionshipGame(games),previous=liveGames.get(targetGame);
+    const current=findChampionshipGame(games,targetGame),previous=liveGames.get(targetGame);
     if(!current&&games.some(g=>g.moves.length))throw new Error('Unexpected player identities in broadcast');
     if(previous?.moves.length&&!current)throw new Error('Broadcast omitted previously observed moves');
     validateAppendOnly(previous,current);

@@ -54,7 +54,7 @@ async function broadcast(fetcher,round){
   const response=await fetcher(round.pgnUrl,{headers:{Accept:'application/x-chess-pgn'},signal:AbortSignal.timeout(18000)});
   if(!response.ok)throw new Error(`Broadcast source HTTP ${response.status}`);
   const pgn=await response.text();
-  const games=parsePgn(pgn),game=findChampionshipGame(games);
+  const games=parsePgn(pgn),game=findChampionshipGame(games,round.game);
   if(!game&&games.some(g=>g.moves.length))throw new Error('Broadcast identity mismatch');
   return game;
 }

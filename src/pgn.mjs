@@ -74,11 +74,36 @@ export function parsePgn(text) {
   return games;
 }
 
-export function findChampionshipGame(games) {
-  return games.find(game => {
+/**
+ * Select the target board, with an optional pinned round number.
+ *
+ * Player names alone cannot disambiguate different games of a multi-round
+ * match. When the source explicitly identifies a numeric round (including
+ * 1.1 or "Game 1"), reject a conflict with the requested Lichess round.
+ * A missing or unrecognized Round tag is not independent evidence of identity;
+ * the pinned source URL and legal history are checked by callers.
+ *
+ * Existing callers without an expectedRound retain the legacy lookup used by
+ * archival and standalone parsing tools.
+ */
+export function findChampionshipGame(games,expectedRound=null) {
+  if(!Array.isArray(games))throw new Error('Invalid parsed broadcast games');
+  if(expectedRound!==null&&(!Number.isInteger(expectedRound)||expectedRound<1||expectedRound>14))
+    throw new Error('Invalid expected championship round');
+  const matches=games.filter(game => {
     const names=[game.tags.White||'',game.tags.Black||''];
     return names.some(x=>/gukesh|dommaraju/i.test(x)) && names.some(x=>/sindarov/i.test(x));
-  })||null;
+  });
+  if(expectedRound===null)return matches[0]||null;
+  if(matches.length>1)throw new Error('Ambiguous championship boards in the pinned round feed');
+  const chosen=matches[0]||null;
+  const tag=chosen?.tags?.Round;
+  if(typeof tag==='string'){
+    const recognized=/^(?:game\s*)?(\d{1,2})(?:\.\d+)?$/i.exec(tag.trim());
+    if(recognized&&Number(recognized[1])!==expectedRound)
+      throw new Error('Broadcast round tag conflicts with the pinned game');
+  }
+  return chosen;
 }
 
 export const GAME_ONE_BROADCAST = 'https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb';

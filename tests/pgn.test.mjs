@@ -49,3 +49,19 @@ test('malformed and illegal moves fail closed',()=>{
 test('broadcast uses confirmed Lichess round rather than an invented ID',()=>{
   assert.equal(GAME_ONE_PGN,'https://lichess.org/api/broadcast/round/xLgOJ6cb.pgn');
 });
+
+test('pinned game selection rejects explicit contradictory round tags and ambiguous boards',()=>{
+  const base='[White "Gukesh D"]\n[Black "Javokhir Sindarov"]\n[Result "*"]\n\n1. e4 *';
+  const tagged=(tag)=>parsePgn(`[Round "${tag}"]\n${base}`);
+  assert.equal(findChampionshipGame(tagged('1'),1).moves[0].uci,'e2e4');
+  assert.equal(findChampionshipGame(tagged('Game 2'),2).moves[0].uci,'e2e4');
+  assert.equal(findChampionshipGame(tagged('2.1'),2).moves[0].uci,'e2e4');
+  assert.throws(()=>findChampionshipGame(tagged('2'),1),/round tag conflicts/);
+  assert.throws(()=>findChampionshipGame(tagged('Game 1'),2),/round tag conflicts/);
+  assert.equal(findChampionshipGame(tagged('?'),2).moves[0].uci,'e2e4');
+  assert.equal(findChampionshipGame(parsePgn(base),2).moves[0].uci,'e2e4');
+  assert.throws(()=>findChampionshipGame(tagged('2'),0),/Invalid expected/);
+  assert.throws(()=>findChampionshipGame([...tagged('2'),...tagged('2')],2),/Ambiguous/);
+  // Historical one-argument callers deliberately retain their old behavior.
+  assert.equal(findChampionshipGame(tagged('2')).moves[0].uci,'e2e4');
+});
