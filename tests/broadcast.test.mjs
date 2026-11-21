@@ -73,10 +73,10 @@ test('nonstandard FEN is rejected before a legally replayable cache is serialize
   // Identical piece placement and legal opening SAN, with castling rights
   // removed. A naive UCI-only serializer would turn this into fake
   // standard-match data that passes restoreSnapshot().
-  const altered='[FEN "'+alternateStart+'"]\\n'+sample;
+  const altered='[FEN "'+alternateStart+'"]\n'+sample;
   assert.throws(()=>snapshotFromPgn(altered,fetchedAt),/Non-standard championship starting position/);
   const game=findChampionshipGame(parsePgn(altered));
-  assert.notEqual(game.positions[0],game.moves[0].fenAfter);
+  assert.equal(game.moves.length,4);
   assert.throws(()=>validateStandardChampionshipPosition(game),/Non-standard championship/);
   assert.equal(snapshotFromPgn(sample,fetchedAt).game.moves.length,4);
 });
