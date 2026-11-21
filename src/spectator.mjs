@@ -196,17 +196,42 @@ export function spectatorReturnPly(choices,game,moveCount){
   return resolved.length?Math.max(...resolved.map(c=>c.ply))-1:moveCount;
 }
 
-/** Share a completed local choice without claiming authenticated timing. */
-export function spectatorShareText(choice,outcome){
-  validateSpectatorChoice(choice);
-  if(!outcome||!['pending','match','different','source-conflict'].includes(outcome.kind))
-    throw new Error('Invalid spectator result');
-  const status=outcome.kind==='match'?'I matched the grandmaster’s move':
-    outcome.kind==='different'? 'My move differed from the grandmaster’s choice':
-    outcome.kind==='source-conflict'?'The source position changed':'My next-move guess is locked locally';
-  const san=withSans(choice.fen).find(m=>m.uci===choice.uci).san;
-  return `${status} in World Championship 2026 Game ${choice.game}, move ${Math.ceil(choice.ply/2)}.\n`+
-    `My move: ${san}.${outcome.actualSan?` Actual broadcast move: ${outcome.actualSan}.`:''}\n`+
-    'Local spectator challenge. Timing is not independently verified.\n'+
-    `https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=${choice.game}#experiment`;
+/**
+ * Share an invitation, not the player's private UCI/SAN choice.
+ *
+ * Any outcome is derived locally from a user-editable spectator session and
+ * legally replayed PGN. No identity, timestamp, move, or personal result is
+ * sent to a server or embedded in the URL. Guests always see an independent
+ * board with no preselected chess move.
+ *
+ * @param {{game:number,choice?:object|null,outcome?:object|null,opening?:boolean}} args
+ */
+export function spectatorChallengeText({
+  game,choice=null,outcome=null,opening=false
+}){
+  roundInfo(game);
+  if(typeof opening!=='boolean')throw new Error('Invalid invitation phase');
+  if(choice){
+    validateSpectatorChoice(choice);
+    if(choice.game!==game)throw new Error('Invitation game and choice mismatch');
+    if(!outcome||!['pending','match','different','source-conflict'].includes(outcome.kind))
+      throw new Error('Invalid local spectator outcome');
+  }else if(outcome!==null){
+    throw new Error('Outcome supplied without a local choice');
+  }
+  const context=choice&&outcome.kind==='match'
+    ? 'My browser shows an exact match with the sourced move.'
+    : choice&&outcome.kind==='different'
+      ? 'My local move differed from the sourced grandmaster choice.'
+      : choice&&outcome.kind==='source-conflict'
+        ? 'My local choice has an unresolved source conflict.'
+        : choice ? 'I have locked my own move in this browser.'
+          : 'I challenge you to make your own move.';
+  const challenge=opening
+    ? 'What will White play first? Pick an opening move before the scheduled game.'
+    : 'What would you play next? Make your own move when a live position is available.';
+  return `World Chess Championship 2026 · Game ${game}.\n`+
+    `${context}\n${challenge}\n`+
+    'Predictions and result claims are local and their timing is not independently verified.\n'+
+    `https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=${game}#experiment`;
 }
