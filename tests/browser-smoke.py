@@ -664,6 +664,23 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert 'broadcast unavailable' in outage.locator('#source-status').inner_text().lower()
     outage.close()
 
+    # The actual UI must reject Game 1's valid PGN when Game 2 is selected.
+    # The mock transport returns the wrong explicit Round tag for the
+    # requested round. No bogus move is projected onto the Game 2 board.
+    mislabeled = browser.new_page()
+    try:
+        populate(mislabeled, source, pgn=PGN,
+                 now_iso='2026-11-25T14:20:00Z',
+                 page_url='https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=2')
+        mislabeled.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('Game 2 broadcast unavailable')",
+            timeout=5000
+        )
+        assert mislabeled.locator('#game-select').input_value() == '2'
+        assert '0 / 0 PLIES' in mislabeled.locator('#nav-position').inner_text()
+    finally:
+        mislabeled.close()
+
     # Undated links follow the scheduled round; explicit links retain identity.
     pregame = PGN.replace('1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *', '*')
     for instant, expected_game in [
