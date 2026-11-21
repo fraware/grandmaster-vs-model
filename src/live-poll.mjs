@@ -7,7 +7,7 @@
  */
 import {roundInfo} from './match-2026.mjs';
 
-const SESSION_MS = 11 * 60 * 60 * 1000;
+const LIVE_POLL_SESSION_MS = 11 * 60 * 60 * 1000;
 const MIN_RATE_LIMIT_MS = 65_000;
 const MAX_RATE_LIMIT_MS = 24 * 60 * 60 * 1000;
 
@@ -25,7 +25,7 @@ export function shouldAutoRefreshBroadcast({game,at,result='*'}) {
   if(!['*','1-0','0-1','1/2-1/2'].includes(result))
     throw new Error('Unexpected broadcast game result');
   const start = Date.parse(roundInfo(game).startsAt);
-  return result === '*' && instant >= start && instant < start + SESSION_MS;
+  return result === '*' && instant >= start && instant < start + LIVE_POLL_SESSION_MS;
 }
 
 /**
