@@ -5,6 +5,7 @@ import {START_FEN,parseFen,play,toIndex,toSquare,withSans} from './src/chess.mjs
 import {replaySanMoves,parsePgn,findChampionshipGame,GAME_ONE_PGN} from './src/pgn.mjs';
 import {restoreSnapshot,validateAppendOnly} from './src/broadcast.mjs';
 import {validateRegistry,roundInfo} from './src/match-2026.mjs';
+import {shouldAutoRefreshBroadcast,rateLimitDelayMs} from './src/live-poll.mjs';
 import {selectHomepageRound} from './src/home-entry.mjs';
 import {createSpectatorSession,spectatorOpportunity,spectatorOutcome,spectatorShareText,spectatorReturnPly,SPECTATOR_STORAGE_KEY} from './src/spectator.mjs';
 import {championshipCalendarIcs,championshipCalendarFilename} from './src/calendar.mjs';
@@ -25,6 +26,7 @@ const currentChampionshipGame=()=>selectHomepageRound(new Date(Date.now())).roun
 let selectedGame=hasValidRequestedGame?requestedGame:(mode==='archive'?14:currentChampionshipGame());
 let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedPly=new Set(),selectedArrow=null;
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
+let sourceRetryUntil=0,queuedBroadcastGame=null;
 let spectatorStorage=null,legacySpectatorStorage=null;
 try{spectatorStorage=window.localStorage;}catch{/* Persistent storage can be blocked. */}
 try{legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be blocked. */}
@@ -204,7 +206,14 @@ function setSourceStatus(){
   const round=roundInfo(selectedGame),data=game(),state=liveStatus.get(selectedGame)||{};
   const checked=state.checkedAt,error=state.error;
   a.href=round.url;a.textContent=`Official Game ${selectedGame} broadcast ↗`;refresh.hidden=false;
+  const rateLimited=Date.now()<sourceRetryUntil;
+  refresh.disabled=requestRunning||rateLimited;
+  refresh.title=rateLimited?'Lichess requested a pause after rate limiting':'Refresh broadcast moves';
   $('source-light').classList.toggle('connected',Boolean(checked&&!error)||Boolean(data?.moves.length));
+  if(rateLimited){
+    setText('source-status',`Lichess rate-limited requests · next check after ${new Date(sourceRetryUntil).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})} (local browser clock) · saved moves retained`);
+    return;
+  }
   if(error&&data?.moves.length)setText('source-status',`Game ${selectedGame} · ${data.moves.length} recorded moves · direct refresh unavailable · timing unverified`);
   else if(error)setText('source-status',`Game ${selectedGame} broadcast unavailable. Source is registered; retry later.`);
   else if(checked)setText('source-status',`Game ${selectedGame} · ${data?.moves.length||0} moves observed · checked ${checked.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',timeZoneName:'short'})} · not physical move times`);
@@ -449,11 +458,22 @@ function revealMove(){if(!isArchive()||!game()?.moves[currentIndex()])return;rev
  * Another user selection during the request must not redirect its result.
  */
 async function refreshBroadcast(){
-  if(requestRunning||isArchive())return;
+  if(isArchive()||Date.now()<sourceRetryUntil)return;
+  if(requestRunning){
+    // A round change during an earlier PGN request must fetch the new round
+    // immediately after the old request settles, rather than waiting minutes.
+    queuedBroadcastGame=selectedGame;
+    return;
+  }
   const targetGame=selectedGame,round=roundInfo(targetGame);
   requestRunning=true;lastDirectAttempt=Date.now();$('refresh-button').disabled=true;
   try{
     const response=await fetch(round.pgnUrl,{headers:{Accept:'application/x-chess-pgn'},cache:'no-store',signal:AbortSignal.timeout(12000)});
+    if(response.status===429){
+      const now=Date.now();
+      sourceRetryUntil=now+rateLimitDelayMs(response.headers?.get('retry-after'),now);
+      throw new Error('HTTP 429');
+    }
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     const games=parsePgn(await response.text());
     const current=findChampionshipGame(games),previous=liveGames.get(targetGame);
@@ -462,6 +482,7 @@ async function refreshBroadcast(){
     validateAppendOnly(previous,current);
     const latest=current||{tags:{},moves:[],positions:[START_FEN]};
     const before=previous?.moves.length||0;
+    sourceRetryUntil=0;
     liveGames.set(targetGame,latest);liveStatus.set(targetGame,{checkedAt:new Date(),error:null});
     if(!userChangedMode&&latest.moves.length&&mode==='archive'){switchMode('live',false);}
     if(mode==='live'&&selectedGame===targetGame){
@@ -477,7 +498,14 @@ async function refreshBroadcast(){
   }catch(error){
     liveStatus.set(targetGame,{checkedAt:null,error:error instanceof Error?error.message:'unavailable'});
     console.warn('Lichess broadcast fetch failed:',error);
-  }finally{requestRunning=false;$('refresh-button').disabled=false;render();}
+  }finally{
+    requestRunning=false;
+    const queued=queuedBroadcastGame;
+    queuedBroadcastGame=null;
+    render();
+    if(queued!==null&&queued!==targetGame&&queued===selectedGame&&
+      mode==='live'&&Date.now()>=sourceRetryUntil)void refreshBroadcast();
+  }
 }
 
 /** Restore locally observed source positions as an outage fallback.
@@ -680,9 +708,13 @@ render();initialize();
 // Avoid polling Lichess for spectators of the offline archive. Active live viewers
 // check at most every three minutes, or every five minutes after a failed request.
 setInterval(()=>{
+  const now=Date.now();
+  if(sourceRetryUntil&&now>=sourceRetryUntil){sourceRetryUntil=0;if(mode==='live')render();}
   const interval=liveStatus.get(selectedGame)?.error?300000:180000;
   if(!document.hidden&&mode==='live'){
-    if(!indexRequestRunning&&Date.now()-lastIndexAttempt>=120000)refreshPublishedIndex();
-    if(!requestRunning&&Date.now()-lastDirectAttempt>=interval)refreshBroadcast();
+    if(!indexRequestRunning&&now-lastIndexAttempt>=120000)refreshPublishedIndex();
+    if(shouldAutoRefreshBroadcast({
+      game:selectedGame,at:now,result:game()?.tags?.Result||'*'
+    })&&!requestRunning&&now-lastDirectAttempt>=interval)refreshBroadcast();
   }
 },60000);

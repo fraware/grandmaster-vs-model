@@ -115,7 +115,20 @@ def run() -> int:
                     service_workers="block",
                 )
                 errors: list[str] = []
+                broadcast_responses: list[dict[str, Any]] = []
                 page.on("pageerror", lambda error: errors.append(str(error)[:300]))
+
+                def record_broadcast_response(response: Any) -> None:
+                    """Observe the application's own PGN request without issuing another."""
+                    if response.url.split("?", 1)[0] == broadcast_url:
+                        broadcast_responses.append({
+                            "ok": 200 <= response.status < 300,
+                            "status": response.status,
+                            "contentType": response.headers.get("content-type"),
+                            "capture": "passive network observation",
+                        })
+
+                page.on("response", record_broadcast_response)
                 page.goto(site_url, wait_until="domcontentloaded", timeout=30_000)
                 page.locator("#board button.square").first.wait_for(timeout=20_000)
                 page.wait_for_function(
@@ -144,36 +157,16 @@ def run() -> int:
                 }
                 report["pageErrors"] = errors
 
-                # This must execute from GitHub Pages, not through a Python HTTP
-                # client. The same-origin browser policy is part of the test.
-                browser_fetch = page.evaluate(
-                    """async (url) => {
-                      const start = performance.now();
-                      try {
-                        const response = await fetch(url, {
-                          cache: 'no-store',
-                          headers: {Accept: 'application/x-chess-pgn'},
-                          signal: AbortSignal.timeout(12000),
-                        });
-                        const payload = await response.text();
-                        return {
-                          ok: response.ok,
-                          status: response.status,
-                          contentType: response.headers.get('content-type'),
-                          bytes: payload.length,
-                          elapsedMs: Math.round(performance.now()-start),
-                        };
-                      } catch(error) {
-                        return {
-                          ok: false,
-                          exception: String(error?.name || 'Error'),
-                          reason: String(error?.message || 'fetch failed').slice(0,200),
-                          elapsedMs: Math.round(performance.now()-start),
-                        };
-                      }
-                    }""",
-                    broadcast_url,
-                )
+                # The application has already requested the official PGN
+                # from the actual Pages origin. Its DOM confirms whether CORS
+                # permitted parsing; the browser's response event supplies the
+                # HTTP metadata. A second fetch would unnecessarily increase
+                # unauthenticated traffic to the public Lichess API.
+                browser_fetch = broadcast_responses[-1] if broadcast_responses else {
+                    "ok": False,
+                    "capture": "passive network observation",
+                    "reason": "No app-origin broadcast response observed",
+                }
                 report["broadcastFetch"] = browser_fetch
                 page.screenshot(
                     path=str(ARTIFACT_DIR / "desktop.png"),

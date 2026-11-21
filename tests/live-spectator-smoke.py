@@ -140,11 +140,123 @@ def run_spectator_test(browser) -> None:
         page.close()
 
 
+def run_rate_limit_recovery_test(browser) -> None:
+    """HTTP 429 freezes requests; an eventual source recovery retains the game."""
+    source = page_sources("lab")
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page.set_default_timeout(10000)
+    try:
+        populate(page, source, pgn=PGN, now_iso="2026-11-24T14:10:00Z")
+        page.locator("#tab-live").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('6 moves observed')"
+        )
+        assert page.locator("#nav-position").inner_text() == "6 / 6 PLIES"
+        page.evaluate("""() => {
+          window.__originalFetch = window.fetch;
+          window.__rateLimitedCalls = 0;
+          window.fetch = async (url, ...options) => {
+            if (String(url).includes('lichess.org/api/broadcast/')) {
+              window.__rateLimitedCalls += 1;
+              return new Response('', {status:429,
+                headers:{'Retry-After':'120'}});
+            }
+            return window.__originalFetch(url, ...options);
+          };
+        }""")
+        page.locator("#refresh-button").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('rate-limited')"
+        )
+        assert page.locator("#refresh-button").is_disabled()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+        assert page.locator("#nav-position").inner_text() == "6 / 6 PLIES"
+        assert page.locator("#board button.square").count() == 64
+
+        # Retry-After is 120 seconds, longer than the one-minute minimum.
+        page.evaluate("Date.now = () => Date.parse('2026-11-24T14:11:00Z')")
+        page.locator("#nav-start").click()
+        assert page.locator("#refresh-button").is_disabled()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+
+        page.evaluate("""() => {
+          Date.now = () => Date.parse('2026-11-24T14:12:01Z');
+          window.fetch = window.__originalFetch;
+        }""")
+        page.locator("#nav-end").click()
+        assert page.locator("#refresh-button").is_enabled()
+        page.locator("#refresh-button").click()
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('6 moves observed')"
+        )
+        assert page.locator("#board button.square").count() == 64
+        assert page.locator("#guess-area").is_visible()
+        assert page.evaluate("window.__rateLimitedCalls") == 1
+    finally:
+        page.close()
+
+
+def run_round_switch_during_fetch_test(browser) -> None:
+    """Switching rounds while a PGN request is pending fetches the new round."""
+    source = page_sources("lab")
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page.set_default_timeout(10000)
+    game_two = PGN.replace('[Round "1"]', '[Round "2"]').replace(
+        '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *', '1. d4 *'
+    )
+    try:
+        populate(page, source, now_iso="2026-11-24T14:10:00Z")
+        page.evaluate("""({secondPgn}) => {
+          const oldFetch = window.fetch;
+          let releaseFirst;
+          const holdFirst = new Promise(resolve => { releaseFirst = resolve; });
+          window.__releaseFirst = releaseFirst;
+          window.__requestedRoundUrls = [];
+          window.fetch = (url, ...opts) => {
+            const destination = String(url);
+            if (destination.includes('/xLgOJ6cb.pgn')) {
+              window.__requestedRoundUrls.push('game1');
+              return holdFirst.then(() => oldFetch(url, ...opts));
+            }
+            if (destination.includes('/L3j03TZq.pgn')) {
+              window.__requestedRoundUrls.push('game2');
+              return Promise.resolve(new Response(secondPgn, {status:200}));
+            }
+            return oldFetch(url, ...opts);
+          };
+        }""", {"secondPgn": game_two})
+        page.locator("#tab-live").click()
+        page.wait_for_function(
+            "() => window.__requestedRoundUrls.includes('game1')"
+        )
+        page.locator("#game-select").select_option("2")
+        assert page.locator("#game-select").input_value() == "2"
+        page.evaluate("window.__releaseFirst()")
+        page.wait_for_function(
+            "() => window.__requestedRoundUrls.includes('game2')"
+        )
+        page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('Game 2 · 1 moves observed')"
+        )
+        assert page.locator("#game-select").input_value() == "2"
+        assert page.locator("#source-url").get_attribute("href").endswith(
+            "/game-2/L3j03TZq"
+        )
+        assert page.locator("#board button.square").count() == 64
+        assert page.evaluate("window.__requestedRoundUrls") == [
+            "game1", "game2"
+        ]
+    finally:
+        page.close()
+
+
 def main() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         try:
             run_spectator_test(browser)
+            run_rate_limit_recovery_test(browser)
+            run_round_switch_during_fetch_test(browser)
         finally:
             browser.close()
     print("Live spectator smoke: pregame lock, outage recovery, sourced reveal, continuation, mobile drag, and private model ledger passed.")

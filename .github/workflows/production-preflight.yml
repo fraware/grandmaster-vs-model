@@ -6,23 +6,24 @@ on:
   schedule:
     - cron: '25 13 24,25,26,28,29,30 11 *'
     - cron: '25 13 2,3,4,6,7,8,10,11 12 *'
-  push:
-    paths:
-      - tests/production-preflight.py
-      - tests/pregame-selector-smoke.py
-      - .github/workflows/production-preflight.yml
+  # After a successful Pages deployment, verify the version visitors receive.
+  # Avoid the race in which preflight starts before the new site is published.
+  workflow_run:
+    workflows: ['Publish site']
+    types: [completed]
 permissions:
   contents: read
 jobs:
   preflight:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - name: Exclude future years from the fixed 2026 schedule
+      - name: Exclude future years from fixed 2026 automatic checks
         id: season
         shell: bash
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == schedule && "$(date -u +%Y)" != "2026" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" != workflow_dispatch && "$(date -u +%Y)" != "2026" ]]; then
             echo 'eligible=false' >> "$GITHUB_OUTPUT"
           else
             echo 'eligible=true' >> "$GITHUB_OUTPUT"
