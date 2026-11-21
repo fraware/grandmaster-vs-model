@@ -225,3 +225,25 @@ test('collector refuses an explicitly mislabeled round without a model request',
     assert.equal(ledger.attempts.length,0);
   }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('collector rejects legally replayable nonstandard FEN before any reservation or paid call',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-alternate-start-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
+    const altered='[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"]\n'+gameTwo;
+    let providerCalls=0;
+    const options={
+      root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>altered}),
+      providerRequest:async()=>{providerCalls++;throw Error('Unexpected paid provider call');},
+      sampleEvery:1,keys:{OPENAI_API_KEY:'offline-test-only'}
+    };
+    await assert.rejects(()=>cycle(options),/Non-standard championship starting position/);
+    assert.equal(providerCalls,0);
+    const index=await collect({root});
+    assert.equal(index.observedGames.length,0);
+    assert.equal(index.reservations.length,0);
+    assert.equal(index.attempts.length,0);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
