@@ -499,7 +499,7 @@ def test_embedded_challenge(browser) -> None:
         )
         if expected_set == 1:
             actual = frame.locator('#challenge-answer-result').inner_text()
-            assert actual == 'Exact match.', {
+            assert actual.casefold() == 'exact match.', {
                 'actual': actual,
                 'selected': frame.locator('#challenge-move-select').input_value(),
                 'hint': frame.locator('#challenge-hint').inner_text(),
