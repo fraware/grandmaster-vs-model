@@ -304,7 +304,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         # from the public page; no GitHub navigation or code editing needed.
         assert page.locator('#publisher-embed-copy').is_visible()
         code = page.locator('#publisher-embed-code').input_value()
-        assert code.startswith('<iframe\\n')
+        assert code.splitlines()[0] == '<iframe'
         assert 'grandmaster-vs-model/?embed=1#challenge' in code
         assert 'referrerpolicy="no-referrer"' in code
         assert page.locator('#publisher-embed-preview').get_attribute('href') == '?embed=1#challenge'
