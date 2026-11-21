@@ -99,7 +99,7 @@ export function findChampionshipGame(games,expectedRound=null) {
   const chosen=matches[0]||null;
   const tag=chosen?.tags?.Round;
   if(typeof tag==='string'){
-    const recognized=/^(?:game\\s*)?(\\d{1,2})(?:\\.\\d+)?$/i.exec(tag.trim());
+    const recognized=/^(?:game\s*)?(\d{1,2})(?:\.\d+)?$/i.exec(tag.trim());
     if(recognized&&Number(recognized[1])!==expectedRound)
       throw new Error('Broadcast round tag conflicts with the pinned game');
   }
