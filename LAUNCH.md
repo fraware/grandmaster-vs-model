@@ -95,3 +95,10 @@ The public homepage now exposes a copy-and-preview action for the existing, lega
 
 This is an access improvement, **not observed adoption**. Publisher experiments should measure actual independent embeds and voluntary referral participation through directly observed publisher pages, not speculative impression or conversion numbers. Existing products already supply chess embeds and master-move guessing widgets, including Hindsight; our claim of value rests on sourced championship-specific positions, transparent model evidence, and the separate 2026 event. Do not describe this feature as the first or only embeddable chess quiz.
 
+
+## Capture integrity correction · 21 November 2026
+
+A production GitHub Actions forecast is now accepted into the public collection index only when the corresponding immutable reservation remains present and the original claim digest, prompt, position, model, run and chronology match. Rehashing a record after deleting its reservation reference does not convert an Actions-originated forecast into an admissible manual attempt. Ordinary legacy test records remain independently labeled and accepted.
+
+The five-minute capture cron now matches the declared 14 classical game days, including 00:02–00:57 UTC on the subsequent calendar day. A separate season check skips expensive capture work for scheduled invocations after the year 2026. The 11-hour source-session limit remains independently enforced by the capture code. This prevents irrelevant off-day runs and guards historical provenance; it does not confirm provider credentials, eliminate GitHub scheduler delays, or certify model submissions as preceding physical chess moves.
+
