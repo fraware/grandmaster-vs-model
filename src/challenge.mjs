@@ -100,8 +100,36 @@ export function scoreChallenge(questions, answers) {
   return {correct, total: questions.length};
 }
 
+/**
+ * Decode a peer's self-reported score for exactly one of the five fixed
+ * three-position decks. Query strings are user-editable; neither a shared
+ * target nor a local result is an authenticated score or a public ranking.
+ * Invalid/ambiguous links are ignored rather than trusted or partially used.
+ */
+export function parsePeerChallenge(url) {
+  let parsed;
+  try { parsed = new URL(url); } catch { return null; }
+  if (!['https:', 'http:'].includes(parsed.protocol)) return null;
+  const set = parsed.searchParams.getAll('set');
+  const target = parsed.searchParams.getAll('target');
+  if (set.length !== 1 || target.length !== 1 ||
+      !/^[1-5]$/.test(set[0]) || !/^[0-3]$/.test(target[0])) return null;
+  return Object.freeze({set:Number(set[0]),target:Number(target[0])});
+}
+
+/** Human-readable comparisons remain explicitly self-reported. */
+export function peerChallengeOutcome(correct, target) {
+  if (!Number.isInteger(correct) || correct < 0 || correct > 3 ||
+      !Number.isInteger(target) || target < 0 || target > 3) {
+    throw new Error('Invalid peer challenge comparison');
+  }
+  if(correct > target) return `You beat the shared ${target}/3 target.`;
+  if(correct === target) return `You matched the shared ${target}/3 target.`;
+  return `You scored ${correct}/3 against the shared ${target}/3 target. Try again, or send your own result.`;
+}
+
 /** Sharing deliberately excludes any fabricated public ranking or model comparison. */
-export function challengeShareText(correct, url, matches = null, comparison = null) {
+export function challengeShareText(correct, url, matches = null, comparison = null, {set = 1} = {}) {
   if (!Number.isInteger(correct) || correct < 0 || correct > CHALLENGE_PLIES.length) {
     throw new Error('Invalid challenge score');
   }
@@ -113,13 +141,16 @@ export function challengeShareText(correct, url, matches = null, comparison = nu
       !Number.isInteger(comparison.score) || comparison.score < 0 || comparison.score > 3)) {
     throw new Error('Invalid historical model comparison');
   }
+  if (!Number.isInteger(set) || set < 1 || set > 5) throw new Error('Invalid challenge set');
   const u = new URL(url);
   if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Invalid challenge URL');
-  u.hash = 'challenge';
   u.search = '';
+  u.searchParams.set('set', String(set));
+  u.searchParams.set('target', String(correct));
+  u.hash = 'challenge';
   const grid = matches ? `${matches.map(hit => hit ? '🟩' : '⬛').join('')}\n` : '';
   const comparisonText = comparison
     ? `GPT-6.2 Astra went ${comparison.score}/3 in a RETROSPECTIVE API run (the 2024 game was already known).\n`
     : '';
-  return `I guessed ${correct}/3 moves from the 2024 World Chess Championship final.\n${grid}\n${comparisonText}Think you can match or beat my score?\n${u.toString()}`;
+  return `I matched ${correct}/3 grandmaster moves in set ${set}/5 of the 2024 World Championship final.\n${grid}\n${comparisonText}Can you beat this score on the same positions?\nShared scores are self-reported.\n${u.toString()}`;
 }

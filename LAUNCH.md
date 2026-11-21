@@ -66,6 +66,10 @@ Each scheduled hourly observer uploads a uniquely named, 90-day source artifact.
 
 At 13:25 UTC on each scheduled classical game date, the GitHub Actions preflight is intended to test the live Pages route and public PGN for **that day's game**. Verify both its success and the JSON artifact before presenting any round as operationally tested. This is a best-effort scheduled run, not guaranteed real-time monitoring or evidence of player move times. Game 1's first check is scheduled for 24 November 2026, ahead of the 14:00 UTC announced opening.
 
+## Exact-set peer challenges
+
+A completed round now shares `?set=N&target=M#challenge`, with N from 1 to 5 and M from 0 to 3. The recipient enters that same sourced three-position set and sees a self-reported target. After three moves the local score is compared and the recipient gets a new result link. The score is explicitly editable, has no authenticated identity, and never contributes to the prospective model ledger. Reproduce the URL validation tests with `npm test` and the desktop/mobile full-session tests in `tests/browser-smoke.py`. This feature is a shareability hypothesis; adoption or referral conversion has not been measured.
+
 ## Returning participants (v1.11)
 
 The pregame interaction now retains a local opening prediction across normal tab closure using browser site storage and migrates older in-tab predictions. A returning visitor is directed to the saved reveal from sourced PGN, then can continue to the latest position. Test cross-tab changes, storage access failures, loss of site data, external/other-device visits and browser back/forward behavior. No account or telemetry is introduced; do not describe these records as independently authenticated prediction timestamps.

@@ -4,7 +4,7 @@
  * API key, saved identity, model prediction, or global ranking is involved.
  */
 import {parseFen, play, toSquare} from './chess.mjs';
-import {createChallenge, createPracticeDecks, scoreChallenge, challengeShareText} from './challenge.mjs';
+import {createChallenge, createPracticeDecks, scoreChallenge, challengeShareText, parsePeerChallenge, peerChallengeOutcome} from './challenge.mjs';
 import {retrospectiveView} from './retro-view.mjs';
 
 const pieceGlyph = {K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟'};
@@ -12,12 +12,15 @@ const pieceName = {K:'king', Q:'queen', R:'rook', B:'bishop', N:'knight', P:'paw
 const get = id => document.getElementById(id);
 
 /** A privacy-preserving result card constructed without remote rendering. */
-export function drawChallengeCard(score, matches = null, rivalScore = null) {
+export function drawChallengeCard(score, matches = null, rivalScore = null, set = 1) {
   if (!Number.isInteger(score?.correct) || score.correct < 0 || score.correct > 3 || score.total !== 3) {
     throw new Error('Invalid challenge score for export');
   }
   if (matches !== null && (!Array.isArray(matches) || matches.length !== 3 || matches.some(x => typeof x !== 'boolean') || matches.filter(Boolean).length !== score.correct)) {
     throw new Error('Inconsistent challenge answers for export');
+  }
+  if (!Number.isInteger(set) || set < 1 || set > 5 || (set !== 1 && rivalScore !== null)) {
+    throw new Error('Invalid challenge round for scorecard');
   }
   const canvas = document.createElement('canvas');
   canvas.width = 1200;
@@ -41,7 +44,7 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
   ctx.fillRect(65, 110, 1070, 2);
   ctx.font = `18px ${mono}`;
   ctx.fillStyle = muted;
-  ctx.fillText('WORLD CHAMPIONSHIP  /  2024 CHALLENGE', 67, 158);
+  ctx.fillText(`WORLD CHAMPIONSHIP  /  2024  /  SET ${set} OF 5`, 67, 158);
   ctx.fillStyle = signal;
   ctx.font = `800 178px ${display}`;
   ctx.fillText(`${score.correct}/3`, 58, 349);
@@ -68,7 +71,7 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
   ctx.fillText('fraware.github.io/grandmaster-vs-model', 67, 587);
   if (rivalScore !== null) {
     ctx.font = `13px ${mono}`;
-    ctx.fillText('2026 RETROSPECTIVE ONLY', 865, 588);
+    ctx.fillText('2024 GAME  /  RETROSPECTIVE', 825, 588);
   }
   // This is a decorative chess symbol, never an illustrated game position.
   ctx.fillStyle = signal;
@@ -81,12 +84,13 @@ export function drawChallengeCard(score, matches = null, rivalScore = null) {
 export function mountChallenge(archive, replay, retrospective = null) {
   const firstQuestions = createChallenge(archive, replay);
   const bonusDecks = createPracticeDecks(archive, replay);
-  let questions = firstQuestions;
-  let deckIndex = 0;
+  const incomingPeer = parsePeerChallenge(window.location.href);
+  let deckIndex = incomingPeer ? incomingPeer.set - 1 : 0;
+  let questions = deckIndex === 0 ? firstQuestions : bonusDecks[deckIndex - 1];
   let model = null;
   try { model = retrospectiveView(retrospective, firstQuestions); }
   catch { /* Bad optional evidence must not disable the verified historical game. */ }
-  let activeModel = model;
+  let activeModel = deckIndex === 0 ? model : null;
   const completedResults = Array(1 + bonusDecks.length).fill(null);
   let index = 0;
   let selectedUci = null;
@@ -355,6 +359,11 @@ export function mountChallenge(archive, replay, retrospective = null) {
     cancelCommit();
     const q = questions[index];
     setText('challenge-series', `Round ${deckIndex + 1}`);
+    const thisPeer = incomingPeer && incomingPeer.set === deckIndex + 1 ? incomingPeer : null;
+    const peerBanner = get('challenge-peer-target');
+    peerBanner.hidden = !thisPeer;
+    if (thisPeer) setText('challenge-peer-target-text',
+      `Shared target: ${thisPeer.target}/3 in this round. Match it or beat it.`);
     setText('challenge-count',`${index+1} of ${questions.length}`);
     setText('board-instruction', 'Tap or drag a piece to play your move');
     setText('challenge-phase',q.stage);
@@ -456,6 +465,12 @@ export function mountChallenge(archive, replay, retrospective = null) {
     nextButton.hidden = true;
     final.hidden = false;
     setText('challenge-result-label', `${result.correct} of ${result.total}.`);
+    const peerOutcome = get('challenge-peer-outcome');
+    const challengeForSet = incomingPeer && incomingPeer.set === deckIndex + 1 ? incomingPeer : null;
+    peerOutcome.hidden = !challengeForSet;
+    if (challengeForSet) peerOutcome.textContent =
+      peerChallengeOutcome(result.correct, challengeForSet.target) +
+      ' Shared scores are self-reported.';
     const resultTiles = get('challenge-result-tiles');
     if (resultTiles) {
       resultTiles.replaceChildren();
@@ -533,14 +548,14 @@ export function mountChallenge(archive, replay, retrospective = null) {
     if (!complete) return;
     const score = scoreChallenge(questions,answers);
     const url = new URL('.', document.baseURI);url.hash='challenge';
-    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? {name:activeModel.name,score:activeModel.score} : null);
+    const text = challengeShareText(score.correct,url.href,questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? {name:activeModel.name,score:activeModel.score} : null, {set:deckIndex + 1});
     try {
       if (navigator.share) {
         const title = 'Can you predict a grandmaster’s next move?';
         let shared = false;
         if (navigator.canShare && typeof File !== 'undefined') {
           try {
-            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null);
+            const card = drawChallengeCard(score, questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null, deckIndex + 1);
             const imageBlob = await new Promise(resolve => card.toBlob(resolve, 'image/png'));
             if (imageBlob) {
               const file = new File([imageBlob], 'grandmaster-vs-model-score.png', {type:'image/png'});
@@ -576,7 +591,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
   get('challenge-download').addEventListener('click',async () => {
     if (!complete) return;
     try {
-      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null);
+      const canvas = drawChallengeCard(scoreChallenge(questions,answers),questions.map((q,i) => q.answer.uci === answers[i]), activeModel?.complete ? activeModel.score : null, deckIndex + 1);
       const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
       if (!blob) throw new Error('Image encoding unavailable');
       const url = URL.createObjectURL(blob);

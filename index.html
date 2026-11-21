@@ -71,6 +71,7 @@
           </div>
           <div class="challenge-right">
             <div id="challenge-progress" class="challenge-progress" aria-label="Challenge progress"></div>
+            <div class="challenge-peer-target" id="challenge-peer-target" hidden aria-label="Shared score challenge"><span class="challenge-peer-tag">HEAD TO HEAD · SELF-REPORTED</span><p id="challenge-peer-target-text"></p></div>
             <div class="challenge-prompt" id="challenge-prompt"><div class="challenge-phase" id="challenge-phase">Position 1</div><h2 id="challenge-heading">Your move.</h2><p id="challenge-description">What did Ding play here?</p></div>
             <div id="challenge-choice" class="challenge-choice">
               <p class="tap-instruction">Your move becomes your prediction. No extra button.</p>
@@ -84,7 +85,7 @@
             <div id="challenge-finished" class="challenge-finished" hidden>
               <p class="challenge-final-kicker">Final score</p>
               <div class="challenge-score" id="challenge-result-label">0 / 3 exact matches</div>
-              <div id="challenge-result-tiles" class="challenge-result-tiles" aria-label="Result by position"></div><p id="challenge-run-progress" class="challenge-run-progress"></p>
+              <div id="challenge-result-tiles" class="challenge-result-tiles" aria-label="Result by position"></div><p id="challenge-peer-outcome" class="challenge-peer-outcome" role="status" hidden></p><p id="challenge-run-progress" class="challenge-run-progress"></p>
               <div id="challenge-versus" class="challenge-versus" hidden><span id="challenge-versus-human"></span><span id="challenge-versus-model"></span></div>
               <p id="challenge-result-note">This challenge measures exact moves, not overall chess strength.</p><a class="result-evidence-link" id="challenge-result-evidence" href="https://github.com/fraware/grandmaster-vs-model/blob/main/data/retrospective-2024.json" target="_blank" rel="noopener noreferrer" hidden>Read the three source-linked model records ↗</a>
               <button id="challenge-continue" class="challenge-primary challenge-continue" type="button" hidden>Play another three <span aria-hidden="true">→</span></button><button id="challenge-share" class="challenge-primary challenge-share" type="button">Challenge a friend <span aria-hidden="true">↗</span></button>
