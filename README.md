@@ -28,6 +28,12 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 
 *Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
+## Challenge a friend on the same three positions
+
+Every completed historical round now produces a direct challenge link containing the **exact one of five fixed three-position sets** and the sharer's **self-reported score**. When someone opens that link, the matching sourced positions load immediately and a restrained target badge shows the score to beat. The result compares the recipient's local exact-match score with the shared target, and the recipient can share a fresh link to continue the challenge. The scorecard image identifies its source set. Invalid or ambiguous query values are ignored.
+
+**These are informal, user-editable claims.** A URL score is not a verified opponent score, certified timing record, leaderboard rank, or model outcome. No accounts, identity tracking, server submission or provider inference are added. The 2024 GPT retrospective appears only on the original first round. Tests cover every link set and score, deliberately altered parameters, desktop/mobile entry, full playthrough, result comparisons and chaining. The initial sharer's score is never accepted as independent evidence of who played.
+
 ## The championship is one action from the homepage
 
 A compact 2026 World Championship action appears in the **first-screen homepage heading** on desktop and mobile, retaining the original 2024 chessboard's first-viewport placement. A fuller event invitation follows the historical challenge. Both links select the next relevant round using the pinned 14-round UTC registry. Ahead of the announced start it invites a local opening prediction, during the scheduled session it opens the latest sourced position, and beyond the listed rounds it provides a replay entry. The schedule does not establish that physical play has started. Route selection is deterministic and tested in [`src/home-entry.mjs`](src/home-entry.mjs) and [`tests/home-entry.test.mjs`](tests/home-entry.test.mjs).
