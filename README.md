@@ -42,7 +42,7 @@ Every completed historical round now produces a direct challenge link containing
 
 ## Embed the playable three-position challenge
 
-Chess clubs, instructors, independent blogs and publishers can embed the **actual playable 2024 championship challenge** with one HTML iframe. It includes a complete legal chessboard, automatic move reveal, three-position scoring, a cited Lichess game, shareable self-reported peer challenges and a link back to the full experience. The compact view hides unrelated site navigation. No installation, account, provider key, remote fonts or host-page JavaScript is needed.
+Chess clubs, instructors, independent blogs and publishers can embed the **actual playable 2024 championship challenge** with one HTML iframe. The homepage has a **Copy iframe HTML** control, a preview link and a selectable-code fallback when clipboard permissions are unavailable. It includes a complete legal chessboard, automatic move reveal, three-position scoring, a cited Lichess game, shareable self-reported peer challenges and a link back to the full experience. The compact view hides unrelated site navigation. No installation, account, provider key, remote fonts or host-page JavaScript is needed.
 
 ```html
 <iframe
@@ -60,7 +60,7 @@ Chess clubs, instructors, independent blogs and publishers can embed the **actua
 
 Embedding does not change the archive, scoring, or the scientific comparison rules. A recipient of a peer challenge can also open an embedded link such as `?embed=1&set=3&target=2#challenge`; the target score is self-reported. The **Open the full game** link preserves that selected set and target, and removes embed mode. Third-party publishing systems must permit iframes from `fraware.github.io`; publisher-defined content security policies and sandbox restrictions still apply. Every iframe loads public static game data from GitHub Pages; it does not fetch Lichess's live PGN or invoke a paid model.
 
-The isolated browser tests open this widget inside a different simulated publisher origin at widths of 320 and 540 pixels, exercise legal moves and validate its exact-set links. The deployed-site preflight separately verifies the real GitHub Pages framing headers, 64 playable squares, source attribution and script execution. Passing synthetic tests alone does not certify production embedding.
+The isolated browser tests verify the site's one-click copy and manual fallback, then open the widget inside a different simulated publisher origin at widths of 320 and 540 pixels, exercise legal moves and validate its exact-set links. The deployed-site preflight separately verifies the real GitHub Pages framing headers, 64 playable squares, source attribution and script execution. Passing synthetic tests alone does not certify production embedding.
 
 ## The championship is one action from the homepage
 
@@ -112,7 +112,7 @@ To recheck the deployed site without changing its data, manually dispatch **Prod
 
 ## Why this project is different
 
-Prior systems already predict human chess moves. Relevant work includes [ChessDS DSC](https://github.com/ChessDS/chessds-dsc), [Maia-3](https://github.com/CSSLab/maia3), [MoveLens](https://chessassistlens.vercel.app/research), [ChessBench](https://chessbench.org/), and [LLMChessArena](https://github.com/DeadPackets/LLMChessArena). Historical replay and move-guessing games also predate this project. The intended contribution is **event-specific, prospective model forecasting with public pre-move records and reproducible scoring**, not an assertion that chess prediction itself was invented here.
+Prior systems already predict human chess moves, and embeddable chess widgets exist, including [Hindsight's three-master-decision quiz](https://hindsightchess.com/tools/embeds/) and [Lichess game/study embeds](https://lichess.org/developers). The distinctive scope here is the sourced 2024 World Championship replay, retrospective model evidence with explicit limitations, and a separate 2026 live spectator experiment. Relevant work includes [ChessDS DSC](https://github.com/ChessDS/chessds-dsc), [Maia-3](https://github.com/CSSLab/maia3), [MoveLens](https://chessassistlens.vercel.app/research), [ChessBench](https://chessbench.org/), and [LLMChessArena](https://github.com/DeadPackets/LLMChessArena). Historical replay and move-guessing games also predate this project. The intended contribution is **event-specific, prospective model forecasting with public pre-move records and reproducible scoring**, not an assertion that chess prediction itself was invented here.
 
 An accurate prediction of a human's actual choice is different from choosing a move favored by a chess engine. These outcomes must be evaluated separately.
 
