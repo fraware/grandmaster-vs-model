@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {snapshotFromPgn,restoreSnapshot,validateAppendOnly} from '../src/broadcast.mjs';
+import {snapshotFromPgn,restoreSnapshot,validateAppendOnly,validateStandardChampionshipPosition} from '../src/broadcast.mjs';
 import {parsePgn,findChampionshipGame} from '../src/pgn.mjs';
 import {run} from '../scripts/cache-broadcast.mjs';
 const sample='[White "Gukesh D"]\n[Black "Javokhir Sindarov"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 *';
@@ -66,4 +66,17 @@ test('public snapshot refuses a valid chess PGN with the wrong numbered game',()
     ['e2e4','e7e5','g1f3','b8c6']);
   // Unknown Lichess-style round metadata is not treated as verified identity.
   assert.equal(snapshotFromPgn('[Round "?"]\n'+sample,fetchedAt).game.moves.length,4);
+});
+
+test('nonstandard FEN is rejected before a legally replayable cache is serialized',()=>{
+  const alternateStart='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1';
+  // Identical piece placement and legal opening SAN, with castling rights
+  // removed. A naive UCI-only serializer would turn this into fake
+  // standard-match data that passes restoreSnapshot().
+  const altered='[FEN "'+alternateStart+'"]\n'+sample;
+  assert.throws(()=>snapshotFromPgn(altered,fetchedAt),/Non-standard championship starting position/);
+  const game=findChampionshipGame(parsePgn(altered));
+  assert.equal(game.moves.length,4);
+  assert.throws(()=>validateStandardChampionshipPosition(game),/Non-standard championship/);
+  assert.equal(snapshotFromPgn(sample,fetchedAt).game.moves.length,4);
 });

@@ -664,6 +664,39 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert 'broadcast unavailable' in outage.locator('#source-status').inner_text().lower()
     outage.close()
 
+    # An alternate FEN with standard piece placement but missing castling
+    # rights produces legal SAN. It must never enter the live championship
+    # board as a real standard-position source, even if the round matches.
+    altered_fen = ('rnbqkbnr/pppppppp/8/8/8/8/'
+                   'PPPPPPPP/RNBQKBNR w - - 0 1')
+    altered_pgn = PGN.replace('[Round "1"]',
+                              f'[Round "1"]\n[FEN "{altered_fen}"]')
+    altered_page = browser.new_page()
+    altered_errors = []
+    altered_page.on('pageerror', lambda error: altered_errors.append(str(error)))
+    try:
+        populate(altered_page, source, pgn=altered_pgn,
+                 now_iso='2026-11-24T14:10:00Z',
+                 page_url='https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1')
+        altered_page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('broadcast unavailable')",
+            timeout=5000
+        )
+        assert '0 / 0 PLIES' in altered_page.locator('#nav-position').inner_text()
+        assert altered_page.locator('#board button.square').count() == 64
+
+        # Recovery from a later valid PGN must still work in the same tab.
+        altered_page.evaluate("(pgn) => { window.__fixturePgn = pgn; }", PGN)
+        altered_page.locator('#refresh-button').click()
+        altered_page.wait_for_function(
+            "() => document.getElementById('source-status').textContent.includes('6 moves observed')",
+            timeout=5000
+        )
+        assert ' / 6 PLIES' in altered_page.locator('#nav-position').inner_text()
+        assert not altered_errors, altered_errors
+    finally:
+        altered_page.close()
+
     # The actual UI must reject Game 1's valid PGN when Game 2 is selected.
     # The mock transport returns the wrong explicit Round tag for the
     # requested round. No bogus move is projected onto the Game 2 board.

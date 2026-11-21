@@ -6,6 +6,18 @@ import {roundInfo} from './match-2026.mjs';
 export const BROADCAST_SCHEMA = 'broadcast-snapshot-v1';
 export const GAME_ONE_ROUND_ID = roundInfo(1).roundId;
 
+/**
+ * Chess Championship broadcasts use the standard initial position.
+ * A PGN can replay a legal move sequence from an alternate starting FEN;
+ * its moves must not be attributed to the standard 2026 match.
+ * Check the parsed game itself, before cache serialization or UI adoption.
+ */
+export function validateStandardChampionshipPosition(game) {
+  if (!game || !Array.isArray(game.positions) || game.positions[0] !== START_FEN)
+    throw new Error('Non-standard championship starting position');
+  return game;
+}
+
 export function validateAppendOnly(previous, current) {
   if (!previous || !current) return;
   if (current.moves.length < previous.moves.length) {
@@ -25,6 +37,7 @@ export function snapshotFromPgn(pgn, fetchedAt, round=roundInfo(1)) {
   }
   const games = parsePgn(pgn);
   const selected = findChampionshipGame(games,round.game);
+  if (selected) validateStandardChampionshipPosition(selected);
   if (!selected && games.some(g => g.moves.length)) throw new Error('Target championship game not identified');
   return {
     schema: BROADCAST_SCHEMA,

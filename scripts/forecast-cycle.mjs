@@ -16,11 +16,11 @@ import {fileURLToPath} from 'node:url';
 import {makePrompt,parsePrediction,requestModel} from './model-runner.mjs';
 import {parsePgn,findChampionshipGame} from '../src/pgn.mjs';
 import {roundInfo,activeRound} from '../src/match-2026.mjs';
-import {validateAppendOnly} from '../src/broadcast.mjs';
+import {validateAppendOnly,validateStandardChampionshipPosition} from '../src/broadcast.mjs';
 import {extendObservation,ATTEMPT_SCHEMA,attemptKey,validateAttempt} from '../src/collection.mjs';
 import {RESERVATION_SCHEMA,reservationKey,validateReservation} from '../src/reservations.mjs';
 import {EVENT_ID,canonical} from '../src/protocol.mjs';
-import {START_FEN,withSans} from '../src/chess.mjs';
+import {withSans} from '../src/chess.mjs';
 import {collect} from './collection.mjs';
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
 const hash=x=>createHash('sha256').update(typeof x==='string'?x:canonical(x)).digest('hex');
@@ -89,7 +89,7 @@ export async function cycle({root=defaultRoot,fetcher=fetch,providerRequest=requ
   }
   // This match uses standard chess from the initial position. Reject an
   // unrelated/FEN-injected PGN, even if the player names happen to match.
-  if(sourceGame.positions[0]!==START_FEN)throw new Error('Non-standard championship starting position');
+  validateStandardChampionshipPosition(sourceGame);
   // Validate observed history before any paid provider calls.
   const previousGame=existing?{moves:existing.moves}:null;
   validateAppendOnly(previousGame,sourceGame);
