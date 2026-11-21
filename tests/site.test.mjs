@@ -249,3 +249,18 @@ test('source polling remains bounded when the live game ends or Lichess rate-lim
   assert.match(browser,/run_rate_limit_recovery_test/);
   assert.match(browser,/run_round_switch_during_fetch_test/);
 });
+
+test('spectator invitations are independent, spoiler-free and open before the first move',async()=>{
+  const html=await text('lab.html');
+  const app=await text('app.mjs');
+  const spectator=await text('src/spectator.mjs');
+  const browser=await text('tests/live-spectator-smoke.py');
+  assert.match(html,/id="spectator-share" hidden>Challenge a friend/);
+  assert.match(html,/Copyable chess challenge invitation/);
+  assert.match(app,/spectatorChallengeText/);
+  assert.match(app,/spectator-share'\)\.hidden=!\(chance\.enabled\|\|choice\)/);
+  assert.match(browser,/__invitations/);
+  assert.match(browser,/locked_invite/);
+  assert.match(browser,/resolved_invite/);
+  assert.doesNotMatch(spectator,/My move:\s*\$\{san\}/);
+});
