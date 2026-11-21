@@ -18,7 +18,7 @@ test('auto-poll only inside the scheduled window of an unfinished game',()=>{
 });
 test('no clock, game or result ambiguity is admitted',()=>{
   assert.throws(()=>shouldAutoRefreshBroadcast({game:1,at:'bad'}),/instant/);
-  assert.throws(()=>shouldAutoRefreshBroadcast({game:0,at:Date.now()}),/round number/);
+  assert.throws(()=>shouldAutoRefreshBroadcast({game:0,at:Date.now()}),/championship game number/);
   assert.throws(()=>shouldAutoRefreshBroadcast({game:1,at:Date.now(),result:'unknown'}),/result/);
 });
 test('429 cooldown honors seconds, HTTP dates and a full-minute minimum',()=>{
