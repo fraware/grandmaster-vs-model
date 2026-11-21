@@ -264,3 +264,27 @@ test('spectator invitations are independent, spoiler-free and open before the fi
   assert.match(browser,/resolved_invite/);
   assert.doesNotMatch(spectator,/My move:\s*\$\{san\}/);
 });
+
+test('the optional chess embed reuses the same validated challenge and no private services',async()=>{
+  const html=await text('index.html');
+  const controller=await text('src/home.mjs');
+  const css=await text('theme.css');
+  const browser=await text('tests/browser-smoke.py');
+  const production=await text('tests/production-preflight.py');
+  const readme=await text('README.md');
+  assert.match(html,/id="embed-attribution"/);
+  assert.match(html,/id="embed-open-full"/);
+  assert.match(controller,/parameters\.get\('embed'\) === '1'/);
+  assert.match(controller,/parsePeerChallenge/);
+  assert.match(controller,/classList\.add\('embed-mode'\)/);
+  assert.match(css,/html\.embed-mode \.site-header/);
+  assert.match(css,/html\.embed-mode \.challenge-board/);
+  assert.match(browser,/def test_embedded_challenge\(browser\)/);
+  assert.match(browser,/test_embedded_challenge\(browser\)/);
+  assert.match(browser,/chessclub\.example/);
+  assert.match(production,/embed_page\.set_content/);
+  assert.match(production,/embed_page\.frame_locator\("iframe"\)/);
+  assert.match(readme,/\?embed=1#challenge/);
+  assert.match(readme,/referrerpolicy="no-referrer"/);
+  assert.doesNotMatch(controller,/navigator\.sendBeacon|fetch\(.*analytics/);
+});

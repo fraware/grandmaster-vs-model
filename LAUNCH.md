@@ -81,3 +81,10 @@ The pregame interaction now retains a local opening prediction across normal tab
 ## Private championship reminder (v1.12)
 
 Once a pregame spectator prediction is saved, the interface allows a local `.ics` download for that round's official scheduled start. The user must import this file into their calendar; no reminder is promised without client support. The filename, dates, timezone, source URL and privacy boundaries are tested across all 14 rounds. Browser tests check the actual download and confirm the action is hidden following the published start. Calendar events never include private predicted moves.
+
+## Embeddable source-linked historical challenge
+
+The 2024 three-position historical challenge is available in a compact, opt-in iframe at `/?embed=1#challenge`, with an actionable brand attribution and a full-game link. It retains all legal move validation, the cited archived source, automatic reveals, native share/image exports, and the strict retrospective-model boundary. The host needs one HTML iframe element, no API key or host-side scripts. Optional self-reported peer challenge URLs work inside a frame as well. Full-page links drop `embed=1`, preserving a valid set/target.
+
+The product hypothesis is distribution through chess clubs, instructional pages and independent chess publishers. The full HTML snippet and browser/security notes are in `README.md`. Chromium acceptance tests place the embed inside a distinct simulated publisher origin, check a 540-pixel and a 320-pixel viewport, and complete an opening prediction. Deployment-time preflight additionally opens the **actual published page** inside a cross-origin iframe, testing framing headers, a complete board and source attribution. Successful synthetic tests do not establish actual usage, adoption, or viral growth. Track downstream links and stars only from genuinely observable voluntary participation.
+

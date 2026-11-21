@@ -16,7 +16,7 @@ Play a free chess challenge built from the real 2024 World Championship final. M
 
 **The next move is yours.** Open the [2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) to reach the currently scheduled round. Ahead of a game, choose a legal opening move for White; during an active scheduled session, choose a move from the latest legally reconstructed Lichess position. The choice locks on your own device. Once the official, source-validated PGN adds that move, see whether you matched the grandmaster and continue from the latest available position. Earlier positions are read-only. A schedule entry alone never confirms that play has started.
 
-**One visible action.** Tap a piece and its destination, drag a piece, or use the legal-move selector and Lock button. The board supports arrow-key navigation and Enter. Mobile touch and reduced-motion users are supported. Share your local guess or match result without signing in.
+**One visible action.** Tap a piece and its destination, drag a piece, or use the legal-move selector and Lock button. The board supports arrow-key navigation and Enter. Mobile touch and reduced-motion users are supported. Send spoiler-free invitations before or after playing, without signing in.
 
 **Private by design.** Each choice is kept in this browser's origin-scoped `localStorage` across ordinary return visits, with fallback to tab storage or temporary memory if browser persistence is unavailable. Clearing site data erases it; other browsers or devices do not share it. No visitor-specific data, leaderboard submission, provider credential, tracking identifier or model inference is sent from the participation flow. Its local timestamp is **not independently authenticated**. The result is recreational and never enters the scientific model-forecast ledger. A failed source refresh preserves the saved choice, and inconsistent broadcast history is rejected rather than silently rewriting it.
 
@@ -39,6 +39,28 @@ These invitations are recreational and browser-local. Neither a share URL nor a 
 Every completed historical round now produces a direct challenge link containing the **exact one of five fixed three-position sets** and the sharer's **self-reported score**. When someone opens that link, the matching sourced positions load immediately and a restrained target badge shows the score to beat. The result compares the recipient's local exact-match score with the shared target, and the recipient can share a fresh link to continue the challenge. The scorecard image identifies its source set. Invalid or ambiguous query values are ignored.
 
 **These are informal, user-editable claims.** A URL score is not a verified opponent score, certified timing record, leaderboard rank, or model outcome. No accounts, identity tracking, server submission or provider inference are added. The 2024 GPT retrospective appears only on the original first round. Tests cover every link set and score, deliberately altered parameters, desktop/mobile entry, full playthrough, result comparisons and chaining. The initial sharer's score is never accepted as independent evidence of who played.
+
+## Embed the playable three-position challenge
+
+Chess clubs, instructors, independent blogs and publishers can embed the **actual playable 2024 championship challenge** with one HTML iframe. It includes a complete legal chessboard, automatic move reveal, three-position scoring, a cited Lichess game, shareable self-reported peer challenges and a link back to the full experience. The compact view hides unrelated site navigation. No installation, account, provider key, remote fonts or host-page JavaScript is needed.
+
+```html
+<iframe
+  title="Grandmaster vs Model: predict three World Championship moves"
+  src="https://fraware.github.io/grandmaster-vs-model/?embed=1#challenge"
+  width="540"
+  height="1080"
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  style="display:block;width:100%;max-width:540px;border:0"
+></iframe>
+```
+
+[Open the standalone embedded view](https://fraware.github.io/grandmaster-vs-model/?embed=1#challenge) · [Play the full-screen version](https://fraware.github.io/grandmaster-vs-model/#challenge)
+
+Embedding does not change the archive, scoring, or the scientific comparison rules. A recipient of a peer challenge can also open an embedded link such as `?embed=1&set=3&target=2#challenge`; the target score is self-reported. The **Open the full game** link preserves that selected set and target, and removes embed mode. Third-party publishing systems must permit iframes from `fraware.github.io`; publisher-defined content security policies and sandbox restrictions still apply. Every iframe loads public static game data from GitHub Pages; it does not fetch Lichess's live PGN or invoke a paid model.
+
+The isolated browser tests open this widget inside a different simulated publisher origin at widths of 320 and 540 pixels, exercise legal moves and validate its exact-set links. The deployed-site preflight separately verifies the real GitHub Pages framing headers, 64 playable squares, source attribution and script execution. Passing synthetic tests alone does not certify production embedding.
 
 ## The championship is one action from the homepage
 

@@ -660,3 +660,62 @@ footer, .site-footer { background: #0b1517; border-top: 1px solid var(--line); }
   margin: 16px 0;
   padding: 11px 13px;
 }
+
+
+/* Opt-in iframe presentation for chess clubs, educators and independent blogs.
+ * The normal homepage, canonical URL, scoring rules and source links remain
+ * unchanged. The iframe contains only public, offline historical game data.
+ */
+.embed-attribution { display: none; }
+html.embed-mode .site-header,
+html.embed-mode .hero-topline,
+html.embed-mode .intro-side,
+html.embed-mode .stage-foot,
+html.embed-mode .live-invite,
+html.embed-mode .followup,
+html.embed-mode .trust-line,
+html.embed-mode .site-footer { display: none; }
+html.embed-mode .shell {
+  width: calc(100% - 16px);
+  max-width: 960px;
+}
+html.embed-mode .playground {
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+html.embed-mode .intro-row { margin-bottom: 10px; }
+html.embed-mode .intro-row h1 {
+  font-size: clamp(30px, 6vw, 46px);
+  margin: 0;
+}
+html.embed-mode .intro-row p,
+html.embed-mode #hero-subtitle {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 5px 0 0;
+}
+html.embed-mode .challenge-board { max-width: 395px; }
+html.embed-mode .challenge-left { padding: 10px 12px 12px; }
+html.embed-mode .challenge-right { padding: 17px 19px; }
+html.embed-mode .challenge-prompt { padding-top: 9px; }
+html.embed-mode .embed-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 5px;
+  font: 700 10px/1.4 var(--font-score);
+  letter-spacing: .015em;
+  color: var(--ink-soft);
+}
+html.embed-mode .embed-attribution a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 720px) {
+  html.embed-mode .intro-row h1 { font-size: clamp(30px, 7vw, 40px); }
+  html.embed-mode .challenge-left { padding: 9px 10px 11px; }
+  html.embed-mode .challenge-right { padding: 15px; }
+}
