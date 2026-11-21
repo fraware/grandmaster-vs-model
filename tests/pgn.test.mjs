@@ -65,3 +65,26 @@ test('pinned game selection rejects explicit contradictory round tags and ambigu
   // Historical one-argument callers deliberately retain their old behavior.
   assert.equal(findChampionshipGame(tagged('2')).moves[0].uci,'e2e4');
 });
+
+test('finished game result is retained when only the PGN movetext declares it',()=>{
+  const base='[White "Gukesh D"]\n[Black "Javokhir Sindarov"]\n\n1. e4 e5';
+  const decided=findChampionshipGame(parsePgn(base+' 1-0'));
+  assert.equal(decided.tags.Result,'1-0');
+  assert.deepEqual(decided.moves.map(x=>x.uci),['e2e4','e7e5']);
+  assert.equal(findChampionshipGame(parsePgn(base+' 1/2-1/2')).tags.Result,'1/2-1/2');
+  assert.equal(findChampionshipGame(parsePgn(base+' *')).tags.Result,'*');
+  assert.equal(findChampionshipGame(parsePgn(base)).tags.Result,undefined);
+});
+
+test('a mismatched or nonterminal result cannot disguise a completed game',()=>{
+  const base='[White "Gukesh D"]\n[Black "Javokhir Sindarov"]\n';
+  assert.throws(()=>parsePgn(base+'[Result "*"]\n\n1. e4 1-0'),/contradicts/);
+  assert.throws(()=>parsePgn(base+'[Result "1-0"]\n\n1. e4 *'),/contradicts/);
+  assert.throws(()=>parsePgn(base+'[Result "unknown"]\n\n1. e4'),/Invalid PGN Result/);
+  assert.throws(()=>parsePgn(base+'\n1. e4 1-0 e5'),/must terminate/);
+  assert.throws(()=>parsePgn(base+'\n1. e4 * 1-0'),/must terminate/);
+  // Comments and variations are annotations, not the final mainline result.
+  const annotated=findChampionshipGame(parsePgn(base+'\n1. e4 {1-0} (1. d4 0-1) e5 *'));
+  assert.equal(annotated.tags.Result,'*');
+  assert.equal(annotated.moves.length,2);
+});
