@@ -58,3 +58,12 @@ test('cache writer produces deterministic legally checked fixture and explicit f
     assert.equal(restoreSnapshot(JSON.parse(await readFile(file,'utf8'))).moves.length,4);
   }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('public snapshot refuses a valid chess PGN with the wrong numbered game',()=>{
+  const wrong='[Round "2"]\n'+sample;
+  assert.throws(()=>snapshotFromPgn(wrong,fetchedAt),/round tag conflicts/);
+  assert.deepEqual(snapshotFromPgn('[Round "1"]\n'+sample,fetchedAt).game.moves,
+    ['e2e4','e7e5','g1f3','b8c6']);
+  // Unknown Lichess-style round metadata is not treated as verified identity.
+  assert.equal(snapshotFromPgn('[Round "?"]\n'+sample,fetchedAt).game.moves.length,4);
+});
