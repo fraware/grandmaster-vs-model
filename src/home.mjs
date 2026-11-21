@@ -2,6 +2,7 @@
 import {replaySanMoves} from './pgn.mjs';
 import {mountChallenge} from './challenge-ui.mjs';
 import {homepageInvite} from './home-entry.mjs';
+import {publisherEmbedHtml} from './embed.mjs';
 import {parsePeerChallenge} from './challenge.mjs';
 
 /** Public, scheduled routing: no device analytics and no inference. */
@@ -39,6 +40,29 @@ function updateLiveInvite(){
 }
 
 
+/** Make reuse discoverable, with a clear fallback for clipboard restrictions. */
+function mountPublisherEmbed() {
+  const field=document.getElementById('publisher-embed-code');
+  const button=document.getElementById('publisher-embed-copy');
+  const status=document.getElementById('publisher-embed-status');
+  const details=document.getElementById('publisher-embed-details');
+  if(!field||!button||!status||!details)return;
+  const markup=publisherEmbedHtml();
+  field.value=markup;
+  button.addEventListener('click',async()=>{
+    try{
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(markup);
+      status.textContent='HTML copied. Paste it into a custom HTML block.';
+    }catch{
+      details.open=true;
+      field.focus();
+      field.select();
+      status.textContent='Select and copy the HTML shown above.';
+    }
+  });
+}
+
 async function initializeHome() {
   const response = await fetch('./data/archive-2024.json');
   if (!response.ok) throw new Error(`Historical game unavailable (HTTP ${response.status})`);
@@ -73,6 +97,7 @@ if (wantsLab) {
     }
     document.getElementById('embed-open-full').href = standalone.href;
   }
+  mountPublisherEmbed();
   try { updateLiveInvite(); }
   catch(error) { console.warn('The scheduled live round label is unavailable:',error); }
   // A tab restored from history or reactivated on another match day must not

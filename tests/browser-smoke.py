@@ -41,7 +41,7 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = html.replace(f'<script type="module" src="{main_js}"></script>', '')
     module_names = ['src/chess.mjs', 'src/pgn.mjs']
     if kind == 'home':
-        module_names += ['src/match-2026.mjs', 'src/home-entry.mjs']
+        module_names += ['src/match-2026.mjs', 'src/home-entry.mjs', 'src/embed.mjs']
     if kind == 'lab':
         module_names += ['src/match-2026.mjs', 'src/home-entry.mjs', 'src/live-poll.mjs', 'src/protocol.mjs', 'src/collection.mjs', 'src/broadcast.mjs', 'src/history.mjs', 'src/spectator.mjs', 'src/calendar.mjs']
     module_names += ['src/challenge.mjs', 'src/retro-view.mjs', 'src/challenge-ui.mjs', main_js]
@@ -299,6 +299,39 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert 'Round 2' in page.locator('#challenge-series').inner_text()
         assert '1 of 3' in page.locator('#challenge-count').inner_text()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+
+        # Publishers should find, copy and inspect a usable iframe snippet
+        # from the public page; no GitHub navigation or code editing needed.
+        assert page.locator('#publisher-embed-copy').is_visible()
+        code = page.locator('#publisher-embed-code').input_value()
+        assert code.splitlines()[0] == '<iframe'
+        assert 'grandmaster-vs-model/?embed=1#challenge' in code
+        assert 'referrerpolicy="no-referrer"' in code
+        assert page.locator('#publisher-embed-preview').get_attribute('href') == '?embed=1#challenge'
+        page.evaluate("""() => {
+          window.__copiedEmbed = null;
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable:true,
+            value:{writeText:async markup => {window.__copiedEmbed=markup;}}
+          });
+        }""")
+        page.locator('#publisher-embed-copy').click()
+        page.wait_for_function('window.__copiedEmbed !== null')
+        assert page.evaluate('window.__copiedEmbed') == code
+        assert 'HTML copied' in page.locator('#publisher-embed-status').inner_text()
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+
+        if label == 'mobile':
+            # Clipboard permissions vary by browser and publisher context.
+            # The fallback must expose and select the entire actual snippet.
+            page.evaluate("""() => Object.defineProperty(navigator,
+              'clipboard', {configurable:true,value:undefined})""")
+            page.locator('#publisher-embed-copy').click()
+            assert page.locator('#publisher-embed-details').evaluate('(el) => el.open')
+            assert 'Select and copy' in page.locator('#publisher-embed-status').inner_text()
+            assert page.locator('#publisher-embed-code').evaluate(
+                '(el) => el.selectionStart === 0 && el.selectionEnd === el.value.length'
+            )
         assert not errors, errors
         page.close()
 
@@ -464,6 +497,7 @@ def test_embedded_challenge(browser) -> None:
         assert frame.locator('.site-header').is_hidden()
         assert frame.locator('.hero-topline').is_hidden()
         assert frame.locator('.live-invite').is_hidden()
+        assert frame.locator('.publisher-embed').is_hidden()
         assert frame.locator('.site-footer').is_hidden()
         assert frame.locator('.challenge-frame').is_visible()
         assert frame.locator('#challenge-board').is_visible()
