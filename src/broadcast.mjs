@@ -24,7 +24,7 @@ export function snapshotFromPgn(pgn, fetchedAt, round=roundInfo(1)) {
     throw new Error('A valid UTC retrieval timestamp is needed');
   }
   const games = parsePgn(pgn);
-  const selected = findChampionshipGame(games);
+  const selected = findChampionshipGame(games,round.game);
   if (!selected && games.some(g => g.moves.length)) throw new Error('Target championship game not identified');
   return {
     schema: BROADCAST_SCHEMA,
