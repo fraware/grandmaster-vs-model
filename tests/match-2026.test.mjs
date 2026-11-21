@@ -247,3 +247,50 @@ test('collector rejects legally replayable nonstandard FEN before any reservatio
     assert.equal(index.attempts.length,0);
   }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('finished movetext with no Result header prevents reservation and paid inference',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-result-only-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
+    const completed=gameTwo.replace('[Result "*"]\n','').replace('1. e4 *','1. e4 1-0');
+    let paidCalls=0;
+    const keys={OPENAI_API_KEY:'offline-test-only',GITHUB_ACTIONS:'true',
+      GITHUB_REPOSITORY:'fraware/grandmaster-vs-model',
+      GITHUB_RUN_ID:'44750000111',GITHUB_RUN_ATTEMPT:'1'};
+    const result=await cycle({
+      root,mode:'reserve',clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>completed}),
+      providerRequest:async()=>{paidCalls++;throw Error('Forbidden paid request');},
+      keys,sampleEvery:1,captureProviders:['openai']
+    });
+    assert.equal(result.status,'game-finished');
+    assert.equal(result.newAttempts,0);
+    assert.equal(paidCalls,0);
+    const ledger=await collect({root});
+    assert.equal(ledger.observedGames.length,1);
+    assert.equal(ledger.observedGames[0].moves.length,1);
+    assert.equal(ledger.reservations.length,0);
+    assert.equal(ledger.attempts.length,0);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('contradictory source result fails closed without creating evidence',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'gvm-bad-pgn-result-'));
+  try{
+    await mkdir(join(root,'data'));
+    await writeFile(join(root,'data/models.json'),JSON.stringify(roster));
+    const conflict=gameTwo.replace('1. e4 *','1. e4 1-0');
+    let paidCalls=0;
+    await assert.rejects(()=>cycle({
+      root,clock:()=>new Date('2026-11-25T14:05:00.000Z'),
+      fetcher:async()=>({ok:true,text:async()=>conflict}),sampleEvery:1,
+      keys:{OPENAI_API_KEY:'offline-test-only'},
+      providerRequest:async()=>{paidCalls++;throw Error('Forbidden paid request');}
+    }),/result header contradicts movetext/);
+    assert.equal(paidCalls,0);
+    const ledger=await collect({root});
+    assert.equal(ledger.observedGames.length,0);
+    assert.equal(ledger.attempts.length,0);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
