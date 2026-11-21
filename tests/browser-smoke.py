@@ -410,6 +410,105 @@ def test_shared_peer_challenges(browser) -> None:
             page.close()
 
 
+def test_embedded_challenge(browser) -> None:
+    """An external site's iframe retains legal, independent chess play.
+
+    This exercises the actual embedded DOM in a distinct origin with
+    deterministic local game data. Deployed response headers are separately
+    checked by the production preflight.
+    """
+    site = 'https://fraware.github.io/grandmaster-vs-model/'
+    source = page_sources('home')
+    html, script, responses = source
+
+    for label, viewport, params, expected_set in [
+        ('club', {'width': 540, 'height': 1060}, '?embed=1#challenge', 1),
+        ('compact', {'width': 320, 'height': 740},
+         '?embed=1&set=3&target=2#challenge', 3),
+    ]:
+        page = browser.new_page(viewport=viewport)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.route(site + '**', lambda route: route.fulfill(
+            status=200, content_type='text/html', body=html
+        ))
+        # This parent domain is deliberately distinct from the public
+        # chess game's origin. The host needs no scripts or API credentials.
+        parent = '<!doctype html><html><body style="margin:0">' + (
+            '<iframe title="World Championship chess challenge" '
+            'style="width:100%;height:1150px;border:0" src="' +
+            site + params + '"></iframe></body></html>')
+        page.route('https://chessclub.example/**', lambda route: route.fulfill(
+            status=200, content_type='text/html', body=parent
+        ))
+        page.goto('https://chessclub.example/lesson')
+        iframe = next(frame for frame in page.frames
+                      if frame.url.startswith(site))
+        iframe.wait_for_load_state('domcontentloaded')
+        iframe.evaluate("""responses => {
+          window.fetch = async url => {
+            const key = String(url);
+            if (!Object.prototype.hasOwnProperty.call(responses, key))
+              throw new Error('Unexpected embedded resource: ' + key);
+            return new Response(JSON.stringify(responses[key]), {status:200});
+          };
+        }""", responses)
+        iframe.add_script_tag(content=script)
+        frame = page.frame_locator('iframe')
+        frame.locator('#challenge-board button.challenge-square').first.wait_for()
+        assert frame.locator('#challenge-board button.challenge-square').count() == 64
+        assert frame.locator('#challenge-series').inner_text() == f'Round {expected_set}'
+        assert frame.locator('#embed-attribution').is_visible()
+        assert frame.locator('#embed-open-full').is_visible()
+        assert frame.locator('#challenge-source').is_visible()
+        assert frame.locator('.site-header').is_hidden()
+        assert frame.locator('.hero-topline').is_hidden()
+        assert frame.locator('.live-invite').is_hidden()
+        assert frame.locator('.site-footer').is_hidden()
+        assert frame.locator('.challenge-frame').is_visible()
+        assert frame.locator('#challenge-board').is_visible()
+        assert frame.locator('#embed-open-full').get_attribute('target') == '_blank'
+        assert frame.locator('#embed-open-full').get_attribute('rel') == 'noopener noreferrer'
+        full_link = frame.locator('#embed-open-full').get_attribute('href')
+        assert full_link is not None and 'embed=1' not in full_link
+        if expected_set == 3:
+            assert '?set=3&target=2#challenge' in full_link
+            assert '2/3' in frame.locator('#challenge-peer-target').inner_text()
+        else:
+            assert full_link.endswith('/#challenge')
+            assert frame.locator('#challenge-peer-target').is_hidden()
+        assert iframe.evaluate(
+            'document.documentElement.scrollWidth <= window.innerWidth'
+        ), label
+
+        # Play directly through the embedded board; no host integration.
+        origin = frame.locator(
+            '#challenge-board button[data-square="b5"]' if expected_set == 1
+            else '#challenge-board button[data-square="e2"]'
+        )
+        # The first set's Nc3 uses b5→c3; any alternative set's legal
+        # move list yields a valid deterministic first prediction.
+        if expected_set == 1:
+            origin.click()
+            frame.locator('#challenge-board button[data-square="c3"]').click()
+        else:
+            frame.locator('#challenge-move-details summary').click()
+            candidate = frame.locator('#challenge-move-select option').evaluate_all(
+                '(options) => options.map(o => o.value).find(Boolean)'
+            )
+            frame.locator('#challenge-move-select').select_option(candidate)
+        frame.locator('#challenge-answer-result').get_by_text(
+            'Exact match.' if expected_set == 1 else
+            'Exact match.|Different move.', exact=False
+        ).wait_for(timeout=4000) if expected_set == 1 else iframe.wait_for_function(
+            '() => document.getElementById("challenge-feedback").hidden === false',
+            timeout=4000
+        )
+        assert frame.locator('#challenge-next').is_visible()
+        assert not errors, errors
+        page.close()
+
+
 def test_full_session_and_fast_input(browser) -> None:
     """All fifteen distinct positions are playable with no premature model score."""
     source = page_sources('home')
@@ -577,6 +676,7 @@ def main() -> None:
         try:
             test_home(browser, screenshot_dir)
             test_shared_peer_challenges(browser)
+            test_embedded_challenge(browser)
             if os.environ.get("GVM_EXTENDED_BROWSER") == "1":
                 test_full_session_and_fast_input(browser)
             test_lab(browser, screenshot_dir)
