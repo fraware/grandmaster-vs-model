@@ -673,6 +673,7 @@ html.embed-mode .intro-side,
 html.embed-mode .stage-foot,
 html.embed-mode .live-invite,
 html.embed-mode .followup,
+html.embed-mode .publisher-embed,
 html.embed-mode .trust-line,
 html.embed-mode .site-footer { display: none; }
 html.embed-mode .shell {
@@ -718,4 +719,100 @@ html.embed-mode .embed-attribution a {
   html.embed-mode .intro-row h1 { font-size: clamp(30px, 7vw, 40px); }
   html.embed-mode .challenge-left { padding: 9px 10px 11px; }
   html.embed-mode .challenge-right { padding: 15px; }
+}
+
+
+/* A publisher entry point below gameplay, not another first-screen CTA. */
+.publisher-embed {
+  border-top: 1px solid var(--line);
+  padding-top: 31px;
+  padding-bottom: 34px;
+}
+.publisher-embed-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.publisher-embed-copy { max-width: 660px; }
+.publisher-embed h2 {
+  font: 850 clamp(25px,3vw,36px)/1.1 var(--font-display);
+  letter-spacing: -.045em;
+  text-transform: uppercase;
+  margin: 8px 0;
+}
+.publisher-embed-copy p {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+.publisher-embed-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 207px;
+}
+.publisher-embed-actions button {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  color: #14231e;
+  cursor: pointer;
+  font: 800 14px/1.3 var(--font-display);
+  letter-spacing: .01em;
+  min-height: 44px;
+  padding: 11px 15px;
+  text-transform: uppercase;
+}
+.publisher-embed-actions button:hover {
+  background: #e7f4a9;
+  border-color: #e7f4a9;
+}
+.publisher-embed-actions a {
+  color: var(--accent);
+  font-size: 12px;
+  text-align: center;
+  text-underline-offset: 4px;
+}
+.publisher-embed-details {
+  margin-top: 16px;
+  max-width: 680px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.publisher-embed-details summary {
+  cursor: pointer;
+  width: fit-content;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.publisher-embed-details label {
+  display: block;
+  margin: 12px 0 6px;
+}
+.publisher-embed-details textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  background: #0e181a;
+  color: var(--ink);
+  border-radius: 0;
+  font: 12px/1.5 var(--font-score);
+}
+.publisher-embed-status {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+  min-height: 17px;
+}
+@media (max-width: 720px) {
+  .publisher-embed { padding-top: 26px; padding-bottom: 26px; }
+  .publisher-embed-heading { display: block; }
+  .publisher-embed h2 { font-size: 27px; }
+  .publisher-embed-actions { margin-top: 17px; min-width: 0; }
+  .publisher-embed-actions button { width: 100%; }
 }
