@@ -49,6 +49,7 @@ jobs:
       - name: Validate current data before sampling
         run: npm test && npm run verify:2026 && npm run verify && npm run verify:collection
       - name: Prepare immutable reservations without calling providers
+        id: prepare
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -99,7 +100,7 @@ jobs:
       # These artifacts are unverified recovery material, not certified claims.
       - name: Detect uncommitted recovery evidence after execution
         id: recovery
-        if: ${{ always() && steps.reservation.outcome != 'skipped' }}
+        if: ${{ always() && steps.prepare.outcome != 'skipped' }}
         shell: bash
         run: |
           set -euo pipefail
