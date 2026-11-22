@@ -6,7 +6,7 @@
 
 **For a chess viewer:** *Gukesh is about to move. What would you play?* A real, legal board, a private local choice and an official broadcast reveal. Before Game 1, make an opening guess. During play, only a source-validated active position is eligible. The choice is recreational and browser-local; the site's public data does not prove the prediction preceded the physical move.
 
-**For chess publishers and teachers:** a free, accessible, privacy-conscious chess decision challenge with sources, a reproducible historical three-position embed and a live 2026 participation URL. A live 2026 compact embed is a separate product milestone; the existing 2024 historical widget should never be represented as the 2026 live game.
+**For chess publishers and teachers:** a free, accessible, privacy-conscious chess decision challenge with sources, a reproducible historical three-position embed and a live 2026 participation URL. A current-round 2026 compact iframe is now a separate, source-linked product from the historical three-position widget. Its publisher installation is still unmeasured; do not represent an uninstalled iframe as adopted.
 
 **For developers:** a zero-dependency standard-chess board and PGN implementation, 14 pinned Lichess match round IDs, deterministic tests, read-only broadcast observation and a transparent reservation-first model-capture protocol. A recorded model match on three 2024 positions is retrospective. No prospective accuracy leaderboard exists.
 
