@@ -320,7 +320,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         assert page.evaluate('window.__copiedEmbed') == code
         assert 'HTML copied' in page.locator('#publisher-embed-status').inner_text()
         live_code = page.locator('#publisher-live-embed-code').input_value()
-        assert live_code.startswith('<iframe\\n')
+        assert live_code.splitlines()[0] == '<iframe'
         assert 'lab.html?mode=live&embed=1#experiment' in live_code
         assert 'referrerpolicy="no-referrer"' in live_code
         assert page.locator('#publisher-live-embed-preview').get_attribute(
