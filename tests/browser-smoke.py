@@ -642,7 +642,14 @@ def test_embedded_live_championship(browser) -> None:
             assert 'PREGAME' in frame.locator('#spectator-phase').inner_text()
             frame.locator('#board button.square[data-square="e2"]').click()
             frame.locator('#board button.square[data-square="e4"]').click()
-            assert 'Prediction locked.' in frame.locator('#spectator-message').inner_text()
+            message=frame.locator('#spectator-message').inner_text()
+            assert 'Prediction locked.' in message, {
+                'viewport': label, 'message': message,
+                'status': frame.locator('#source-status').inner_text(),
+                'guessAreaVisible': frame.locator('#guess-area').is_visible(),
+                'selector': frame.locator('#guess-select').input_value(),
+                'pageErrors': errors,
+            }
             assert frame.locator('#spectator-share').is_visible()
             assert iframe.evaluate('window.__embeddedBroadcastRequests') == 1
             assert not errors, errors
