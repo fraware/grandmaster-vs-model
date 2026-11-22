@@ -4,7 +4,7 @@
 
 Play a free chess challenge built from the real 2024 World Championship final. Make a legal move directly on the board to reveal the recorded grandmaster decision, compare your first three moves with a retrospective GPT API run, and continue through four further three-position practice sets. Share a score from any completed set. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Play the current 2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the current 2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md) · [Distribution playbook](DISTRIBUTION.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
@@ -27,6 +27,12 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 ![Actual Chromium rendering of the playable 2026 championship board before Game 1](assets/live-preview.webp)
 
 *Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
+
+## Championship-specific social sharing
+
+Links to `lab.html?mode=live&game=N#experiment` now have distinct **2026 Gukesh–Sindarov Open Graph and X previews**, separate from the historical 2024 scorecard shared from the homepage. The 2026 card is a typographic invitation with a decorative empty board: it depicts no recorded physical move, forecast, accuracy statistic or independent FIDE endorsement.
+
+Every Pages deployment creates the event's `assets/live-share-cover.png` using the pinned Pillow renderer at [`scripts/build-live-social-card.py`](scripts/build-live-social-card.py); this output is served as part of the Pages artifact and is intentionally not a source-committed binary. Reproduce it locally with `python -m pip install Pillow==12.0.0` and `python scripts/build-live-social-card.py --out /tmp/live-share-cover.png`. A real production preflight retrieves the published PNG, checks the 1200 × 630 signature, dimensions and nonempty content, and verifies both link-preview tags. Social-platform preview caches can delay changes to an already-shared URL.
 
 ## Spoiler-free invitations to the 2026 championship
 

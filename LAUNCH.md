@@ -28,6 +28,9 @@ Inspect both GitHub Actions checks for the exact release commit. The Pages deplo
 
 ## Distribution
 
+The event-timed publisher outreach, community-posting constraints, prelaunch messages, and measurable adoption gates are maintained in [DISTRIBUTION.md](DISTRIBUTION.md). New social art and copy are an experiment in clarity, not evidence of adoption. r/chess moderators have reported restrictions on app self-promotion, so seek permission before posting promotional links.
+
+
 The challenge is the shareable object. Social text includes a score, the truthful three-position record and a link. Native mobile sharing can attach a generated graphic when supported. The website's Open Graph cover is a tested page-derived design, and the GitHub README includes an actual Chromium screenshot.
 
 Launch through chess players, chess educators and technical developer communities with tailored context. Avoid misleading claims, coordinated stars, or artificial traffic. The observable funnel is landing-page visit → first legal move → completed challenge → voluntary share → GitHub visit/star. The project does not collect analytics by default; never invent funnel rates.
