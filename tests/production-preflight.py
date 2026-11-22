@@ -130,6 +130,31 @@ def run() -> int:
 
                 page.on("response", record_broadcast_response)
                 page.goto(site_url, wait_until="domcontentloaded", timeout=30_000)
+
+                # A shared 2026 match URL needs an actual published 2026
+                # preview image. Check the server-delivered HTML metadata and
+                # PNG bytes; SPA updates cannot alter crawler link unfurls.
+                social_url = SITE_BASE + "assets/live-share-cover.png?v=1"
+                og_url = page.locator('meta[property="og:image"]').get_attribute("content")
+                x_url = page.locator('meta[name="twitter:image"]').get_attribute("content")
+                if (og_url, x_url) != (social_url, social_url):
+                    raise AssertionError("Deployed 2026 social metadata differs from the expected image")
+                social_response = page.request.get(social_url, timeout=20_000)
+                png = social_response.body()
+                dimensions = [
+                    int.from_bytes(png[16:20], "big"),
+                    int.from_bytes(png[20:24], "big"),
+                ] if len(png) >= 24 and png[:8] == b"\\x89PNG\\r\\n\\x1a\\n" else None
+                report["socialPreview"] = {
+                    "url": social_url,
+                    "httpStatus": social_response.status,
+                    "contentType": social_response.headers.get("content-type"),
+                    "dimensions": dimensions,
+                    "byteLength": len(png),
+                }
+                if (social_response.status != 200 or dimensions != [1200, 630]
+                        or len(png) < 10_000):
+                    raise AssertionError("The deployed live social preview is absent or malformed")
                 page.locator("#board button.square").first.wait_for(timeout=20_000)
                 page.wait_for_function(
                     "() => document.querySelectorAll('#board button.square').length === 64",
