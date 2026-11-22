@@ -4,7 +4,7 @@
 
 Play a free chess challenge built from the real 2024 World Championship final. Make a legal move directly on the board to reveal the recorded grandmaster decision, compare your first three moves with a retrospective GPT API run, and continue through four further three-position practice sets. Share a score from any completed set. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
 
-[Play the current 2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md)
+[Play the current 2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md) · [Distribution playbook](DISTRIBUTION.md)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
