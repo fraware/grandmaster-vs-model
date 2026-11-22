@@ -337,3 +337,29 @@ test('capture preserves partial records even after a paid request or validation 
   assert.doesNotMatch(uploadBlock,/steps\.evidence\.outputs|if: steps\./,
     'Recovery must not depend on checks that would be skipped on a failed request');
 });
+
+test('live championship shares use event-specific metadata and a deployed 1200x630 PNG',async()=>{
+  const home=await text('index.html');
+  const lab=await text('lab.html');
+  const pages=await text('.github/workflows/pages.yml');
+  const generator=await text('scripts/build-live-social-card.py');
+  const preflight=await text('tests/production-preflight.py');
+  assert.match(home,/og:image" content="[^"]*assets\/share-cover\.png\?v=5"/);
+  assert.match(lab,/og:title" content="Gukesh vs Sindarov/);
+  assert.match(lab,/og:description" content="Play a move on the 2026 World Chess Championship/);
+  assert.match(lab,/twitter:title" content="Gukesh vs Sindarov/);
+  assert.match(lab,/og:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=1"/);
+  assert.match(lab,/twitter:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=1"/);
+  assert.doesNotMatch(lab,/og:image" content="[^"]*assets\/share-cover\.png"/);
+  assert.match(pages,/python -m pip install --disable-pip-version-check Pillow==12\.0\.0/);
+  assert.match(pages,/python scripts\/build-live-social-card\.py --out _site\/assets\/live-share-cover\.png/);
+  assert.ok(pages.indexOf('cp -R src data assets _site/')<
+    pages.indexOf('python scripts/build-live-social-card.py --out _site/assets/live-share-cover.png'));
+  assert.match(generator,/Image\.new\("RGB", \(1200, 630\), BACKGROUND\)/);
+  assert.match(generator,/GUKESH D  \/  JAVOKHIR SINDAROV/);
+  assert.match(generator,/WORLD CHESS CHAMPIONSHIP 2026/);
+  assert.match(generator,/DEFAULT_OUTPUT = ROOT \/ "assets\/live-share-cover\.png"/);
+  assert.doesNotMatch(generator,/https?:\/\/|requests\.|urllib/);
+  assert.match(preflight,/social_response = page\.request\.get\(social_url/);
+  assert.match(preflight,/\[1200, 630\]/);
+});
