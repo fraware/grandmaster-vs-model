@@ -598,6 +598,9 @@ def test_embedded_live_championship(browser) -> None:
                    ))
         try:
             page.goto('https://chesspublisher.example/match', wait_until='domcontentloaded')
+            # Parent DOM readiness does not mean its child iframe has
+            # navigated. Wait for the real embedded experience first.
+            page.frame_locator('iframe').locator('#experiment').wait_for(timeout=10000)
             iframe = next(frame for frame in page.frames
                           if frame.url.startswith(site+'lab.html'))
             iframe.wait_for_load_state('domcontentloaded')
