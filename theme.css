@@ -876,3 +876,31 @@ html.live-embed-mode .live-embed-attribution p {
   html.live-embed-mode .board-column { padding: 13px 10px; }
   html.live-embed-mode .decisions-column { padding: 16px 12px; }
 }
+
+/* A publisher chooses the event-current board or the 2024 score challenge. */
+.publisher-live-offer {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.publisher-live-offer h3 {
+  font: 850 clamp(22px,2.6vw,29px)/1.15 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -.04em;
+  margin: 8px 0;
+}
+.publisher-live-offer p {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 690px;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .publisher-live-offer { display: block; padding-top: 20px; }
+  .publisher-live-offer h3 { font-size: 24px; }
+}
