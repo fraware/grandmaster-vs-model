@@ -28,6 +28,12 @@ The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [
 
 *Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
+## Championship-specific social sharing
+
+Links to `lab.html?mode=live&game=N#experiment` now have distinct **2026 Gukesh–Sindarov Open Graph and X previews**, separate from the historical 2024 scorecard shared from the homepage. The 2026 card is a typographic invitation with a decorative empty board: it depicts no recorded physical move, forecast, accuracy statistic or independent FIDE endorsement.
+
+Every Pages deployment creates the event's `assets/live-share-cover.png` using the pinned Pillow renderer at [`scripts/build-live-social-card.py`](scripts/build-live-social-card.py); this output is served as part of the Pages artifact and is intentionally not a source-committed binary. Reproduce it locally with `python -m pip install Pillow==12.0.0` and `python scripts/build-live-social-card.py --out /tmp/live-share-cover.png`. A real production preflight retrieves the published PNG, checks the 1200 × 630 signature, dimensions and nonempty content, and verifies both link-preview tags. Social-platform preview caches can delay changes to an already-shared URL.
+
 ## Spoiler-free invitations to the 2026 championship
 
 The current live spectator board lets visitors invite a friend **before locking a move**, as well as after saving a local guess or receiving a sourced move. The invitation identifies the exact championship round and links to the official, current chessboard. It does **not** disclose the sender's SAN/UCI move, FEN, local timestamp or other saved browser records; recipients choose independently. A locally resolved result can be described in general terms as an unverified personal claim, without revealing the actual move. Native sharing, clipboard fallback and manual text copying remain available.
