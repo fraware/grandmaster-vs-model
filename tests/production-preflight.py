@@ -144,7 +144,7 @@ def run() -> int:
                 dimensions = [
                     int.from_bytes(png[16:20], "big"),
                     int.from_bytes(png[20:24], "big"),
-                ] if len(png) >= 24 and png[:8] == b"\\x89PNG\\r\\n\\x1a\\n" else None
+                ] if len(png) >= 24 and png[:8].hex() == "89504e470d0a1a0a" else None
                 report["socialPreview"] = {
                     "url": social_url,
                     "httpStatus": social_response.status,
