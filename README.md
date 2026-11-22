@@ -68,6 +68,26 @@ Embedding does not change the archive, scoring, or the scientific comparison rul
 
 The isolated browser tests verify the site's one-click copy and manual fallback, then open the widget inside a different simulated publisher origin at widths of 320 and 540 pixels, exercise legal moves and validate its exact-set links. The deployed-site preflight separately verifies the real GitHub Pages framing headers, 64 playable squares, source attribution and script execution. Passing synthetic tests alone does not certify production embedding.
 
+## Embed the live 2026 championship next-move board
+
+Chess publishers can now embed the **same source-validated spectator board as the public 2026 page**, set to the currently scheduled Gukesh–Sindarov game by the visitor's browser clock. It shows the official Lichess source and a real legal chessboard. A visitor chooses a move and compares it only after source reception. Unlike the historical fixed challenge above, this widget fetches the current Lichess PGN when active; network/CORS/rate limits and delayed moves remain possible. It never sends a model API request on behalf of a reader.
+
+```html
+<iframe
+  title="Gukesh vs Sindarov: play the next World Championship move"
+  src="https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&embed=1#experiment"
+  width="620"
+  height="1460"
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  style="display:block;width:100%;max-width:620px;border:0"
+></iframe>
+```
+
+[Preview the compact live board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&embed=1#experiment) · [Open the full live game](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Copy either embed from the homepage](https://fraware.github.io/grandmaster-vs-model/#embed)
+
+A live embed hides the unrelated research sections and menus but retains the game selector, 64-square chessboard, local spectator prediction, source status, attribution, and a direct link to the corresponding full game. The iframe doesn't insert scripts into the publisher's page, track visitors, or authenticate local guesses. Cross-site storage restrictions may disable durable browser-local guesses: the interface falls back safely and discloses that constraint. Publisher CSS policies, iframe permissions, source availability and reader connection still affect operation. A visitor's selection is never certified as predating a physical move.
+
 ## The championship is one action from the homepage
 
 A compact 2026 World Championship action appears in the **first-screen homepage heading** on desktop and mobile, retaining the original 2024 chessboard's first-viewport placement. A fuller event invitation follows the historical challenge. Both links select the next relevant round using the pinned 14-round UTC registry. Ahead of the announced start it invites a local opening prediction, during the scheduled session it opens the latest sourced position, and beyond the listed rounds it provides a replay entry. The schedule does not establish that physical play has started. Route selection is deterministic and tested in [`src/home-entry.mjs`](src/home-entry.mjs) and [`tests/home-entry.test.mjs`](tests/home-entry.test.mjs).
