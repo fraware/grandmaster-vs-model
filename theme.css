@@ -816,3 +816,91 @@ html.embed-mode .embed-attribution a {
   .publisher-embed-actions { margin-top: 17px; min-width: 0; }
   .publisher-embed-actions button { width: 100%; }
 }
+
+
+/*
+ * Compact, opt-in live-2026 publisher frame. The underlying player, source
+ * checks, historical data, scoring and local-storage policy are unchanged.
+ * The main site stays full size. A third-party iframe is one independent
+ * browser origin and must not claim certified pre-move timing.
+ */
+.live-embed-attribution { display: none; }
+html.live-embed-mode .site-header,
+html.live-embed-mode #lab-top,
+html.live-embed-mode #models,
+html.live-embed-mode .signals,
+html.live-embed-mode #method,
+html.live-embed-mode .site-footer,
+html.live-embed-mode .experience-bottom,
+html.live-embed-mode .experience-actions .segment,
+html.live-embed-mode .experience-heading .section-counter {
+  display: none !important;
+}
+html.live-embed-mode body { margin: 0; min-width: 0; }
+html.live-embed-mode #top { padding: 0; margin: 0; }
+html.live-embed-mode #experiment {
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  padding: 0 10px 14px;
+  border: 0;
+}
+html.live-embed-mode .experience-header { padding-top: 14px; padding-bottom: 12px; }
+html.live-embed-mode .experience-heading { color: var(--accent); font-size: 12px; }
+html.live-embed-mode .source-strip { font-size: 11px; }
+html.live-embed-mode .board-column { padding: 17px 15px; }
+html.live-embed-mode .decisions-column { padding: 20px 16px 22px; }
+html.live-embed-mode .live-embed-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  align-items: baseline;
+  padding: 16px 9px;
+  border-top: 1px solid var(--line);
+  font: 700 10px/1.5 var(--font-score);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+html.live-embed-mode .live-embed-attribution span { flex-basis: 100%; color: var(--accent); }
+html.live-embed-mode .live-embed-attribution a { color: var(--accent); }
+html.live-embed-mode .live-embed-attribution p {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font: 11px/1.45 var(--font-interface);
+  color: var(--ink-soft);
+}
+@media (max-width: 720px) {
+  html.live-embed-mode #experiment { padding: 0 8px 12px; }
+  html.live-embed-mode .experience-header { padding: 12px 10px; }
+  html.live-embed-mode .source-strip { padding: 10px; }
+  html.live-embed-mode .board-column { padding: 13px 10px; }
+  html.live-embed-mode .decisions-column { padding: 16px 12px; }
+}
+
+/* A publisher chooses the event-current board or the 2024 score challenge. */
+.publisher-live-offer {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.publisher-live-offer h3 {
+  font: 850 clamp(22px,2.6vw,29px)/1.15 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -.04em;
+  margin: 8px 0;
+}
+.publisher-live-offer p {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 690px;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .publisher-live-offer { display: block; padding-top: 20px; }
+  .publisher-live-offer h3 { font-size: 24px; }
+}

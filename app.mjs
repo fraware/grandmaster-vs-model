@@ -16,6 +16,12 @@ const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
 const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
+const liveEmbedded=query.get('mode')==='live'&&query.get('embed')==='1';
+if(liveEmbedded){
+  document.documentElement.classList.add('live-embed-mode');
+  const attribution=$('live-embed-attribution');
+  if(attribution)attribution.hidden=false;
+}
 const requestedMode=query.get('mode');
 let mode=requestedMode==='live'?'live':'archive',userChangedMode=requestedMode==='live'||requestedMode==='archive';
 let matchData=null,modelRoster=null,collectionIndex=null,archive=null,archiveReplay=null,historicalGames=null,liveSnapshotAt=null;
@@ -424,6 +430,16 @@ function render(){
   renderModelRoster();
   const historical=isArchive(),data=game(),i=currentIndex();
   document.body.dataset.mode=mode;
+  if(liveEmbedded){
+    const full=$('live-embed-open-full');
+    if(full){
+      const direct=new URL('lab.html',location.href);
+      direct.search='';direct.searchParams.set('mode','live');
+      direct.searchParams.set('game',String(selectedGame));
+      direct.hash='experiment';
+      full.href=direct.href;
+    }
+  }
   setText('lab-title',historical?'Behind the moves.':'Your next move.');
   setText('lab-subtitle',historical?
     'Replay the 2024 championship and inspect the sourced 2026 model experiment.':

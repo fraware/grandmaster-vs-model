@@ -363,3 +363,36 @@ test('live championship shares use event-specific metadata and a deployed 1200x6
   assert.match(preflight,/social_response = page\.request\.get\(social_url/);
   assert.match(preflight,/\[1200, 630\]/);
 });
+
+test('live 2026 iframe and historical 2024 iframe are separate playable publication products',async()=>{
+  const home=await text('index.html');
+  const live=await text('lab.html');
+  const controller=await text('src/home.mjs');
+  const app=await text('app.mjs');
+  const styles=await text('theme.css');
+  const browser=await text('tests/browser-smoke.py');
+  const preflight=await text('tests/production-preflight.py');
+  const readme=await text('README.md');
+  for(const id of ['publisher-live-embed-copy','publisher-live-embed-details',
+    'publisher-live-embed-code','publisher-live-embed-status',
+    'publisher-live-embed-preview']){
+    assert.match(home,new RegExp('id="'+id+'"'));
+  }
+  assert.match(controller,/publisherLiveEmbedHtml/);
+  assert.match(controller,/field\.select\(\)/);
+  assert.match(live,/id="live-embed-attribution"/);
+  assert.match(live,/id="live-embed-open-full"/);
+  assert.match(app,/query\.get\('mode'\)==='live'&&query\.get\('embed'\)==='1'/);
+  assert.match(app,/classList\.add\('live-embed-mode'\)/);
+  assert.match(app,/direct\.searchParams\.set\('game',String\(selectedGame\)\)/);
+  assert.match(styles,/html\.live-embed-mode \.site-header/);
+  assert.match(styles,/html\.live-embed-mode \.live-embed-attribution/);
+  assert.match(browser,/def test_embedded_live_championship\(browser\)/);
+  assert.match(browser,/chesspublisher\.example/);
+  assert.match(browser,/test_embedded_live_championship\(browser\)/);
+  assert.match(preflight,/live_embed_page\.set_content/);
+  assert.match(preflight,/live_frame\.locator\("#board button\.square"\)/);
+  assert.match(readme,/lab\.html\?mode=live&embed=1#experiment/);
+  assert.match(readme,/Cross-site storage restrictions/);
+  assert.doesNotMatch(controller,/sendBeacon|tracking|analytics\.track/);
+});

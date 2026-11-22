@@ -2,7 +2,7 @@
 import {replaySanMoves} from './pgn.mjs';
 import {mountChallenge} from './challenge-ui.mjs';
 import {homepageInvite} from './home-entry.mjs';
-import {publisherEmbedHtml} from './embed.mjs';
+import {publisherEmbedHtml,publisherLiveEmbedHtml} from './embed.mjs';
 import {parsePeerChallenge} from './challenge.mjs';
 
 /** Public, scheduled routing: no device analytics and no inference. */
@@ -40,14 +40,13 @@ function updateLiveInvite(){
 }
 
 
-/** Make reuse discoverable, with a clear fallback for clipboard restrictions. */
-function mountPublisherEmbed() {
-  const field=document.getElementById('publisher-embed-code');
-  const button=document.getElementById('publisher-embed-copy');
-  const status=document.getElementById('publisher-embed-status');
-  const details=document.getElementById('publisher-embed-details');
+/** Copy standalone publisher snippets, with a manual fallback for restrictions. */
+function wirePublisherEmbed({fieldId,buttonId,statusId,detailsId,markup}) {
+  const field=document.getElementById(fieldId);
+  const button=document.getElementById(buttonId);
+  const status=document.getElementById(statusId);
+  const details=document.getElementById(detailsId);
   if(!field||!button||!status||!details)return;
-  const markup=publisherEmbedHtml();
   field.value=markup;
   button.addEventListener('click',async()=>{
     try{
@@ -60,6 +59,18 @@ function mountPublisherEmbed() {
       field.select();
       status.textContent='Select and copy the HTML shown above.';
     }
+  });
+}
+function mountPublisherEmbed() {
+  wirePublisherEmbed({
+    fieldId:'publisher-embed-code',buttonId:'publisher-embed-copy',
+    statusId:'publisher-embed-status',detailsId:'publisher-embed-details',
+    markup:publisherEmbedHtml()
+  });
+  wirePublisherEmbed({
+    fieldId:'publisher-live-embed-code',buttonId:'publisher-live-embed-copy',
+    statusId:'publisher-live-embed-status',detailsId:'publisher-live-embed-details',
+    markup:publisherLiveEmbedHtml()
   });
 }
 

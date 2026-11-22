@@ -319,6 +319,17 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         page.wait_for_function('window.__copiedEmbed !== null')
         assert page.evaluate('window.__copiedEmbed') == code
         assert 'HTML copied' in page.locator('#publisher-embed-status').inner_text()
+        live_code = page.locator('#publisher-live-embed-code').input_value()
+        assert live_code.splitlines()[0] == '<iframe'
+        assert 'lab.html?mode=live&embed=1#experiment' in live_code
+        assert 'referrerpolicy="no-referrer"' in live_code
+        assert page.locator('#publisher-live-embed-preview').get_attribute(
+            'href') == 'lab.html?mode=live&embed=1#experiment'
+        page.evaluate("window.__copiedEmbed = null")
+        page.locator('#publisher-live-embed-copy').click()
+        page.wait_for_function('window.__copiedEmbed !== null')
+        assert page.evaluate('window.__copiedEmbed') == live_code
+        assert 'HTML copied' in page.locator('#publisher-live-embed-status').inner_text()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
 
         if label == 'mobile':
@@ -330,6 +341,15 @@ def test_home(browser, screenshot_dir: str | None) -> None:
             assert page.locator('#publisher-embed-details').evaluate('(el) => el.open')
             assert 'Select and copy' in page.locator('#publisher-embed-status').inner_text()
             assert page.locator('#publisher-embed-code').evaluate(
+                '(el) => el.selectionStart === 0 && el.selectionEnd === el.value.length'
+            )
+            page.locator('#publisher-live-embed-copy').click()
+            assert page.locator('#publisher-live-embed-details').evaluate(
+                '(el) => el.open'
+            )
+            assert 'Select and copy' in page.locator(
+                '#publisher-live-embed-status').inner_text()
+            assert page.locator('#publisher-live-embed-code').evaluate(
                 '(el) => el.selectionStart === 0 && el.selectionEnd === el.value.length'
             )
         assert not errors, errors
@@ -550,6 +570,93 @@ def test_embedded_challenge(browser) -> None:
         page.close()
 
 
+
+def test_embedded_live_championship(browser) -> None:
+    """Play the genuine 2026 spectator board inside a different-site iframe."""
+    site = 'https://fraware.github.io/grandmaster-vs-model/'
+    html, script, responses = page_sources('lab')
+    pregame = PGN.replace('1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *', '*')
+    assert pregame != PGN
+
+    for label, width in [('publisher', 620), ('mobile', 390)]:
+        page = browser.new_page(viewport={'width': width, 'height': 1750})
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.route(site + '**', lambda route: route.fulfill(
+            status=200, content_type='text/html', body=html
+        ))
+        parent = (
+            '<!doctype html><html><body style="margin:0">'
+            '<iframe title="Live Gukesh Sindarov championship" '
+            'style="width:100%;height:1660px;border:0" src="'
+            + site + 'lab.html?mode=live&embed=1#experiment'
+            + '"></iframe></body></html>'
+        )
+        page.route('https://chesspublisher.example/**',
+                   lambda route: route.fulfill(
+                       status=200, content_type='text/html', body=parent
+                   ))
+        try:
+            page.goto('https://chesspublisher.example/match', wait_until='domcontentloaded')
+            # Parent DOM readiness does not mean its child iframe has
+            # navigated. Wait for the real embedded experience first.
+            page.frame_locator('iframe').locator('#experiment').wait_for(timeout=10000)
+            iframe = next(frame for frame in page.frames
+                          if frame.url.startswith(site+'lab.html'))
+            iframe.wait_for_load_state('domcontentloaded')
+            iframe.evaluate("""({responses,pgn}) => {
+              Date.now = () => Date.parse('2026-11-24T13:40:00Z');
+              window.__embeddedBroadcastRequests = 0;
+              window.fetch = async url => {
+                const key=String(url);
+                if (Object.prototype.hasOwnProperty.call(responses,key))
+                  return new Response(JSON.stringify(responses[key]),{status:200});
+                if (key.includes('lichess.org/api/broadcast/')) {
+                  window.__embeddedBroadcastRequests++;
+                  return new Response(pgn,{status:200});
+                }
+                throw new Error('Unexpected widget fetch: '+key);
+              };
+            }""", {'responses':responses,'pgn':pregame})
+            iframe.add_script_tag(content=script)
+            frame=page.frame_locator('iframe')
+            frame.locator('#board button.square').first.wait_for()
+            assert frame.locator('#board button.square').count() == 64
+            assert frame.locator('.site-header').is_hidden()
+            assert frame.locator('#lab-top').is_hidden()
+            assert frame.locator('#models').is_hidden()
+            assert frame.locator('#method').is_hidden()
+            assert frame.locator('.site-footer').is_hidden()
+            assert frame.locator('.experience-actions .segment').is_hidden()
+            assert frame.locator('#source-url').is_visible()
+            assert frame.locator('#live-embed-attribution').is_visible()
+            assert frame.locator('#live-embed-open-full').is_visible()
+            assert frame.locator('#game-select').input_value() == '1'
+            full=frame.locator('#live-embed-open-full').get_attribute('href')
+            assert full is not None and 'mode=live&game=1' in full
+            assert 'embed=1' not in full and full.endswith('#experiment')
+            assert iframe.evaluate(
+                'document.documentElement.scrollWidth <= window.innerWidth'
+            ), label
+            assert frame.locator('#spectator-panel').is_visible()
+            assert 'PREGAME' in frame.locator('#spectator-phase').inner_text()
+            frame.locator('#board button.square[data-square="e2"]').click()
+            frame.locator('#board button.square[data-square="e4"]').click()
+            message=frame.locator('#spectator-message').inner_text()
+            assert 'prediction locked' in message.casefold(), {
+                'viewport': label, 'message': message,
+                'status': frame.locator('#source-status').inner_text(),
+                'guessAreaVisible': frame.locator('#guess-area').is_visible(),
+                'selector': frame.locator('#guess-select').input_value(),
+                'pageErrors': errors,
+            }
+            assert frame.locator('#spectator-share').is_visible()
+            assert iframe.evaluate('window.__embeddedBroadcastRequests') == 1
+            assert not errors, errors
+        finally:
+            page.close()
+
+
 def test_full_session_and_fast_input(browser) -> None:
     """All fifteen distinct positions are playable with no premature model score."""
     source = page_sources('home')
@@ -768,6 +875,7 @@ def main() -> None:
             test_home(browser, screenshot_dir)
             test_shared_peer_challenges(browser)
             test_embedded_challenge(browser)
+            test_embedded_live_championship(browser)
             if os.environ.get("GVM_EXTENDED_BROWSER") == "1":
                 test_full_session_and_fast_input(browser)
             test_lab(browser, screenshot_dir)

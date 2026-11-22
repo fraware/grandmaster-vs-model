@@ -85,6 +85,10 @@ The pregame interaction now retains a local opening prediction across normal tab
 
 Once a pregame spectator prediction is saved, the interface allows a local `.ics` download for that round's official scheduled start. The user must import this file into their calendar; no reminder is promised without client support. The filename, dates, timezone, source URL and privacy boundaries are tested across all 14 rounds. Browser tests check the actual download and confirm the action is hidden following the published start. Calendar events never include private predicted moves.
 
+## Current-round 2026 publisher iframe
+
+The homepage now publishes a second fixed iframe snippet targeting `lab.html?mode=live&embed=1#experiment`. This runs the existing legal-move spectator board and chooses the current scheduled match round in the embedded browser. The compact view hides unrelated menus and methodology but preserves the actual Lichess source, independent local guesses, an open-full-board link and explicit uncertified-timing disclosures. Third-party browser privacy settings can restrict stored guesses; network failures remain possible. Separate Chromium tests exercise the widget inside a simulated external publisher origin at desktop and mobile sizes, and the production preflight validates the actual Pages iframe under an intentionally failed additional Lichess fetch (the full public board already checks the live source). No publisher installation or traffic is claimed.
+
 ## Embeddable source-linked historical challenge
 
 The 2024 three-position historical challenge is available in a compact, opt-in iframe at `/?embed=1#challenge`, with an actionable brand attribution and a full-game link. It retains all legal move validation, the cited archived source, automatic reveals, native share/image exports, and the strict retrospective-model boundary. The host needs one HTML iframe element, no API key or host-side scripts. Optional self-reported peer challenge URLs work inside a frame as well. Full-page links drop `embed=1`, preserving a valid set/target.
