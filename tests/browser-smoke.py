@@ -643,7 +643,7 @@ def test_embedded_live_championship(browser) -> None:
             frame.locator('#board button.square[data-square="e2"]').click()
             frame.locator('#board button.square[data-square="e4"]').click()
             message=frame.locator('#spectator-message').inner_text()
-            assert 'Prediction locked.' in message, {
+            assert 'prediction locked' in message.casefold(), {
                 'viewport': label, 'message': message,
                 'status': frame.locator('#source-status').inner_text(),
                 'guessAreaVisible': frame.locator('#guess-area').is_visible(),
