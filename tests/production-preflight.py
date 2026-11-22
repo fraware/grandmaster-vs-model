@@ -289,6 +289,55 @@ def run() -> int:
                     raise AssertionError(
                         "Deployed embed failed source, layout, or script checks"
                     )
+                # Verify actual Pages framing for the 2026 live widget.
+                # Stub ONLY the extra embedded Lichess request to a controlled
+                # outage: the full-page preflight above already verified the
+                # real live endpoint. This avoids doubling source traffic.
+                live_embed_page = browser.new_page(
+                    viewport={"width": 620, "height": 1700},
+                    reduced_motion="reduce",
+                    service_workers="block",
+                )
+                live_errors: list[str] = []
+                live_embed_page.on(
+                    "pageerror",
+                    lambda error: live_errors.append(str(error)[:300]),
+                )
+                live_embed_page.route(
+                    "https://lichess.org/api/broadcast/round/**",
+                    lambda route: route.fulfill(status=503, body="Source outage fixture"),
+                )
+                live_embed_url = SITE_BASE + "lab.html?mode=live&embed=1#experiment"
+                live_embed_page.set_content(
+                    '<iframe title="Live championship widget" '
+                    'src="' + live_embed_url + '" '
+                    'style="width:100%;height:1660px;border:0"></iframe>'
+                )
+                live_frame = live_embed_page.frame_locator("iframe")
+                live_frame.locator("#board button.square").first.wait_for(timeout=20_000)
+                live_frame.locator("#live-embed-attribution").wait_for(timeout=20_000)
+                full_link = live_frame.locator("#live-embed-open-full").get_attribute("href")
+                report["liveEmbed"] = {
+                    "url": live_embed_url,
+                    "squares": live_frame.locator("#board button.square").count(),
+                    "siteHeaderHidden": live_frame.locator(".site-header").is_hidden(),
+                    "methodHidden": live_frame.locator("#method").is_hidden(),
+                    "attribution": live_frame.locator("#live-embed-attribution").is_visible(),
+                    "sourceLinked": live_frame.locator("#source-url").is_visible(),
+                    "fullGameLink": full_link,
+                    "pageErrors": live_errors,
+                    "sourceMode": "controlled embedded outage, real full-page source checked separately",
+                }
+                if (
+                    report["liveEmbed"]["squares"] != 64
+                    or not report["liveEmbed"]["siteHeaderHidden"]
+                    or not report["liveEmbed"]["methodHidden"]
+                    or not report["liveEmbed"]["attribution"]
+                    or not report["liveEmbed"]["sourceLinked"]
+                    or not full_link or "embed=1" in full_link
+                    or live_errors
+                ):
+                    raise AssertionError("Deployed 2026 publisher iframe is invalid")
                 report["result"] = "passed"
             finally:
                 browser.close()
