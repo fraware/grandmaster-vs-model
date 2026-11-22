@@ -393,6 +393,6 @@ test('live 2026 iframe and historical 2024 iframe are separate playable publicat
   assert.match(preflight,/live_embed_page\.set_content/);
   assert.match(preflight,/live_frame\.locator\("#board button\.square"\)/);
   assert.match(readme,/lab\.html\?mode=live&embed=1#experiment/);
-  assert.match(readme,/Third-party browser storage restrictions/);
+  assert.match(readme,/Cross-site storage restrictions/);
   assert.doesNotMatch(controller,/sendBeacon|tracking|analytics\.track/);
 });
