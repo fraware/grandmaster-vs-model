@@ -319,6 +319,17 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         page.wait_for_function('window.__copiedEmbed !== null')
         assert page.evaluate('window.__copiedEmbed') == code
         assert 'HTML copied' in page.locator('#publisher-embed-status').inner_text()
+        live_code = page.locator('#publisher-live-embed-code').input_value()
+        assert live_code.startswith('<iframe\\n')
+        assert 'lab.html?mode=live&embed=1#experiment' in live_code
+        assert 'referrerpolicy="no-referrer"' in live_code
+        assert page.locator('#publisher-live-embed-preview').get_attribute(
+            'href') == 'lab.html?mode=live&embed=1#experiment'
+        page.evaluate("window.__copiedEmbed = null")
+        page.locator('#publisher-live-embed-copy').click()
+        page.wait_for_function('window.__copiedEmbed !== null')
+        assert page.evaluate('window.__copiedEmbed') == live_code
+        assert 'HTML copied' in page.locator('#publisher-live-embed-status').inner_text()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
 
         if label == 'mobile':
@@ -330,6 +341,15 @@ def test_home(browser, screenshot_dir: str | None) -> None:
             assert page.locator('#publisher-embed-details').evaluate('(el) => el.open')
             assert 'Select and copy' in page.locator('#publisher-embed-status').inner_text()
             assert page.locator('#publisher-embed-code').evaluate(
+                '(el) => el.selectionStart === 0 && el.selectionEnd === el.value.length'
+            )
+            page.locator('#publisher-live-embed-copy').click()
+            assert page.locator('#publisher-live-embed-details').evaluate(
+                '(el) => el.open'
+            )
+            assert 'Select and copy' in page.locator(
+                '#publisher-live-embed-status').inner_text()
+            assert page.locator('#publisher-live-embed-code').evaluate(
                 '(el) => el.selectionStart === 0 && el.selectionEnd === el.value.length'
             )
         assert not errors, errors
