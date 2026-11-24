@@ -73,7 +73,9 @@ jobs:
       - name: Render and validate the actual 2026 link-preview graphic
         run: |
           python scripts/build-live-social-card.py --out "$RUNNER_TEMP/live-share-cover.png"
+          python scripts/build-live-social-card.py --historical --out "$RUNNER_TEMP/share-cover.png"
           python -c "from PIL import Image; from pathlib import Path; import os; p=Path(os.environ['RUNNER_TEMP'])/'live-share-cover.png'; im=Image.open(p); assert im.format=='PNG' and im.size==(1200,630), (im.format,im.size); im.verify(); assert p.stat().st_size>10000"
+          python -c "from PIL import Image; from pathlib import Path; import os; p=Path(os.environ['RUNNER_TEMP'])/'share-cover.png'; im=Image.open(p); assert im.format=='PNG' and im.size==(1200,630); im.verify(); assert p.stat().st_size>10000"
       - name: Test the historical game and all 14 registered live round selections
         env:
           GVM_SCREENSHOT_DIR: artifacts/design-review
