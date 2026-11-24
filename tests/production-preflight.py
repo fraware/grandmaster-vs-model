@@ -134,7 +134,7 @@ def run() -> int:
                 # A shared 2026 match URL needs an actual published 2026
                 # preview image. Check the server-delivered HTML metadata and
                 # PNG bytes; SPA updates cannot alter crawler link unfurls.
-                social_url = SITE_BASE + "assets/live-share-cover.png?v=2"
+                social_url = SITE_BASE + "assets/live-share-cover.png?v=3"
                 og_url = page.locator('meta[property="og:image"]').get_attribute("content")
                 x_url = page.locator('meta[name="twitter:image"]').get_attribute("content")
                 if (og_url, x_url) != (social_url, social_url):
