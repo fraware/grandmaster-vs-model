@@ -6,9 +6,11 @@ on:
       - main
     paths:
       - theme.css
+      - assets/typeface.css
       - index.html
       - landing.css
       - scripts/build-social-card.py
+      - scripts/build-live-social-card.py
       - scripts/capture-preview.py
       - .github/workflows/preview.yml
 permissions:
