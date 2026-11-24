@@ -41,7 +41,7 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid rgba
 .header-inner{min-height:74px;display:flex;justify-content:space-between;align-items:center;gap:16px}
 .wordmark{display:inline-flex;gap:12px;align-items:center;text-decoration:none;font:600 20px/1 var(--serif);letter-spacing:-.02em;white-space:nowrap}
 .wordmark-symbol{display:grid;place-items:center;color:var(--accent);font:32px/1 var(--serif)}
-.wordmark i{font-weight:400;color:var(--muted)}
+.wordmark-vs{font-weight:400;color:var(--muted)}
 .header-links{display:flex;align-items:center;gap:24px;font-size:13px;font-weight:600;color:var(--muted)}
 .header-links a{text-decoration:none}
 .header-links a:hover{color:var(--ink)}
@@ -56,7 +56,7 @@ a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid rgba
 .hero-topline-note span{color:#b59a81;padding:0 5px}
 .intro-row{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:28px}
 .intro-row h1{margin:0;max-width:870px;font:400 clamp(52px,6vw,88px)/.98 var(--serif);letter-spacing:-.045em;text-wrap:balance}
-.intro-row h1 em{font-weight:400;color:var(--accent);font-style:normal}
+.intro-row h1 .hero-accent{font-weight:400;color:var(--accent);font-style:normal}
 .intro-row p{font-size:18px;line-height:1.65;color:var(--muted);margin:18px 0 0;max-width:780px}
 .intro-side{min-width:140px;display:flex;align-items:center;gap:14px;color:var(--muted);line-height:1.5;padding-bottom:8px}
 .intro-side-number{font:italic 60px/.9 var(--serif);color:var(--accent);letter-spacing:-.05em}
