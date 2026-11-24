@@ -66,9 +66,9 @@ def draw_card(output: Path) -> None:
 
     canvas.line((64, 535, 1139, 535), fill=BORDER, width=2)
     canvas.text((64, 553), "WORLD CHESS CHAMPIONSHIP 2026  /  FREE TO PLAY",
-                font=font(MONO, 16), fill=ACCENT)
+                font=font(BODY, 16), fill=ACCENT)
     canvas.text((64, 594), "fraware.github.io/grandmaster-vs-model",
-                font=font(MONO, 14), fill=MUTED)
+                font=font(BODY, 14), fill=MUTED)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     tmp = output.with_name(output.name + ".tmp")
