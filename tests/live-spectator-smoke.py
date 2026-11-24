@@ -32,6 +32,9 @@ def run_spectator_test(browser) -> None:
         page.locator("#tab-live").click()
         assert "Your next move." in page.locator("#lab-title").text_content()
         assert "PREGAME" in page.locator("#spectator-phase").inner_text()
+        assert page.locator("#bottom-player").inner_text() == "Javokhir Sindarov"
+        assert page.locator("#top-player").inner_text() == "Gukesh D"
+        assert "FIDE announced" in page.locator("#spectator-detail").inner_text()
         assert page.locator("#guess-area").is_visible()
         assert page.locator("#board button.square").count() == 64
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
@@ -169,6 +172,12 @@ def run_spectator_test(browser) -> None:
         page.locator("#tab-live").click()
         page.locator("#nav-start").click()
         assert "Exact match." in page.locator("#spectator-message").text_content()
+        # A later round is pregame and must identify its own opening, not Game 1.
+        page.locator("#game-select").select_option("2")
+        assert "PREGAME" in page.locator("#spectator-phase").inner_text()
+        assert "before Game 2." in page.locator("#spectator-detail").inner_text()
+        assert page.locator("#bottom-player").inner_text() == "White player"
+        assert page.locator("#top-player").inner_text() == "Black player"
         assert not errors, errors
         page.close()
 

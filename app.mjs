@@ -186,11 +186,15 @@ function lockLiveChoice(uci){
   }
 }
 function renderPlayerNames(data){
-  // A pregame PGN tag is not confirmation that players have sat down and
-  // played with the published colors. Avoid asserting identities at ply zero.
+  // FIDE announced the Game 1 draw on November 22, 2026:
+  // https://www.fide.com/world-championship-match-2026-opens-in-geneva-at-a-historic-venue/
+  // Scheduled colors do not establish that physical play has begun.
   const colorsConfirmed=isArchive()||Boolean(data?.moves?.length);
-  const white=colorsConfirmed?(data?.tags?.White||(isArchive()?archive?.white:'White player')):'White player';
-  const black=colorsConfirmed?(data?.tags?.Black||(isArchive()?archive?.black:'Black player')):'Black player';
+  const announcedGameOne=!isArchive()&&selectedGame===1;
+  const white=colorsConfirmed?(data?.tags?.White||(isArchive()?archive?.white:'White player')):
+    announcedGameOne?'Javokhir Sindarov':'White player';
+  const black=colorsConfirmed?(data?.tags?.Black||(isArchive()?archive?.black:'Black player')):
+    announcedGameOne?'Gukesh D':'Black player';
   setText('top-player',flipped?white:black);setText('top-side',flipped?'WHITE':'BLACK');
   setText('bottom-player',flipped?black:white);setText('bottom-side',flipped?'BLACK':'WHITE');
 }
@@ -403,7 +407,9 @@ function renderLive(){
       chance.kind==='history'?'Return to the latest position to predict.':
       'The next-move challenge is not open yet.');
     setText('spectator-detail',pregame?
-      'Pick White’s first legal move before Game 1. Player colors await the official game feed.':
+      selectedGame===1?
+        'Predict Sindarov’s opening move. FIDE announced the Game 1 colors; play awaits the broadcast.':
+        `Pick White’s first legal move before Game ${selectedGame}. Player colors await the official game feed.`:
       chance.enabled?'Tap a piece, then its destination to lock your answer. A move list is available below.':
       'Browse the official moves or play the 2024 challenge. An unverified or finished game is never presented as live.');
   }
