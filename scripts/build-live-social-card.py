@@ -15,17 +15,16 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "assets/live-share-cover.png"
 FONTS = Path("/usr/share/fonts/truetype/dejavu")
-DISPLAY = FONTS / "DejaVuSansCondensed-Bold.ttf"
+DISPLAY = FONTS / "DejaVuSans-Bold.ttf"
 BODY = FONTS / "DejaVuSans.ttf"
-MONO = FONTS / "DejaVuSansMono.ttf"
 
-INK = "#f0f5ec"
-MUTED = "#afc5bc"
-ACCENT = "#d7ed75"
-BACKGROUND = "#101b1d"
-BORDER = "#35514e"
-LIGHT = "#dbe6d6"
-DARK = "#658c7b"
+INK = "#f4f1eb"
+MUTED = "#c0c7d4"
+ACCENT = "#f3bf65"
+BACKGROUND = "#17191f"
+BORDER = "#434c5c"
+LIGHT = "#e5e9f0"
+DARK = "#8091ac"
 
 
 def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -43,11 +42,11 @@ def draw_card(output: Path) -> None:
 
     canvas.text((63, 43), "GRANDMASTER  /  MODEL", font=font(DISPLAY, 24), fill=INK)
     canvas.text((64, 91), "GUKESH D  /  JAVOKHIR SINDAROV",
-                font=font(MONO, 18), fill=ACCENT)
+                font=font(BODY, 18), fill=ACCENT)
     canvas.line((64, 140, 1139, 140), fill=BORDER, width=2)
 
-    canvas.text((56, 168), "WHAT'S", font=font(DISPLAY, 118), fill=INK)
-    canvas.text((56, 291), "YOUR MOVE?", font=font(DISPLAY, 99), fill=ACCENT)
+    canvas.text((56, 168), "WHAT'S", font=font(DISPLAY, 106), fill=INK)
+    canvas.text((56, 291), "YOUR MOVE?", font=font(DISPLAY, 86), fill=ACCENT)
     canvas.text((63, 435), "Play a move on the 2026 world-title board.",
                 font=font(BODY, 20), fill=INK)
     canvas.text((63, 469), "See the official broadcast's answer.",
@@ -55,7 +54,7 @@ def draw_card(output: Path) -> None:
 
     # Deliberately schematic board: no claimed position, model score or move.
     left, top, square = 803, 171, 42
-    canvas.rectangle((left-6, top-6, left+341, top+341), fill="#334e47")
+    canvas.rectangle((left-6, top-6, left+341, top+341), fill="#3f4b60")
     for rank in range(8):
         for file in range(8):
             x, y = left+file*square, top+rank*square
