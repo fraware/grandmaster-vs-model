@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Championship streamer kit | Grandmaster vs Model</title>
+<meta name="description" content="Free OBS browser source and viewer QR invitation for the World Chess Championship.">
+<link rel="icon" href="favicon.svg"><link rel="stylesheet" href="assets/typeface.css"><link rel="stylesheet" href="stream.css">
+<script type="module" src="src/stream.mjs"></script></head>
+<body>
+<main>
+<header><a href="./">Grandmaster vs Model</a><span>World Championship 2026</span></header>
+<section class="stage" aria-label="Broadcast preview">
+  <iframe id="broadcast-board" title="Read-only championship board" referrerpolicy="no-referrer"></iframe>
+  <aside>
+    <p class="eyebrow" id="round-label">WORLD CHAMPIONSHIP</p>
+    <h1>Predict the next move.</h1>
+    <p>Scan to play on your own device.</p>
+    <img id="viewer-qr" width="240" height="240" alt="QR code for the current game prediction board">
+    <a id="viewer-link" target="_blank" rel="noopener noreferrer">Open the player board</a>
+    <p class="fine">Free · No account · Local guesses<br>Board updates from Lichess PGN. Feed delays are possible.</p>
+    <a class="source" href="https://github.com/fraware/grandmaster-vs-model" target="_blank" rel="noopener noreferrer">Open source on GitHub</a>
+  </aside>
+</section>
+<section class="setup" aria-label="Streamer setup">
+<h2>Put your viewers on the board</h2>
+<p>Choose a game. In OBS, add a Browser Source with the URL below and set width 1280, height 720. Viewers scan the QR code and make their own predictions. The broadcast board itself is read-only.</p>
+<label for="round">Championship game</label><select id="round"></select>
+<label for="obs-url">OBS browser-source URL</label><input id="obs-url" readonly>
+<button id="copy-obs" type="button">Copy OBS URL</button><button id="copy-viewer" type="button">Copy viewer link</button>
+<a id="open-overlay" target="_blank" rel="noopener noreferrer">Open broadcast view</a>
+<p id="copy-status" role="status"></p>
+<p class="fine">Independent project; no affiliation with FIDE, Lichess or the players. No audience vote aggregation, analytics or model calls. The feed is polled at the same intervals as the public board. Keep the source active in OBS.</p>
+</section>
+</main></body></html>

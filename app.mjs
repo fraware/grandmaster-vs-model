@@ -16,7 +16,9 @@ const $=id=>document.getElementById(id);
 const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟\uFE0E'};
 const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
+const broadcastOnly=query.get('mode')==='live'&&query.get('broadcast')==='1';
 const liveEmbedded=query.get('mode')==='live'&&query.get('embed')==='1';
+if(broadcastOnly)document.documentElement.classList.add('broadcast-only');
 if(liveEmbedded){
   document.documentElement.classList.add('live-embed-mode');
   const attribution=$('live-embed-attribution');
@@ -34,8 +36,8 @@ let selectedPly=null,flipped=false,originSquare=null,guesses=new Map(),revealedP
 let requestRunning=false,lastDirectAttempt=0,indexRequestRunning=false,lastIndexAttempt=0;
 let sourceRetryUntil=0,queuedBroadcastGame=null;
 let spectatorStorage=null,legacySpectatorStorage=null;
-try{spectatorStorage=window.localStorage;}catch{/* Persistent storage can be blocked. */}
-try{legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be blocked. */}
+try{if(!broadcastOnly)spectatorStorage=window.localStorage;}catch{/* Persistent storage can be blocked. */}
+try{if(!broadcastOnly)legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be blocked. */}
 const spectatorSession=createSpectatorSession({
   storage:spectatorStorage,legacyStorage:legacySpectatorStorage
 });
@@ -63,7 +65,7 @@ function liveOpportunity(){
     result:data?.tags?.Result??'*'
   }),fen:data?.positions?.[ply]||START_FEN,ply:ply+1};
 }
-function liveChoice(){return spectatorSession.find(selectedGame,currentIndex()+1);}
+function liveChoice(){return broadcastOnly?null:spectatorSession.find(selectedGame,currentIndex()+1);}
 /** On a return visit, show the most recent saved reveal before the latest board. */
 function restoredSpectatorPly(gameNumber,gameData){
   return spectatorReturnPly(spectatorSession.list(),gameNumber,gameData?.moves?.length??0);
@@ -162,7 +164,7 @@ function boardClick(square,legal){
 }
 /** One legal board move records a browser-local guess; no priority attestation. */
 function lockLiveChoice(uci){
-  if(isArchive())return;
+  if(isArchive()||broadcastOnly)return;
   const chance=liveOpportunity();
   if(!chance.enabled||liveChoice())return;
   try{
@@ -431,9 +433,10 @@ function renderLive(){
     'Play a legal first move and we will compare it with the official PGN once the game begins. Local timestamps are unverified.');
   if(!choice&&chance.kind==='live')resultSummary('Play before the next feed update.',
     'Your decision stays on this device if browser storage is available. It is not a certified pre-move claim.');
-  drawBoard(before,choice?.uci||selectedArrow||shownMove?.uci||null,playable);
+  drawBoard(before,choice?.uci||selectedArrow||shownMove?.uci||null,playable&&!broadcastOnly);
 }
 function render(){
+  if(broadcastOnly){selectedPly=game()?.moves.length??0;originSquare=null;selectedArrow=null;}
   renderModelRoster();
   const historical=isArchive(),data=game(),i=currentIndex();
   document.body.dataset.mode=mode;
@@ -734,7 +737,7 @@ $('share-button').addEventListener('click',async()=>{
   setTimeout(()=>setText('share-button','Share position ↗'),1800);
 });
 window.addEventListener('keydown',e=>{
-  if(e.altKey||e.ctrlKey||e.metaKey||['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName))return;
+  if(broadcastOnly||e.altKey||e.ctrlKey||e.metaKey||['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName))return;
   if(e.key==='ArrowLeft'){e.preventDefault();selectIndex(currentIndex()-1);}
   if(e.key==='ArrowRight'){e.preventDefault();selectIndex(currentIndex()+1);}
 });

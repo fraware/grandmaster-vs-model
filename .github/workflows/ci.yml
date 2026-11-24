@@ -26,6 +26,8 @@ jobs:
           git diff --exit-code -- data/collection.json
       - name: JavaScript syntax
         run: |
+          node --check src/stream.mjs
+          node --check src/stream-links.mjs
           node --check app.mjs
           node --check src/home.mjs
           node --check src/challenge-ui.mjs

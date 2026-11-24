@@ -2,7 +2,7 @@
 
 **What will Sindarov play against Gukesh? Make your own move on the World Chess Championship board, then see what the grandmaster played.**
 
-[**Play the 2026 championship board →**](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Embed the game](https://fraware.github.io/grandmaster-vs-model/#embed)
+[**Play the 2026 championship board →**](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Embed the game](https://fraware.github.io/grandmaster-vs-model/#embed) · [Streamer kit](https://fraware.github.io/grandmaster-vs-model/stream.html)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
@@ -31,6 +31,10 @@ Free, no account, no visitor API key. Local guesses are recreational, with unver
 **Source limitations.** A submitted opening guess before the game is not an authenticated claim of prospectivity. During play, a supported next-move position exists only in the official game session and with a successfully retrieved, legally validated open broadcast. The public source can arrive later than physical play. No local prediction is certified as preceding the player's physical move. The audience-facing 2026 experience is independent of the paid, reserved model requests.
 
 The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [live chess interface](app.mjs). Reproduce the isolated unit tests with `npm test` and the full spectator browser sequence with `python tests/live-spectator-smoke.py` after installing the pinned Playwright/Chromium environment described in [CI](.github/workflows/ci.yml).
+
+## Streamer kit
+
+Open [the streamer kit](https://fraware.github.io/grandmaster-vs-model/stream.html), choose a championship game and copy its OBS browser-source URL. Use a 1280 × 720 browser source. The read-only board follows the newest validated PGN position, with the normal broadcast polling interval and source status; the QR code opens the corresponding playable round on a viewer's device. No audience aggregation, tracking, backend or provider calls. QR generation is local using Kazuhiko Arase's MIT-licensed [QR Code Generator](https://github.com/kazuhikoarase/qrcode-generator/tree/83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8); [license](assets/qrcode-LICENSE.txt). Browser fixtures do not establish real OBS compatibility or external publisher adoption.
 
 ## Championship-specific social sharing
 
