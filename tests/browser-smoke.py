@@ -35,6 +35,8 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = (ROOT / html_file).read_text(encoding='utf-8')
     css = (ROOT / css_file).read_text(encoding='utf-8')
     html = html.replace(f'<link rel="stylesheet" href="{css_file}" />', f'<style>{css}</style>')
+    typeface = (ROOT / 'assets/typeface.css').read_text(encoding='utf-8')
+    html = html.replace('<link rel="stylesheet" href="assets/typeface.css" />', f'<style>{typeface}</style>')
     theme = (ROOT / 'theme.css').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="theme.css" />', f'<style>{theme}</style>')
     html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
@@ -125,10 +127,19 @@ def test_home(browser, screenshot_dir: str | None) -> None:
           light: getComputedStyle(document.querySelector('.challenge-square.light')).backgroundColor,
           dark: getComputedStyle(document.querySelector('.challenge-square.dark')).backgroundColor
         })""")
-        assert visual['background'] == 'rgb(16, 27, 29)', visual
-        assert 'Bahnschrift' in visual['headingFont'], visual
-        assert visual['light'] == 'rgb(219, 230, 214)', visual
-        assert visual['dark'] == 'rgb(101, 140, 123)', visual
+        assert visual['background'] == 'rgb(24, 24, 24)', visual
+        assert 'Source Sans 3' in visual['headingFont'], visual
+        assert page.evaluate("""() => [...document.querySelectorAll('#challenge-board .challenge-piece')].every(el => el.dataset.piece && getComputedStyle(el).backgroundImage.startsWith('url("data:image/svg+xml,'))"""), 'Historical vector piece missing'
+        assert visual['light'] == 'rgb(232, 232, 232)', visual
+        assert visual['dark'] == 'rgb(150, 150, 150)', visual
+        assert page.evaluate("""() => Array.from(document.querySelectorAll(
+          '#hero-title, .hero-accent, .wordmark-vs, .challenge-prompt h2, .challenge-primary'
+        )).every(el => getComputedStyle(el).fontStyle === 'normal')"""), visual
+        assert page.evaluate("""async () => {
+          await document.fonts.ready;
+          return [...document.fonts].some(f => f.family.replace(/['\"]/g, '') === 'Source Sans 3' && f.status === 'loaded');
+        }"""), 'Bundled upright font failed to load'
+        assert page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getClientRects().length && el.children.length === 0 && el.textContent.trim()).every(el => getComputedStyle(el).fontStyle === 'normal')"""), 'Visible italic text'
         invitation = page.locator('#live-hero-link')
         assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')
@@ -725,6 +736,17 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert page.locator('#challenge-board').count() == 0
     page.locator('#tab-archive').click()
     assert page.locator('#board button.square').count() == 64
+    assert page.evaluate("""async () => {
+      await document.fonts.ready;
+      const normal = [...document.querySelectorAll('body *')].filter(el =>
+        el.getClientRects().length && el.children.length === 0 && el.textContent.trim()
+      ).every(el => getComputedStyle(el).fontStyle === 'normal');
+      return normal && getComputedStyle(document.querySelector('#lab-title')).fontFamily.includes('Source Sans 3')
+        && [...document.fonts].some(f => f.family.replace(/['"]/g, '') === 'Source Sans 3' && f.status === 'loaded')
+        && getComputedStyle(document.querySelector('.chess-board .square.light')).backgroundColor === 'rgb(232, 232, 232)'
+        && getComputedStyle(document.querySelector('.chess-board .square.dark')).backgroundColor === 'rgb(150, 150, 150)';
+    }"""), 'Lab typography or grayscale board differs'
+    assert page.evaluate("""() => [...document.querySelectorAll('#board .piece')].every(el => el.dataset.piece && getComputedStyle(el).backgroundImage.startsWith('url("data:image/svg+xml,'))"""), 'Live vector piece missing'
     assert page.locator('.model-card').count() == 3
     assert '116 PLIES' in page.locator('#nav-position').inner_text()
     if screenshot_dir:

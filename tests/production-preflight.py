@@ -130,11 +130,23 @@ def run() -> int:
 
                 page.on("response", record_broadcast_response)
                 page.goto(site_url, wait_until="domcontentloaded", timeout=30_000)
+                page.evaluate("document.fonts.ready")
+                design = page.evaluate("""() => ({
+                    background: getComputedStyle(document.body).backgroundColor,
+                    headingFont: getComputedStyle(document.getElementById('lab-title')).fontFamily,
+                    upright: getComputedStyle(document.getElementById('lab-title')).fontStyle === 'normal',
+                    fontLoaded: [...document.fonts].some(f => f.family.replace(/['"]/g, '') === 'Source Sans 3' && f.status === 'loaded')
+                })""")
+                report["design"] = design
+                if (design["background"] != "rgb(24, 24, 24)"
+                        or "Source Sans 3" not in design["headingFont"]
+                        or not design["upright"] or not design["fontLoaded"]):
+                    raise AssertionError(f"Deployed monochrome theme or upright font missing: {design}")
 
                 # A shared 2026 match URL needs an actual published 2026
                 # preview image. Check the server-delivered HTML metadata and
                 # PNG bytes; SPA updates cannot alter crawler link unfurls.
-                social_url = SITE_BASE + "assets/live-share-cover.png?v=1"
+                social_url = SITE_BASE + "assets/live-share-cover.png?v=3"
                 og_url = page.locator('meta[property="og:image"]').get_attribute("content")
                 x_url = page.locator('meta[name="twitter:image"]').get_attribute("content")
                 if (og_url, x_url) != (social_url, social_url):

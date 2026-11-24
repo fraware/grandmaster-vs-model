@@ -13,7 +13,7 @@ import {validateObservation} from './src/collection.mjs';
 import {restoreHistoricalMatch} from './src/history.mjs';
 import {mountChallenge} from './src/challenge-ui.mjs';
 const $=id=>document.getElementById(id);
-const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+const glyphs={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟\uFE0E'};
 const pieceNames={K:'king',Q:'queen',R:'rook',B:'bishop',N:'knight',P:'pawn'};
 const query=new URLSearchParams(location.search);
 const liveEmbedded=query.get('mode')==='live'&&query.get('embed')==='1';
@@ -39,7 +39,7 @@ try{legacySpectatorStorage=window.sessionStorage;}catch{/* Tab storage can be bl
 const spectatorSession=createSpectatorSession({
   storage:spectatorStorage,legacyStorage:legacySpectatorStorage
 });
-let keyboardSquare=0,dragStart=null,suppressBoardClick=false;
+let keyboardSquare=0,dragStart=null,liveDragPiece=null,suppressBoardClick=false;
 let returningRevealPending=mode==='live'&&!query.has('ply');
 let respectInitialDeepLink=query.has('ply');
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -106,11 +106,12 @@ function arrowSvg(uci){
   const center=index=>({x:((flipped?7-index%8:index%8)+.5)*12.5,y:((flipped?7-Math.floor(index/8):Math.floor(index/8))+.5)*12.5});
   const a=center(s),b=center(e),dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
   const ex=b.x-dx/d*5.4,ey=b.y-dy/d*5.4;
-  return `<svg class="arrow-overlay" viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="move-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b14f2f"/></marker></defs><path d="M${a.x} ${a.y} L${ex} ${ey}" fill="none" stroke="#b14f2f" stroke-width="1.65" stroke-linecap="round" marker-end="url(#move-arrow)"/></svg>`;
+  return `<svg class="arrow-overlay" viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="move-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#343434"/></marker></defs><path d="M${a.x} ${a.y} L${ex} ${ey}" fill="none" stroke="#343434" stroke-width="1.65" stroke-linecap="round" marker-end="url(#move-arrow)"/></svg>`;
 }
 function drawBoard(fen,arrow,interactive){
   const state=parseFen(fen),board=$('board');
   const hadKeyboardFocus=board.contains(document.activeElement);
+  if(dragStart)clearLiveDrag();
   board.replaceChildren();
   board.classList.toggle('interactive',interactive);
   const legal=interactive?withSans(fen):[];
@@ -127,7 +128,7 @@ function drawBoard(fen,arrow,interactive){
     if(targets.includes(square))cell.classList.add('legal-target');
     if(arrow&&(arrow.slice(0,2)===square||arrow.slice(2,4)===square))cell.classList.add('highlight');
     if(piece!=='.'){
-      const el=document.createElement('span');el.className=`piece ${piece===piece.toUpperCase()?'white':'black'}`;el.textContent=glyphs[piece];el.setAttribute('aria-hidden','true');cell.append(el);
+      const el=document.createElement('span');el.className=`piece ${piece===piece.toUpperCase()?'white':'black'}`;el.textContent=glyphs[piece];el.dataset.piece=piece;el.setAttribute('aria-hidden','true');cell.append(el);
     }
     if(row===7){const label=document.createElement('span');label.className='square-label file';label.textContent=square[0];cell.append(label);}
     if(col===0){const label=document.createElement('span');label.className='square-label rank';label.textContent=square[1];cell.append(label);}
@@ -659,36 +660,73 @@ $('board').addEventListener('keydown',event=>{
     square.tabIndex=Number(square.dataset.visual)===target?0:-1;
   $('board').querySelector(`button.square[data-visual="${target}"]`)?.focus();
 });
-// Touch/pen/mouse drag selects exactly one legal move, using the same lock path
-// as the tap and keyboard interfaces. No promotion is guessed beyond a queen.
+// Dragging is purely a local visual affordance. A source update cancels the
+// interaction; the release path rechecks the original position and legal UCI.
+function clearLiveDrag(){
+  liveDragPiece?.remove();liveDragPiece=null;
+  const board=$('board');
+  board.classList.remove('is-dragging');
+  board.querySelector('.drag-source')?.classList.remove('drag-source');
+  dragStart=null;
+}
 $('board').addEventListener('pointerdown',event=>{
+  if(event.button!==0||!event.isPrimary||dragStart)return;
   const cell=event.target.closest('button.square');
-  if(!cell||cell.disabled){dragStart=null;return;}
-  dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY,
-    pointerId:event.pointerId};
-  // A global pointerup observer handles release across squares. Do not set
-  // pointer capture on taps: doing so retargets the native click to the board
-  // and breaks the two-tap selection interaction.
-});
-window.addEventListener('pointerup',event=>{
-  const start=dragStart;dragStart=null;
-  if(!start||start.pointerId!==event.pointerId||
-    Math.hypot(event.clientX-start.x,event.clientY-start.y)<9)return;
-  const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('#board button.square');
-  if(!target||target.disabled)return;
+  if(!cell||cell.disabled)return;
   const fen=game()?.positions?.[currentIndex()]||START_FEN;
+  if(!withSans(fen).some(m=>m.uci.startsWith(cell.dataset.square)))return;
+  dragStart={square:cell.dataset.square,x:event.clientX,y:event.clientY,
+    pointerId:event.pointerId,fen,mode,game:selectedGame,ply:currentIndex(),flipped,dragging:false};
+});
+window.addEventListener('pointermove',event=>{
+  const start=dragStart;
+  if(!start||start.pointerId!==event.pointerId)return;
+  if(!start.dragging&&Math.hypot(event.clientX-start.x,event.clientY-start.y)<9)return;
+  if(!start.dragging){
+    const source=$('board').querySelector(`button.square[data-square="${start.square}"]`);
+    const piece=source?.querySelector('.piece');
+    if(!piece||source.disabled){clearLiveDrag();return;}
+    start.dragging=true;
+    source.classList.add('drag-source');
+    $('board').classList.add('is-dragging');
+    liveDragPiece=document.createElement('div');
+    liveDragPiece.className='live-drag-piece';
+    liveDragPiece.setAttribute('aria-hidden','true');
+    liveDragPiece.append(piece.cloneNode(true));
+    const {width,height}=source.getBoundingClientRect();
+    liveDragPiece.style.width=`${width}px`;liveDragPiece.style.height=`${height}px`;
+    document.body.append(liveDragPiece);
+  }
+  if(event.cancelable)event.preventDefault();
+  liveDragPiece.style.transform=`translate3d(${event.clientX}px,${event.clientY}px,0) translate(-50%,-50%)`;
+},{passive:false});
+window.addEventListener('pointerup',event=>{
+  const start=dragStart;
+  if(!start||start.pointerId!==event.pointerId)return;
+  const dragging=start.dragging||Math.hypot(event.clientX-start.x,event.clientY-start.y)>=9;
+  const target=dragging?document.elementFromPoint(event.clientX,event.clientY)?.closest('#board button.square'):null;
+  clearLiveDrag();
+  if(!dragging)return;
+  // Suppress the native click even for an invalid drop.
+  suppressBoardClick=true;
+  window.setTimeout(()=>{suppressBoardClick=false;},0);
+  if(!target||target.disabled||start.mode!==mode||start.game!==selectedGame||
+     start.ply!==currentIndex()||start.flipped!==flipped)return;
+  const fen=game()?.positions?.[currentIndex()]||START_FEN;
+  if(fen!==start.fen)return;
   const candidates=withSans(fen).filter(m=>m.uci.startsWith(start.square)&&
     m.uci.slice(2,4)===target.dataset.square);
   const chosen=candidates.find(m=>m.uci.length===4)||
     candidates.find(m=>m.uci.endsWith('q'))||candidates[0];
   if(!chosen)return;
-  suppressBoardClick=true;
   if(isArchive()){
     selectedArrow=chosen.uci;originSquare=null;render();
   }else lockLiveChoice(chosen.uci);
-  window.setTimeout(()=>{suppressBoardClick=false;},0);
 });
-window.addEventListener('pointercancel',()=>{dragStart=null;});
+window.addEventListener('pointercancel',event=>{
+  if(dragStart?.pointerId===event.pointerId)clearLiveDrag();
+});
+window.addEventListener('blur',clearLiveDrag);
 $('refresh-button').addEventListener('click',refreshBroadcast);
 $('share-button').addEventListener('click',async()=>{
   syncUrl();try{await navigator.clipboard.writeText(location.href);setText('share-button','Link copied ✓');}

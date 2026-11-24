@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - theme.css
+      - assets/typeface.css
       - app.mjs
       - lab.html
       - style.css

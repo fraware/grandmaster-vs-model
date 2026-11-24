@@ -30,6 +30,7 @@ jobs:
           cp index.html lab.html app.mjs style.css landing.css theme.css favicon.svg _site/
           cp -R src data assets _site/
           python scripts/build-live-social-card.py --out _site/assets/live-share-cover.png
+          python scripts/build-live-social-card.py --historical --out _site/assets/share-cover.png
           node scripts/cache-broadcast.mjs --out _site/data/live-game1.json
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
