@@ -75,17 +75,29 @@ function mountPublisherEmbed() {
 }
 
 async function initializeHome() {
-  const response = await fetch('./data/archive-2024.json');
-  if (!response.ok) throw new Error(`Historical game unavailable (HTTP ${response.status})`);
-  const archive = await response.json();
-  if (archive.schema !== 'historical-game-v1') throw new Error('Unexpected historical-game data');
-  const replay = replaySanMoves(archive.moves.trim().split(/\s+/));
-  let retrospective = null;
+  // Fetch the optional retrospective concurrently. The historical game is
+  // the only required input, and a stalled optional request must not block play.
+  const controller = new AbortController();
+  let timer;
+  const optionalModel = Promise.race([
+    fetch('./data/retrospective-2024.json', {signal: controller.signal})
+      .then(response => response.ok ? response.json() : null).catch(() => null),
+    new Promise(resolve => {
+      timer = window.setTimeout(() => { controller.abort(); resolve(null); }, 1500);
+    }),
+  ]);
   try {
-    const modelResponse = await fetch('./data/retrospective-2024.json');
-    if (modelResponse.ok) retrospective = await modelResponse.json();
-  } catch { /* Historical challenge stays usable without the optional model record. */ }
-  mountChallenge(archive, replay, retrospective);
+    const response = await fetch('./data/archive-2024.json');
+    if (!response.ok) throw new Error(`Historical game unavailable (HTTP ${response.status})`);
+    const archive = await response.json();
+    if (archive.schema !== 'historical-game-v1') throw new Error('Unexpected historical-game data');
+    const replay = replaySanMoves(archive.moves.trim().split(/\s+/));
+    const retrospective = await optionalModel;
+    mountChallenge(archive, replay, retrospective);
+  } finally {
+    window.clearTimeout(timer);
+    controller.abort();
+  }
 }
 
 // Preserve links shared before the challenge acquired a dedicated research page.
