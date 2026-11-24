@@ -85,7 +85,8 @@ jobs:
       - name: Preserve a prediction across real browser tab closure and return
         run: python tests/returning-spectator-smoke.py
       - name: Test game-day production preflight schedule selection offline
-        run: python tests/pregame-selector-smoke.py      - name: Retain rendered design review captures
+        run: python tests/pregame-selector-smoke.py
+      - name: Retain rendered design review captures
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
