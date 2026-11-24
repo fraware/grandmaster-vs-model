@@ -125,10 +125,13 @@ def test_home(browser, screenshot_dir: str | None) -> None:
           light: getComputedStyle(document.querySelector('.challenge-square.light')).backgroundColor,
           dark: getComputedStyle(document.querySelector('.challenge-square.dark')).backgroundColor
         })""")
-        assert visual['background'] == 'rgb(16, 27, 29)', visual
-        assert 'Bahnschrift' in visual['headingFont'], visual
-        assert visual['light'] == 'rgb(219, 230, 214)', visual
-        assert visual['dark'] == 'rgb(101, 140, 123)', visual
+        assert visual['background'] == 'rgb(23, 25, 31)', visual
+        assert 'Arial' in visual['headingFont'], visual
+        assert visual['light'] == 'rgb(229, 233, 240)', visual
+        assert visual['dark'] == 'rgb(128, 145, 172)', visual
+        assert page.evaluate("""() => Array.from(document.querySelectorAll(
+          '#hero-title, .hero-accent, .wordmark-vs, .challenge-prompt h2, .challenge-primary'
+        )).every(el => getComputedStyle(el).fontStyle === 'normal')"""), visual
         invitation = page.locator('#live-hero-link')
         assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')
