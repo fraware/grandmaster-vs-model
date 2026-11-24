@@ -147,7 +147,11 @@ def run_spectator_test(browser) -> None:
             page.mouse.down()
             page.mouse.move(finish["x"] + finish["width"]/2,
                             finish["y"] + finish["height"]/2, steps=8)
+            assert page.locator(".live-drag-piece .piece[data-piece]").count() == 1
+            assert page.locator("#board .drag-source").count() == 1
             page.mouse.up()
+            assert page.locator(".live-drag-piece").count() == 0
+            assert page.locator("#board .drag-source").count() == 0
         detail = page.locator("#spectator-message").text_content()
         assert "Prediction locked." in detail, (
             f"{label}: second move was not locked; spectator={detail}; "
