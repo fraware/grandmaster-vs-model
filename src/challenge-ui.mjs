@@ -29,48 +29,48 @@ export function drawChallengeCard(score, matches = null, rivalScore = null, set 
   if (!ctx) throw new Error('Canvas unavailable');
   // Keep the share result visually continuous with the public chess board.
   // No external fonts or rendered chess position are involved.
-  const paper = '#17191f', ink = '#f4f1eb', signal = '#f3bf65',
-    muted = '#c0c7d4', rule = '#434c5c';
-  const display = '"Arial","Helvetica Neue","Liberation Sans",sans-serif';
-  const mono = '"Arial","Helvetica Neue","Liberation Sans",sans-serif';
+  const paper = '#181818', ink = '#f4f4f4', signal = '#f1f1f1',
+    muted = '#c4c4c4', rule = '#454545';
+  const display = '"Source Sans 3","Segoe UI","Helvetica Neue",sans-serif';
+  const labelFont = '"Source Sans 3","Segoe UI","Helvetica Neue",sans-serif';
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1200, 630);
   ctx.fillStyle = signal;
   ctx.fillRect(0, 0, 1200, 9);
-  ctx.font = `800 25px ${display}`;
+  ctx.font = `650 25px ${display}`;
   ctx.fillStyle = ink;
   ctx.fillText('GRANDMASTER  /  MODEL', 65, 77);
   ctx.fillStyle = rule;
   ctx.fillRect(65, 110, 1070, 2);
-  ctx.font = `18px ${mono}`;
+  ctx.font = `18px ${labelFont}`;
   ctx.fillStyle = muted;
   ctx.fillText(`WORLD CHAMPIONSHIP  /  2024  /  SET ${set} OF 5`, 67, 158);
   ctx.fillStyle = signal;
-  ctx.font = `800 178px ${display}`;
+  ctx.font = `650 178px ${display}`;
   ctx.fillText(`${score.correct}/3`, 58, 349);
   if (matches) {
     matches.forEach((hit, i) => {
       const x = 68 + i * 76;
-      ctx.fillStyle = hit ? '#385579' : '#654444';
+      ctx.fillStyle = hit ? '#414141' : '#492c2c';
       ctx.fillRect(x, 393, 55, 55);
-      ctx.fillStyle = hit ? '#e4efff' : '#FFE0D5';
-      ctx.font = `800 29px ${display}`;
+      ctx.fillStyle = hit ? '#f4f4f4' : '#ffc3c0';
+      ctx.font = `650 29px ${display}`;
       ctx.fillText(hit ? '✓' : '×', x + 14, 431);
     });
   }
   ctx.fillStyle = rule;
   ctx.fillRect(65, 491, 1070, 2);
   ctx.fillStyle = ink;
-  ctx.font = `800 35px ${display}`;
+  ctx.font = `650 35px ${display}`;
   const comparison = rivalScore === null
     ? 'WHAT WOULD YOU PLAY?'
     : `MY SCORE  ${score.correct}/3   /   GPT  ${rivalScore}/3`;
   ctx.fillText(comparison, 68, 543);
   ctx.fillStyle = muted;
-  ctx.font = `17px ${mono}`;
+  ctx.font = `17px ${labelFont}`;
   ctx.fillText('fraware.github.io/grandmaster-vs-model', 67, 587);
   if (rivalScore !== null) {
-    ctx.font = `13px ${mono}`;
+    ctx.font = `13px ${labelFont}`;
     ctx.fillText('2024 GAME  /  RETROSPECTIVE', 825, 588);
   }
   // This is a decorative chess symbol, never an illustrated game position.
