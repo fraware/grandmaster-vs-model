@@ -884,6 +884,23 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
         generic_page.close()
 
 
+def test_broadcast_read_only(browser) -> None:
+    page = browser.new_page(viewport={'width': 720, 'height': 720})
+    try:
+        populate(page, page_sources('lab'), now_iso='2026-11-24T14:20:00Z',
+                 page_url='https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1&embed=1&broadcast=1&ply=0')
+        page.wait_for_function("() => document.getElementById('nav-position').textContent.includes('6 / 6 PLIES')")
+        assert page.locator('#board button.square:disabled').count() == 64
+        assert page.locator('.decisions-column').is_hidden()
+        assert page.locator('.replay-controls').is_hidden()
+        assert page.locator('#source-status').is_visible()
+        assert page.evaluate("localStorage.getItem('grandmaster-vs-model:live-choices:v1')") is None
+        page.keyboard.press('ArrowLeft')
+        assert '6 / 6 PLIES' in page.locator('#nav-position').text_content()
+    finally:
+        page.close()
+
+
 def main() -> None:
     screenshot_dir = os.environ.get('GVM_SCREENSHOT_DIR')
     if screenshot_dir:
@@ -898,6 +915,7 @@ def main() -> None:
             test_shared_peer_challenges(browser)
             test_embedded_challenge(browser)
             test_embedded_live_championship(browser)
+            test_broadcast_read_only(browser)
             if os.environ.get("GVM_EXTENDED_BROWSER") == "1":
                 test_full_session_and_fast_input(browser)
             test_lab(browser, screenshot_dir)
