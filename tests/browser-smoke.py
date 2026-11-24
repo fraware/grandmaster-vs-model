@@ -129,6 +129,7 @@ def test_home(browser, screenshot_dir: str | None) -> None:
         })""")
         assert visual['background'] == 'rgb(24, 24, 24)', visual
         assert 'Source Sans 3' in visual['headingFont'], visual
+        assert page.evaluate("""() => [...document.querySelectorAll('#challenge-board .challenge-piece')].every(el => el.dataset.piece && getComputedStyle(el).backgroundImage.startsWith('url("data:image/svg+xml,'))"""), 'Historical vector piece missing'
         assert visual['light'] == 'rgb(232, 232, 232)', visual
         assert visual['dark'] == 'rgb(150, 150, 150)', visual
         assert page.evaluate("""() => Array.from(document.querySelectorAll(
@@ -745,6 +746,7 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
         && getComputedStyle(document.querySelector('.chess-board .square.light')).backgroundColor === 'rgb(232, 232, 232)'
         && getComputedStyle(document.querySelector('.chess-board .square.dark')).backgroundColor === 'rgb(150, 150, 150)';
     }"""), 'Lab typography or grayscale board differs'
+    assert page.evaluate("""() => [...document.querySelectorAll('#board .piece')].every(el => el.dataset.piece && getComputedStyle(el).backgroundImage.startsWith('url("data:image/svg+xml,'))"""), 'Live vector piece missing'
     assert page.locator('.model-card').count() == 3
     assert '116 PLIES' in page.locator('#nav-position').inner_text()
     if screenshot_dir:
