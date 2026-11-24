@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 
 const base = new URL('../',import.meta.url);
 const text = name => readFile(new URL(name,base),'utf8');
@@ -48,17 +49,17 @@ test('tournament visual identity is consistent across both boards, favicon and s
   const theme = await text('theme.css');
   const icon = await text('favicon.svg');
   const exportScript = await text('src/challenge-ui.mjs');
-  const previewBuilder = await text('scripts/build-social-card.py');
+  const previewBuilder = await text('scripts/build-live-social-card.py');
   assert.match(home, /href="theme\.css"/);
   assert.match(lab, /href="theme\.css"/);
-  assert.match(theme, /--paper:\s*#101b1d/);
-  assert.match(theme, /--accent:\s*#d7ed75/);
-  assert.match(theme, /--board-dark:\s*#658c7b/);
-  assert.match(icon, /#d7ed75/);
-  assert.match(exportScript, /#101B1D/);
-  assert.match(exportScript, /#D7ED75/);
-  assert.match(previewBuilder, /#101b1d/);
-  assert.match(previewBuilder, /#d7ed75/);
+  assert.match(theme, /--paper:\s*#181818/);
+  assert.match(theme, /--accent:\s*#f1f1f1/);
+  assert.match(theme, /--board-dark:\s*#969696/);
+  assert.match(icon, /#f1f1f1/);
+  assert.match(exportScript, /#181818/);
+  assert.match(exportScript, /#f1f1f1/);
+  assert.match(previewBuilder, /#181818/);
+  assert.match(previewBuilder, /#f1f1f1/);
   for (const source of [theme, exportScript, previewBuilder]) {
     assert.doesNotMatch(source, /https?:\/\/fonts\.|@import/);
   }
@@ -195,9 +196,9 @@ test('both pages ship the same chess-first typography, board and contrast',async
   assert.match(workflow,/style\.css landing\.css theme\.css favicon\.svg/);
   assert.match(theme,/--font-display:/);
   assert.match(theme,/--font-score:/);
-  assert.match(theme,/--board-dark:\s*#658c7b/);
-  assert.match(theme,/--board-light:\s*#dbe6d6/);
-  assert.match(theme,/--accent:\s*#d7ed75/);
+  assert.match(theme,/--board-dark:\s*#969696/);
+  assert.match(theme,/--board-light:\s*#e8e8e8/);
+  assert.match(theme,/--accent:\s*#f1f1f1/);
   assert.doesNotMatch(theme,/@import|@font-face|https?:\/\/fonts\./);
   assert.doesNotMatch(theme,/backdrop-filter|linear-gradient|radial-gradient/);
 });
@@ -206,12 +207,13 @@ test('the share graphic and favicon match the tournament identity without remote
   const index=await text('index.html');
   const icon=await text('favicon.svg');
   const screenshot=await text('.github/workflows/preview.yml');
-  const generator=await text('scripts/build-social-card.py');
-  assert.match(index,/assets\/share-cover\.png\?v=5/);
-  assert.match(icon,/#d7ed75/);
-  assert.match(generator,/FONT_ROOT.*dejavu/);
-  assert.match(generator,/WHAT WOULD/);
-  assert.match(generator,/YOU PLAY/);
+  const generator=await text('scripts/build-live-social-card.py');
+  assert.match(index,/assets\/share-cover\.png\?v=6/);
+  assert.match(icon,/#f1f1f1/);
+  assert.match(generator,/FONTS.*dejavu/);
+  assert.match(generator,/WHAT'S/);
+  assert.match(generator,/YOUR MOVE\?/);
+  assert.match(generator,/if historical else/);
   assert.match(screenshot,/python scripts\/build-social-card\.py/);
   assert.match(screenshot,/assets\/preview\.webp assets\/share-cover\.png/);
 });
@@ -344,12 +346,12 @@ test('live championship shares use event-specific metadata and a deployed 1200x6
   const pages=await text('.github/workflows/pages.yml');
   const generator=await text('scripts/build-live-social-card.py');
   const preflight=await text('tests/production-preflight.py');
-  assert.match(home,/og:image" content="[^"]*assets\/share-cover\.png\?v=5"/);
+  assert.match(home,/og:image" content="[^"]*assets\/share-cover\.png\?v=6"/);
   assert.match(lab,/og:title" content="Gukesh vs Sindarov/);
   assert.match(lab,/og:description" content="Play a move on the 2026 World Chess Championship/);
   assert.match(lab,/twitter:title" content="Gukesh vs Sindarov/);
-  assert.match(lab,/og:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=1"/);
-  assert.match(lab,/twitter:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=1"/);
+  assert.match(lab,/og:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=3"/);
+  assert.match(lab,/twitter:image" content="https:\/\/fraware\.github\.io\/grandmaster-vs-model\/assets\/live-share-cover\.png\?v=3"/);
   assert.doesNotMatch(lab,/og:image" content="[^"]*assets\/share-cover\.png"/);
   assert.match(pages,/python -m pip install --disable-pip-version-check Pillow==12\.0\.0/);
   assert.match(pages,/python scripts\/build-live-social-card\.py --out _site\/assets\/live-share-cover\.png/);
@@ -357,7 +359,8 @@ test('live championship shares use event-specific metadata and a deployed 1200x6
     pages.indexOf('python scripts/build-live-social-card.py --out _site/assets/live-share-cover.png'));
   assert.match(generator,/Image\.new\("RGB", \(1200, 630\), BACKGROUND\)/);
   assert.match(generator,/GUKESH D  \/  JAVOKHIR SINDAROV/);
-  assert.match(generator,/WORLD CHESS CHAMPIONSHIP 2026/);
+  assert.match(generator,/year = 2024 if historical else 2026/);
+  assert.match(pages,/python scripts\/build-live-social-card\.py --historical --out _site\/assets\/share-cover\.png/);
   assert.match(generator,/DEFAULT_OUTPUT = ROOT \/ "assets\/live-share-cover\.png"/);
   assert.doesNotMatch(generator,/https?:\/\/|requests\.|urllib/);
   assert.match(preflight,/social_response = page\.request\.get\(social_url/);
@@ -395,4 +398,20 @@ test('live 2026 iframe and historical 2024 iframe are separate playable publicat
   assert.match(readme,/lab\.html\?mode=live&embed=1#experiment/);
   assert.match(readme,/Cross-site storage restrictions/);
   assert.doesNotMatch(controller,/sendBeacon|tracking|analytics\.track/);
+});
+
+ test('both pages bundle the pinned upright WOFF2 and no italic type declarations', async()=>{
+  const [home,lab,face,theme,landing,style,license] = await Promise.all(['index.html','lab.html','assets/typeface.css','theme.css','landing.css','style.css','assets/source-sans-LICENSE.md'].map(text));
+  for(const page of [home,lab])assert.match(page,/href="assets\/typeface\.css"/);
+  assert.match(theme,/--font-display:\s*"Source Sans 3"/);
+  assert.match(face,/font-style:\s*normal/);
+  assert.match(face,/font-weight:\s*200 900/);
+  const encoded=face.match(/data:font\/woff2;base64,([A-Za-z0-9+/=]+)/)?.[1];
+  assert.ok(encoded);
+  const bytes=Buffer.from(encoded,'base64');
+  assert.equal(bytes.subarray(0,4).toString(),'wOF2');
+  const gitBlob=createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+  assert.equal(gitBlob,'96cc9fd06ceb275ec3d6103ad97c5647212c88c5');
+  assert.match(license,/SIL OPEN FONT LICENSE Version 1\.1/);
+  for(const css of [theme,landing,style,face])assert.doesNotMatch(css,/\b(?:font-style|font)\s*:\s*(?:italic|oblique)\b/);
 });
