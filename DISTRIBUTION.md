@@ -4,7 +4,7 @@
 
 ## Positioning
 
-**For a chess viewer:** *Gukesh is about to move. What would you play?* A real, legal board, a private local choice and an official broadcast reveal. Before Game 1, make an opening guess. During play, only a source-validated active position is eligible. The choice is recreational and browser-local; the site's public data does not prove the prediction preceded the physical move.
+**For a chess viewer:** *Sindarov has White in Game 1. What would you play?* A real, legal board, a private local choice and an official broadcast reveal. Before Game 1, make an opening guess. During play, only a source-validated active position is eligible. The choice is recreational and browser-local; the site's public data does not prove the prediction preceded the physical move.
 
 **For chess publishers and teachers:** a free, accessible, privacy-conscious chess decision challenge with sources, a reproducible historical three-position embed and a live 2026 participation URL. A current-round 2026 compact iframe is now a separate, source-linked product from the historical three-position widget. Its publisher installation is still unmeasured; do not represent an uninstalled iframe as adopted.
 
@@ -16,7 +16,7 @@ The homepage and the live lab now produce distinct social previews. The live ima
 
 **22 November: opening ceremony.** Invite a small number of relevant chess publishers or coaches to try the actual site privately. Ask for the first unclear action and one mobile-device problem. Report their responses only if received. Verify the 2026 live OG image by loading the published `lab.html` URL in a real link-preview inspector; crawler caches can retain older card images.
 
-**23 November: pregame.** Publish a single high-quality demonstration of a visitor opening the Game 1 board and locking one legal opening guess. Show the unverified local timestamp disclosure. Share the official source URL. Request permission before posting a promotion in a moderated chess forum. Contact publishers individually with the full link, a screenshot and the narrow question, *Would this help your viewers choose a move before Tuesday's match?*
+**23 November: pregame.** Publish a single high-quality demonstration of a visitor opening the Game 1 board and locking one legal opening guess. Show the unverified local timestamp disclosure. Share the official source URL. Request permission before posting a promotion in a moderated chess forum. Contact publishers individually with the full link, a screenshot and the narrow question, *Would this help your viewers predict Sindarov's opening move?*
 
 **24 November: Game 1.** Official schedule: 15:00 Geneva CET, 14:00 UTC. Check the day's preflight and live Lichess PGN before reporting any actual moves. Share an observation only after source validation. If no model attempts or independent pre-move timestamps exist, display that fact plainly. This is the best moment for a timely product demonstration, subject to actual reliable feed delivery.
 
@@ -31,7 +31,7 @@ The homepage and the live lab now produce distinct social previews. The live ima
 
 ### Reusable launch texts (adapt personally; do not auto-post)
 
-**Player invitation:** “Gukesh–Sindarov starts Tuesday. I built a tiny open-source board where you make your opening move before Game 1, then compare it with the Lichess broadcast. Free, no account. Curious what you'd play: https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1#experiment”
+**Player invitation:** “Sindarov has White against Gukesh in Game 1 on 24 November. I built a free open-source board where you predict the first move, then compare it with the Lichess broadcast. Free, no account. Curious what you'd play: https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live&game=1#experiment”
 
 **Developer launch:** “Show HN: Grandmaster vs Model – play real championship moves, inspect the source. A dependency-free chess board and PGN replay are one part; the other is an intentionally strict boundary between browser-local guesses and actual pre-move model evidence. Play: https://fraware.github.io/grandmaster-vs-model/ · Source: https://github.com/fraware/grandmaster-vs-model”
 
