@@ -23,7 +23,7 @@
   --accent-dark: #e1a14a;
   --accent-soft: #383022;
   --slate: #b9d2ff;
-  --correct: #f3bf65;
+  --correct: #b9d2ff;
   --correct-soft: #273b56;
   --incorrect: #ffa995;
   --incorrect-soft: #482e35;
@@ -70,7 +70,7 @@ select:focus-visible, textarea:focus-visible {
   text-transform: uppercase;
   color: var(--ink);
 }
-.wordmark i, .identity-vs {
+.wordmark-vs, .identity-vs {
   font-style: normal;
   font-size: .70em;
   font-weight: 700;
@@ -156,7 +156,7 @@ footer, .site-footer { background: #111318; border-top: 1px solid var(--line); }
   margin: 6px 0 8px;
   color: var(--ink);
 }
-.intro-row h1 em {
+.intro-row h1 .hero-accent {
   font-family: inherit;
   font-size: inherit;
   font-weight: inherit;
