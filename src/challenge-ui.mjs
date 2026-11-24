@@ -167,6 +167,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
         const glyph = cell.querySelector('.challenge-piece') || document.createElement('span');
         glyph.className = `challenge-piece ${piece === piece.toUpperCase() ? 'white' : 'black'}`;
         glyph.textContent = pieceGlyph[piece];
+        glyph.dataset.piece = piece;
         glyph.setAttribute('aria-hidden', 'true');
         if (glyph.parentElement !== cell) cell.prepend(glyph);
       } else {
