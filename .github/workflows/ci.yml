@@ -75,10 +75,19 @@ jobs:
           python scripts/build-live-social-card.py --out "$RUNNER_TEMP/live-share-cover.png"
           python -c "from PIL import Image; from pathlib import Path; import os; p=Path(os.environ['RUNNER_TEMP'])/'live-share-cover.png'; im=Image.open(p); assert im.format=='PNG' and im.size==(1200,630), (im.format,im.size); im.verify(); assert p.stat().st_size>10000"
       - name: Test the historical game and all 14 registered live round selections
+        env:
+          GVM_SCREENSHOT_DIR: artifacts/design-review
         run: python tests/browser-smoke.py
       - name: Play a full spectator prediction, reveal, and continuation
         run: python tests/live-spectator-smoke.py
       - name: Preserve a prediction across real browser tab closure and return
         run: python tests/returning-spectator-smoke.py
       - name: Test game-day production preflight schedule selection offline
-        run: python tests/pregame-selector-smoke.py
+        run: python tests/pregame-selector-smoke.py      - name: Retain rendered design review captures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-review
+          path: artifacts/design-review/
+          if-no-files-found: ignore
+          retention-days: 14
