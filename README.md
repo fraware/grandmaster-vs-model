@@ -1,16 +1,24 @@
 # Grandmaster vs Model
 
-**Could you match a world champion? Fifteen sourced positions, five rounds, and a first-round comparison with recorded GPT responses.**
+**What will Sindarov play against Gukesh? Make your own move on the World Chess Championship board, then see what the grandmaster played.**
 
-Play a free chess challenge built from the real 2024 World Championship final. Make a legal move directly on the board to reveal the recorded grandmaster decision, compare your first three moves with a retrospective GPT API run, and continue through four further three-position practice sets. Share a score from any completed set. Behind the public challenge is an open, independently maintained prospective model-forecasting experiment. We compare *actual next moves* with verifiable model forecasts. The 2026 Gukesh–Sindarov match starts **24 November 2026** in Geneva, according to [FIDE's championship calendar](https://worldchampionship.fide.com/schedule).
-
-[Play the current 2026 championship board](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Read the methodology](METHOD.md) · [Review the launch plan](LAUNCH.md) · [Distribution playbook](DISTRIBUTION.md)
+[**Play the 2026 championship board →**](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment) · [Play the 2024 challenge](https://fraware.github.io/grandmaster-vs-model/#challenge) · [Embed the game](https://fraware.github.io/grandmaster-vs-model/#embed)
 
 [![Test and verify](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/ci.yml) [![Publish site](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml/badge.svg)](https://github.com/fraware/grandmaster-vs-model/actions/workflows/pages.yml)
 
-![Grandmaster vs Model three-move chess challenge, showing a real World Championship position](assets/preview.webp)
+[![The playable 2026 championship board before Game 1](assets/live-preview.webp)](https://fraware.github.io/grandmaster-vs-model/lab.html?mode=live#experiment)
 
-*Actual Chromium capture of the tournament-style historical chess challenge. Its retrospective GPT comparison is separate from the 2026 model experiment.*
+*Actual Chromium capture with a deterministic pregame fixture. [Mobile view](assets/live-preview-mobile.webp). No recorded 2026 moves are depicted.*
+
+Game 1 is scheduled for **24 November 2026, 14:00 UTC** in Geneva. [FIDE confirmed](https://www.fide.com/world-championship-match-2026-opens-in-geneva-at-a-historic-venue/) that Javokhir Sindarov has White in the first game. [Official schedule](https://worldchampionship.fide.com/schedule) · [Official Lichess broadcast](https://lichess.org/broadcast/fide-world-chess-championship-2026/qfkdt8mn).
+
+- **Play:** choose any legal move on the current board; the sourced broadcast resolves your local guess.
+- **Challenge:** invite friends, or play fifteen sourced historical positions across five rounds.
+- **Build:** reuse the free embeddable board, legal PGN replay, and open source-linked forecast records.
+
+Free, no account, no visitor API key. Local guesses are recreational, with unverified timing; the separate model experiment publishes evidence and missingness, not invented accuracy.
+
+[Methodology](METHOD.md) · [Launch plan](LAUNCH.md) · [Distribution playbook](DISTRIBUTION.md)
 
 ## Play the 2026 championship as it unfolds
 
@@ -23,10 +31,6 @@ Play a free chess challenge built from the real 2024 World Championship final. M
 **Source limitations.** A submitted opening guess before the game is not an authenticated claim of prospectivity. During play, a supported next-move position exists only in the official game session and with a successfully retrieved, legally validated open broadcast. The public source can arrive later than physical play. No local prediction is certified as preceding the player's physical move. The audience-facing 2026 experience is independent of the paid, reserved model requests.
 
 The implementation is in [`src/spectator.mjs`](src/spectator.mjs) and the main [live chess interface](app.mjs). Reproduce the isolated unit tests with `npm test` and the full spectator browser sequence with `python tests/live-spectator-smoke.py` after installing the pinned Playwright/Chromium environment described in [CI](.github/workflows/ci.yml).
-
-![Actual Chromium rendering of the playable 2026 championship board before Game 1](assets/live-preview.webp)
-
-*Pregame interface rendered in Chromium with a deterministic fixture, not a recording of played 2026 championship moves. [Mobile screenshot](assets/live-preview-mobile.webp).*
 
 ## Championship-specific social sharing
 
