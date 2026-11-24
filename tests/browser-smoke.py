@@ -735,6 +735,16 @@ def test_lab(browser, screenshot_dir: str | None) -> None:
     assert page.locator('#challenge-board').count() == 0
     page.locator('#tab-archive').click()
     assert page.locator('#board button.square').count() == 64
+    assert page.evaluate("""async () => {
+      await document.fonts.ready;
+      const normal = [...document.querySelectorAll('body *')].filter(el =>
+        el.getClientRects().length && el.children.length === 0 && el.textContent.trim()
+      ).every(el => getComputedStyle(el).fontStyle === 'normal');
+      return normal && getComputedStyle(document.querySelector('#lab-title')).fontFamily.includes('Source Sans 3')
+        && [...document.fonts].some(f => f.family.replace(/['"]/g, '') === 'Source Sans 3' && f.status === 'loaded')
+        && getComputedStyle(document.querySelector('.chess-board .square.light')).backgroundColor === 'rgb(232, 232, 232)'
+        && getComputedStyle(document.querySelector('.chess-board .square.dark')).backgroundColor === 'rgb(150, 150, 150)';
+    }"""), 'Lab typography or grayscale board differs'
     assert page.locator('.model-card').count() == 3
     assert '116 PLIES' in page.locator('#nav-position').inner_text()
     if screenshot_dir:
