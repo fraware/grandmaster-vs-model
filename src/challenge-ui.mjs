@@ -366,7 +366,7 @@ export function mountChallenge(archive, replay, retrospective = null) {
     if (thisPeer) setText('challenge-peer-target-text',
       `Shared target: ${thisPeer.target}/3 in this round. Match it or beat it.`);
     setText('challenge-count',`${index+1} of ${questions.length}`);
-    setText('board-instruction', 'Tap or drag a piece to play your move');
+    setText('board-instruction', 'Tap a piece, then a highlighted square. Or drag.');
     setText('challenge-phase',q.stage);
     setText('challenge-heading',q.title);
     setText('challenge-description',q.detail);
