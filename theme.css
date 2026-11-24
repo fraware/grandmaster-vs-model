@@ -985,3 +985,21 @@ em, i, cite, dfn, var { font-style: normal; }
 .chess-board .drag-source .piece { opacity: .2; }
 .chess-board.is-dragging, .chess-board.is-dragging .square { cursor: grabbing; }
 .chess-board .square.legal-target:after { background: #16161680; }
+
+/* OBS board view: only the validated source, player names and latest board. */
+html.broadcast-only .experience-header,
+html.broadcast-only .decisions-column,
+html.broadcast-only .live-embed-attribution,
+html.broadcast-only .board-heading,
+html.broadcast-only .live-board-instruction,
+html.broadcast-only .replay-controls,
+html.broadcast-only .board-context,
+html.broadcast-only #share-button,
+html.broadcast-only #refresh-button { display:none !important; }
+html.broadcast-only #experiment { max-width:none; padding:0; margin:0; }
+html.broadcast-only .experience-body { display:block; border:0; }
+html.broadcast-only .board-column { padding:0 8px; border:0; }
+html.broadcast-only .board-wrap { max-width:min(100%, calc(100vh - 132px)); margin:auto; }
+html.broadcast-only .source-strip { font-size:12px; min-height:40px; }
+html.broadcast-only .board-footer { max-width:min(100%, calc(100vh - 132px)); margin:auto; }
+html.broadcast-only .square:disabled { cursor:default; opacity:1; }
