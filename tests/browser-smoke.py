@@ -35,6 +35,8 @@ def page_sources(kind: str) -> tuple[str, str, dict]:
     html = (ROOT / html_file).read_text(encoding='utf-8')
     css = (ROOT / css_file).read_text(encoding='utf-8')
     html = html.replace(f'<link rel="stylesheet" href="{css_file}" />', f'<style>{css}</style>')
+    typeface = (ROOT / 'assets/typeface.css').read_text(encoding='utf-8')
+    html = html.replace('<link rel="stylesheet" href="assets/typeface.css" />', f'<style>{typeface}</style>')
     theme = (ROOT / 'theme.css').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="theme.css" />', f'<style>{theme}</style>')
     html = html.replace('<meta charset="utf-8" />', '<meta charset="utf-8" /><base href="https://fraware.github.io/grandmaster-vs-model/" />')
@@ -125,13 +127,18 @@ def test_home(browser, screenshot_dir: str | None) -> None:
           light: getComputedStyle(document.querySelector('.challenge-square.light')).backgroundColor,
           dark: getComputedStyle(document.querySelector('.challenge-square.dark')).backgroundColor
         })""")
-        assert visual['background'] == 'rgb(23, 25, 31)', visual
-        assert 'Arial' in visual['headingFont'], visual
-        assert visual['light'] == 'rgb(229, 233, 240)', visual
-        assert visual['dark'] == 'rgb(128, 145, 172)', visual
+        assert visual['background'] == 'rgb(24, 24, 24)', visual
+        assert 'Source Sans 3' in visual['headingFont'], visual
+        assert visual['light'] == 'rgb(232, 232, 232)', visual
+        assert visual['dark'] == 'rgb(150, 150, 150)', visual
         assert page.evaluate("""() => Array.from(document.querySelectorAll(
           '#hero-title, .hero-accent, .wordmark-vs, .challenge-prompt h2, .challenge-primary'
         )).every(el => getComputedStyle(el).fontStyle === 'normal')"""), visual
+        assert page.evaluate("""async () => {
+          await document.fonts.ready;
+          return [...document.fonts].some(f => f.family.replace(/['\"]/g, '') === 'Source Sans 3' && f.status === 'loaded');
+        }"""), 'Bundled upright font failed to load'
+        assert page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getClientRects().length && el.children.length === 0 && el.textContent.trim()).every(el => getComputedStyle(el).fontStyle === 'normal')"""), 'Visible italic text'
         invitation = page.locator('#live-hero-link')
         assert invitation.is_visible(), 'Event-aware chess link must be visible on mobile'
         assert 'mode=live&game=' in invitation.get_attribute('href')
