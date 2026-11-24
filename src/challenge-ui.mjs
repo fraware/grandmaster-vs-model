@@ -29,10 +29,10 @@ export function drawChallengeCard(score, matches = null, rivalScore = null, set 
   if (!ctx) throw new Error('Canvas unavailable');
   // Keep the share result visually continuous with the public chess board.
   // No external fonts or rendered chess position are involved.
-  const paper = '#101B1D', ink = '#F0F5EC', signal = '#D7ED75',
-    muted = '#AEC4BB', rule = '#35514E';
-  const display = '"Bahnschrift","DIN Alternate","DejaVu Sans Condensed","Arial Narrow",sans-serif';
-  const mono = '"Cascadia Mono","Consolas","DejaVu Sans Mono",monospace';
+  const paper = '#17191f', ink = '#f4f1eb', signal = '#f3bf65',
+    muted = '#c0c7d4', rule = '#434c5c';
+  const display = '"Arial","Helvetica Neue","Liberation Sans",sans-serif';
+  const mono = '"Arial","Helvetica Neue","Liberation Sans",sans-serif';
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1200, 630);
   ctx.fillStyle = signal;
@@ -51,9 +51,9 @@ export function drawChallengeCard(score, matches = null, rivalScore = null, set 
   if (matches) {
     matches.forEach((hit, i) => {
       const x = 68 + i * 76;
-      ctx.fillStyle = hit ? '#476E55' : '#654444';
+      ctx.fillStyle = hit ? '#385579' : '#654444';
       ctx.fillRect(x, 393, 55, 55);
-      ctx.fillStyle = hit ? '#E6F6B6' : '#FFE0D5';
+      ctx.fillStyle = hit ? '#e4efff' : '#FFE0D5';
       ctx.font = `800 29px ${display}`;
       ctx.fillText(hit ? '✓' : '×', x + 14, 431);
     });
